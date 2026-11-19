@@ -11,6 +11,11 @@ export default defineConfig({
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // MapLibre loads its web worker from a file next to its own module; pre-bundling moves the module
+    // and the worker URL breaks ("Worker failed to load").
+    exclude: ['maplibre-gl'],
+  },
   build: {
     // Passenger on MyDevil serves files from public/ directly; Fastify only handles /api and SPA fallback.
     outDir: '../public',

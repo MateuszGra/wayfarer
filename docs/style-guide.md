@@ -108,10 +108,10 @@ A lanky, bearded, slightly mysterious wanderer. Upright and young in posture, ne
 - **Body:** tall and slim, long legs. Thigh 27 units, shin 26 units, hip height 55 units, close to the full reach of the leg (56). The knees only soften and never crouch.
 - **Cape:** long, dark, down to mid-shin, with an upturned collar. No lining showing, no patches. The front edge follows the near leg; the back edge flutters in the wind.
 - **Hat:** a western hat in profile.
-  - The crown is low and tapered, pinched at the front, with a crease on top, and has a leather band.
-  - The brim is one lens-shaped piece. The front and back tips are nearly level, the back only slightly raised, and the middle rises in front of the crown where the curled sides are. It never looks like a pot, never has two brims, and is never wider than about 1.9 × the head width on each side.
+  - The crown is low and tapered, slightly pinched at the front, with a smooth rounded top (no crease), and has a leather band.
+  - The whole hat is traced from a side-view photo of a cowboy hat (`HAT_OUTLINE` in the scene engine): the far side of the brim rises beside the crown towards the back and the front, the near side turns up to meet the crown at the band, and the tips stay low. Change it by re-tracing a reference photo, not by drawing it by hand.
   - No feather, no sprig.
-- **Face:** skin tone, a nose, a small ear, a full dark-brown beard with a moustache. No blush and no visible eyes; the brim shades them.
+- **Face:** a plain skin-tone head with no drawn nose, ear or other features, and a dark-brown beard. He sets off clean-shaven; the beard grows with every day on the road: first stubble drawn as a scatter of dots along the jaw that fills in over the first week or so, then a beard shape that lengthens until it is full after 60 days, after which it stops growing. Never a moustache. No blush and no visible eyes; the brim shades them.
 - **Backpack:** a soft, lumpy canvas sack seen from the side.
   - The outline is uneven: narrower at the top, bulging at the bottom, with a dent between. The top is gathered and tied with a cord.
   - It has a side pocket and a tin mug hanging on the side.
@@ -120,18 +120,18 @@ A lanky, bearded, slightly mysterious wanderer. Upright and young in posture, ne
 
 ### Palette
 
-| Part                   | Colour                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| Cape                   | `#3B3338`, shaded side `#2A2428`                                              |
-| Hat                    | `#3A3236`, shaded side `#2B2528`, band `#6A4A32`                              |
-| Beard                  | `#6D5847`, shaded side `#56463A`                                              |
-| Skin                   | `#E8B993`, shaded side `#C9946F`                                              |
-| Shirt (barely visible) | `#DCCDAA`                                                                     |
-| Trousers               | `#3A3F52`, far leg `#2B2F3E`                                                  |
-| Boots                  | `#5A3D28`                                                                     |
-| Backpack               | `#86704F`, shaded side `#65523A`, pocket and flap `#75603F`, straps `#4A3A2C` |
-| Sleeping mat           | `#D9C7A3`, spiral `#A8946F`, end `#E8D9BA`                                    |
-| Wood (flute)           | `#A88458`                                                                     |
+| Part                   | Colour                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Cape                   | `#3B3338`, shaded side `#2A2428`                                                                                     |
+| Hat                    | brown like the boots `#5E3F2A`, shaded side `#47301F`, band `#6E3A26` with a gold `#E7B45A` and red `#B4452E` zigzag |
+| Beard                  | `#6D5847`, shaded side `#56463A`                                                                                     |
+| Skin                   | `#E8B993`, shaded side `#C9946F`                                                                                     |
+| Shirt (barely visible) | `#DCCDAA`                                                                                                            |
+| Trousers               | `#3A3F52`, far leg `#2B2F3E`                                                                                         |
+| Boots                  | `#5A3D28`                                                                                                            |
+| Backpack               | `#86704F`, shaded side `#65523A`, pocket and flap `#75603F`, straps `#4A3A2C`                                        |
+| Sleeping mat           | `#D9C7A3`, spiral `#A8946F`, end `#E8D9BA`                                                                           |
+| Pipe                   | `#4A3324`, glowing ember when he draws on it                                                                         |
 
 The dark cape is the mysterious silhouette. The light backpack and mat keep him readable against dark forests and at night.
 
@@ -145,9 +145,14 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
   - Body: the hip bobs about 1.6 units, slightly after foot contact. The lean is small (about 0.02–0.05 rad).
   - Arms: they swing opposite to the legs, and the far hand rests in a pocket. In a strong gust, the free hand holds the hat.
   - Backpack: it bounces slightly, a moment after the body.
+  - Pauses: now and then (about every 80 seconds) he stops for a few seconds and raises his head to take in the view, then walks on.
+  - Pipe on the road: some stretches he walks with the pipe in his teeth; a thin wisp rises from the bowl.
+  - Little gestures, each rare and at a fixed moment of its loop: he drinks from a leather waterskin (twice as often around midday and on the Meseta, never while smoking), tugs his backpack straps with both hands, straightens his hat, and kicks a pebble lying on the path so it skips ahead and comes to rest.
+  - On meadows and the Meseta some stretches he walks with a stalk of grass between his lips (never at the same time as the pipe).
+- **Morning:** at 06:36 he gets up and stretches once, for a few seconds, with both arms over his head and his head tipped back in a yawn. The stump is packed away with the tent. Until about 07:00 he packs up, bent forward with his hands busy low in front of him; then he stands ready and sets off at 07:12.
 - **Camp:**
   - He sits on a tall stump, knees up, with a soft breathing motion.
-  - For most of a 30-second cycle he plays a wooden flute, with small finger movement. There is no sound, and no notes or music symbols.
+  - For most of a 30-second cycle he smokes a pipe. Every 6 seconds he raises it to his mouth for about two seconds: the ember in the bowl glows, then he lowers the pipe and breathes out a little smoke. A thin wisp rises from the bowl the whole time.
   - Otherwise he holds a steaming mug, sips now and then and sometimes looks up at the sky.
 - **Sleep:** late at night he fades into the tent and the tent glows from inside.
 

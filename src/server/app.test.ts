@@ -41,8 +41,12 @@ describe('GET /api/routes', () => {
 
     const response = await app.inject({ method: 'GET', url: '/api/routes' });
 
+    const [route] = response.json().routes;
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ routes: [{ id: 'baltic-santiago', lengthKm: 3200 }] });
+    expect(route.id).toBe('baltic-santiago');
+    expect(route.lengthKm).toBe(3200);
+    expect(route.path[0]).toEqual([18.6466, 54.352]);
+    expect(route.path.at(-1)).toEqual([-8.5446, 42.8782]);
   });
 });
 

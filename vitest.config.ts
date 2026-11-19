@@ -17,7 +17,12 @@ export default defineConfig({
       {
         plugins: [vue()],
         resolve: { alias },
-        test: { name: 'web', environment: 'jsdom', include: ['web/src/**/*.test.ts'] },
+        test: {
+          name: 'web',
+          environment: 'jsdom',
+          include: ['web/src/**/*.test.ts'],
+          setupFiles: ['web/src/test/setup.ts'],
+        },
       },
     ],
   },

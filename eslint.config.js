@@ -5,7 +5,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'public', 'coverage', 'prototypes', 'node_modules'] },
+  // The prototype scene is a temporary, unported bridge (see its header comment).
+  { ignores: ['dist', 'public', 'coverage', 'prototypes', 'node_modules', 'web/src/scene-engine/prototype/*.js'] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   ...vue.configs['flat/recommended'],

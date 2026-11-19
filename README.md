@@ -36,10 +36,10 @@ The whole thing is **one modular monolith**: one repository and one Node process
 │   └── shared/                pure logic and contracts shared with the game (steps → km, daily walk, API types)
 ├── web/                       the game client (Vite root)
 │   └── src/
-│       ├── app/               App shell and router (/scene, /map, /journal, /settings)
+│       ├── app/               App shell and router (/login, /forgot-password, /start, /scene)
 │       ├── design-system/     tokens.css and Base* atoms
-│       ├── shared/            feature-agnostic molecules, organisms, i18n (Polish copy), API client
-│       ├── features/          one folder per feature: views/, components/{atoms,molecules,organisms}/, composables/
+│       ├── shared/            feature-agnostic molecules and organisms (game menu, route map), composables, i18n, API client
+│       ├── features/          auth (sign-in), onboarding (route and daily goal), scene (game, map and achievements windows)
 │       └── scene-engine/      framework-free PixiJS scene (only SceneView.vue touches it)
 └── public/                    build output of the game (git-ignored), served by Passenger
 ```
@@ -122,6 +122,28 @@ To stop everything, run `docker compose down`. Your data stays in the `db-data` 
 - Unit tests need no database or network. Time comes from an injected clock, and external services are replaced with fakes.
 - API tests use `fastify.inject()` against an app built with fake dependencies (see `src/server/app.test.ts`).
 - Integration tests against PostgreSQL are few and use `TEST_DATABASE_URL`, a separate `wayfarer_test` database created by `docker/postgres/init.sql`.
+
+## Screens
+
+| Path               | What it is                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`           | Sign-in and account creation over a still landscape, without the wanderer                                                       |
+| `/forgot-password` | Placeholder until password reset exists                                                                                         |
+| `/start`           | Choosing the route and the daily step goal on the map, with the journey length worked out live                                  |
+| `/scene`           | The game. The ☰ button (or Escape) opens the menu: Map and Achievements open as windows over the game, sign-out is always last |
+
+Until the auth API and step sync exist, signing in leads straight on, and progress and step history are demo data.
+
+## Developer tools
+
+In development builds the game shows a developer panel on the right (it slides away to a tab): time of day, a faster clock, the beard by days on the road, the biome and a new variant. URL parameters, in development or with `?dev`:
+
+| Parameter                        | Effect                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `?dev`                           | Shows the developer tools in a production build                                |
+| `?hour=12`                       | Starts at that hour instead of following the clock                             |
+| `?t=56`                          | Jumps the animation loops (pipe, stops on the road, lighthouse) to that second |
+| `?menu`, `?map`, `?achievements` | Starts with that window open                                                   |
 
 ## API errors
 

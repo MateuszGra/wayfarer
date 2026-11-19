@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { WandererStatus } from '@/scene-engine';
 import { t } from '@/shared/i18n';
 import StatLine from '../../molecules/StatLine/StatLine.vue';
 
@@ -7,20 +8,17 @@ export interface Props {
   routeId: 'baltic-santiago';
   doneKm: number;
   totalKm: number;
-  hour: number;
+  day: number;
+  status: WandererStatus;
 }
 
 defineOptions({ name: 'SceneHud' });
 const props = defineProps<Props>();
 
-const clock = computed(() => {
-  const h = Math.floor(props.hour);
-  const m = Math.floor((props.hour - h) * 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-});
 const distance = computed(() =>
   t('scene.distance', { done: props.doneKm.toFixed(1).replace('.', ','), total: props.totalKm }),
 );
+const details = computed(() => `${t('scene.day', { day: props.day })} · ${t(`scene.status.${props.status}`)}`);
 const progress = computed(() => `${Math.min(100, (props.doneKm / props.totalKm) * 100).toFixed(2)}%`);
 </script>
 
@@ -30,7 +28,7 @@ const progress = computed(() => `${Math.min(100, (props.doneKm / props.totalKm) 
     <StatLine :text="t(`route.${routeId}`)" emphasis data-testid="hud-route" />
     <div class="scene-hud__bar" aria-hidden="true"><div class="scene-hud__fill" :style="{ width: progress }" /></div>
     <StatLine :text="distance" data-testid="hud-distance" />
-    <StatLine :text="clock" data-testid="hud-clock" />
+    <StatLine :text="details" data-testid="hud-details" />
   </header>
 </template>
 

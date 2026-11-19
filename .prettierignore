@@ -4,3 +4,4 @@ public
 coverage
 package-lock.json
 prototypes
+web/src/scene-engine/prototype/*.js

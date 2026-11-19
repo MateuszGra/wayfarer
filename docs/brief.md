@@ -69,12 +69,13 @@ The game follows the player's local time of day:
 
 The traveller walks on **yesterday's** steps. This gives the game a calm daily rhythm and means today's walk is already decided when the player opens the game.
 
-1. **Sync after midnight.** Shortly after midnight (player's local time) the server fetches the previous day's steps from the connected tracker and stores them as today's step budget.
-2. **The walk starts at 06:00.** If the budget is above zero, the traveller packs up and sets off at 06:00.
-3. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **10,000 steps = walking until 20:00**. Fewer steps mean an earlier stop. The walk never goes past sunset; extra steps beyond the cap make the traveller cover more distance in the same time.
-4. **Distance comes from steps.** The distance gained on the route is calculated from the steps (stride length); the walking time only spreads that distance across the day. When the walk ends the traveller has covered exactly the distance earned.
-5. **When the budget runs out during the day,** the traveller makes camp and rests until morning. The fire is lit only in the evening.
-6. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off.
+1. **First sync imports yesterday.** Right after the account is created and a step source is connected, the first sync fetches **yesterday's** steps. They become the budget for the very first day, so the traveller sets off on the day the player joins instead of waiting until tomorrow. Older history is not imported: the journey starts now.
+2. **Sync after midnight.** From then on, shortly after midnight (player's local time) the server fetches the previous day's steps from the connected tracker and stores them as today's step budget.
+3. **The walk starts at 06:00.** If the budget is above zero, the traveller packs up and sets off at 06:00.
+4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **10,000 steps = walking until 20:00**. Fewer steps mean an earlier stop. The walk never goes past sunset; extra steps beyond the cap make the traveller cover more distance in the same time.
+5. **Distance comes from steps.** The distance gained on the route is calculated from the steps (stride length); the walking time only spreads that distance across the day. When the walk ends the traveller has covered exactly the distance earned.
+6. **When the budget runs out during the day,** the traveller makes camp and rests until morning. The fire is lit only in the evening.
+7. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off.
 
 Open questions for these rules:
 

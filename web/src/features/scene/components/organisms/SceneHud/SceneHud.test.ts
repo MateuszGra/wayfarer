@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import SceneHud from './SceneHud.vue';
 
 const hud = (props: Partial<InstanceType<typeof SceneHud>['$props']> = {}) =>
-  mount(SceneHud, { props: { routeId: 'baltic-santiago', doneKm: 214, totalKm: 3200, hour: 18.5, ...props } });
+  mount(SceneHud, {
+    props: { routeId: 'baltic-santiago', doneKm: 214, totalKm: 3200, day: 12, status: 'walking', ...props },
+  });
 
 describe('SceneHud', () => {
   it('shows the route name in Polish', () => {
@@ -15,10 +17,9 @@ describe('SceneHud', () => {
   });
 
   it.each([
-    { hour: 0, clock: '00:00' },
-    { hour: 6.5, clock: '06:30' },
-    { hour: 23.99, clock: '23:59' },
-  ])('shows $clock for hour $hour', ({ hour, clock }) => {
-    expect(hud({ hour }).get('[data-testid="hud-clock"]').text()).toBe(clock);
+    { status: 'walking', text: 'Dzień 12 · Wędruje' },
+    { status: 'sleeping', text: 'Dzień 12 · Śpi w namiocie' },
+  ] as const)('describes the wanderer as "$text" when $status', ({ status, text }) => {
+    expect(hud({ status }).get('[data-testid="hud-details"]').text()).toBe(text);
   });
 });

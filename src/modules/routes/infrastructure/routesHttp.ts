@@ -13,8 +13,15 @@ const routeListSchema = {
           type: 'array',
           items: {
             type: 'object',
-            required: ['id', 'lengthKm'],
-            properties: { id: { type: 'string' }, lengthKm: { type: 'number' } },
+            required: ['id', 'lengthKm', 'path'],
+            properties: {
+              id: { type: 'string' },
+              lengthKm: { type: 'number' },
+              path: {
+                type: 'array',
+                items: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 },
+              },
+            },
           },
         },
       },
