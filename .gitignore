@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# Vite builds the game into public/, which Passenger serves on MyDevil.
+/public/
+coverage/
+.env
+*.log
+.DS_Store

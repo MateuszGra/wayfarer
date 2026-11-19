@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "jsx": "preserve",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../src/shared/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "../src/shared/**/*.ts"]
+}
