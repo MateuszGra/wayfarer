@@ -52,6 +52,26 @@ describe('walkingWindow', () => {
     expect(walkingWindow(10_000, 10_000, 21)).toBeNull();
   });
 
+  describe('on a short November day in Słupsk (sun 07:30 to 15:45)', () => {
+    const november = { sunriseHour: 7.5, sunsetHour: 15.75 };
+
+    it('walks from sunrise until half an hour after sunset on the full goal', () => {
+      expect(walkingWindow(10_000, 10_000, 0, november)).toEqual({ startHour: 7.5, endHour: 16.25 });
+    });
+
+    it('walks half of that walking day on half the goal', () => {
+      expect(walkingWindow(5_000, 10_000, 0, november)).toEqual({ startHour: 7.5, endHour: 11.875 });
+    });
+
+    it('still walks steps entered just after sunset, until dusk', () => {
+      expect(walkingWindow(10_000, 10_000, 16, november)).toEqual({ startHour: 16, endHour: 16.25 });
+    });
+
+    it('has nothing left to walk once dusk has passed', () => {
+      expect(walkingWindow(10_000, 10_000, 16.25, november)).toBeNull();
+    });
+  });
+
   it.each([0, -1, 2.5])('throws when the goal is %s', (goal) => {
     expect(() => walkingWindow(1_000, goal)).toThrow(RangeError);
   });

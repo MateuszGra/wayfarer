@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { WALK_START_HOUR } from '@shared/steps/dailyWalk';
+import { DEFAULT_DAYLIGHT } from '@shared/steps/dailyWalk';
 import type { Weather } from '@shared/weather/weather';
 import type { SceneSnapshot, SceneWalk } from '@/scene-engine';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
@@ -21,6 +21,7 @@ import RotateHint from '../components/organisms/RotateHint/RotateHint.vue';
 import SceneHud from '../components/organisms/SceneHud/SceneHud.vue';
 import SettingsDialog from '../components/organisms/SettingsDialog/SettingsDialog.vue';
 import YesterdayStepsDialog from '../components/organisms/YesterdayStepsDialog/YesterdayStepsDialog.vue';
+import { sceneHour } from '../composables/sceneClock';
 import { useClockHour } from '../composables/useClockHour';
 
 defineOptions({ name: 'SceneView' });
@@ -77,12 +78,21 @@ const correctSteps = (): void => {
 // Steps entered after dawn are walked from the moment they came in: he first gets up, stretches and
 // packs for a few seconds, which is the little scene that answers the player's entry.
 const PACK_UP_HOURS = 12 / 3600;
+// The scene runs on its own clock, mapped from the real one so its sun sets when the real one does (see
+// sceneClock.ts); the walk, in real hours, is mapped the same way.
+const daylight = computed(() => today.value?.daylight ?? DEFAULT_DAYLIGHT);
+const toScene = (hour: number): number => sceneHour(hour, daylight.value);
+const sceneNow = computed(() => toScene(clockHour.value));
 const sceneWalk = computed<SceneWalk | null>(() => {
   const walk = today.value?.walk;
   if (!walk) return null;
-  return walk.startHour > WALK_START_HOUR
-    ? { startHour: walk.startHour + PACK_UP_HOURS, endHour: walk.endHour, leadHours: PACK_UP_HOURS }
-    : walk;
+  return walk.startHour > daylight.value.sunriseHour
+    ? {
+        startHour: toScene(walk.startHour + PACK_UP_HOURS),
+        endHour: toScene(walk.endHour),
+        leadHours: toScene(walk.startHour + PACK_UP_HOURS) - toScene(walk.startHour),
+      }
+    : { startHour: toScene(walk.startHour), endHour: toScene(walk.endHour) };
 });
 
 // A new day (midnight passed, or the game came back from the background) may need new steps.
@@ -104,7 +114,7 @@ const beardDay = computed(() => beardDayOverride.value ?? today.value?.day ?? 1)
 const beard = computed(() => beardLength(beardDay.value));
 
 const scene = useSceneHost(host, () => ({
-  hour: clockHour.value,
+  hour: sceneNow.value,
   biome: 'baltic',
   auto: false,
   dayLengthSeconds: DAY_LENGTHS_MINUTES[0] * 60,
@@ -119,7 +129,7 @@ const behaviours = computed(() => snapshot.value?.behaviours ?? []);
 watch([scene, beard], ([created, length]) => created?.setBeard(length));
 watch([scene, sceneWalk], ([created, walk]) => created?.setWalk(walk));
 watch([scene, sceneWeather], ([created, weather]) => created?.setWeather(weather));
-watch(clockHour, (hour) => {
+watch(sceneNow, (hour) => {
   if (followClock.value) scene.value?.setHour(hour);
 });
 
@@ -135,7 +145,7 @@ const togglePlay = (): void => {
 const backToNow = (): void => {
   followClock.value = true;
   scene.value?.setAuto(false);
-  scene.value?.setHour(clockHour.value);
+  scene.value?.setHour(sceneNow.value);
 };
 const cycleDayLength = (): void => {
   dayLengthIndex.value = (dayLengthIndex.value + 1) % DAY_LENGTHS_MINUTES.length;

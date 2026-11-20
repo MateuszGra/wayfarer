@@ -57,5 +57,7 @@ export function createInMemoryJourneys(
     routes: { exists: async (id) => routeIds.includes(id) },
     clock: new FakeJourneyClock(start),
     newId: () => `journey-${nextId++}`,
+    // Słupsk, where every player is until regions come from IP addresses.
+    place: { latitude: 54.46, longitude: 17.03 },
   };
 }

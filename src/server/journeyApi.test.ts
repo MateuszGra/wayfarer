@@ -107,8 +107,10 @@ describe('journey API', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       journey: { startedOn: '2026-11-20' },
-      today: { day: 1, stepsEntered: 10_000, walk: { startHour: 8, endHour: 20 }, kmToday: 7.5 },
+      today: { day: 1, stepsEntered: 10_000, walk: { startHour: 8 }, kmToday: 7.5 },
     });
+    // In Słupsk on 20 November the sun sets at 15:45; the walk ends half an hour later, at dusk.
+    expect(response.json().today.walk.endHour).toBeCloseTo(16.24, 2);
   });
 
   it('returns invalid_steps with 400 above 50 000 steps', async () => {

@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_DAYLIGHT } from '../steps/dailyWalk';
 import { journeyDay, type StepEntry } from './journeyDay';
 
 const GOAL = 10_000;
+// A walking day of 06:00 to 20:00; daylight itself is covered by the walking window's tests.
+const DAY = DEFAULT_DAYLIGHT;
 const entry = (date: string, steps: number, enteredAtHour = 7): StepEntry => ({ date, steps, enteredAtHour });
 
 describe('journeyDay', () => {
   it('asks a new player for yesterday on day 1, with nothing walked yet', () => {
-    const today = journeyDay({ startedOn: null, dailyGoal: GOAL, entries: [], today: '2026-11-20' });
+    const today = journeyDay({ startedOn: null, dailyGoal: GOAL, daylight: DAY, entries: [], today: '2026-11-20' });
 
     expect(today).toMatchObject({
       day: 1,
@@ -23,6 +26,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-20',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-19', 10_000, 5)],
       today: '2026-11-20',
     });
@@ -32,7 +36,13 @@ describe('journeyDay', () => {
   });
 
   it('counts the days on the road from the first one', () => {
-    const today = journeyDay({ startedOn: '2026-11-18', dailyGoal: GOAL, entries: [], today: '2026-11-20' });
+    const today = journeyDay({
+      startedOn: '2026-11-18',
+      dailyGoal: GOAL,
+      daylight: DAY,
+      entries: [],
+      today: '2026-11-20',
+    });
 
     expect(today.day).toBe(3);
   });
@@ -41,6 +51,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-18',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-17', 10_000), entry('2026-11-18', 4_000)],
       today: '2026-11-20',
     });
@@ -52,6 +63,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-18',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-17', 10_000), entry('2026-11-19', 6_000)],
       today: '2026-11-20',
     });
@@ -67,6 +79,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-18',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-17', 10_000)],
       today: '2026-11-20',
     });
@@ -79,6 +92,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-20',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-19', 0)],
       today: '2026-11-20',
     });
@@ -90,6 +104,7 @@ describe('journeyDay', () => {
     const today = journeyDay({
       startedOn: '2026-11-20',
       dailyGoal: GOAL,
+      daylight: DAY,
       entries: [entry('2026-11-19', 10_000, 21)],
       today: '2026-11-20',
     });

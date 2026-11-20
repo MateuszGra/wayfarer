@@ -1,6 +1,7 @@
 import type { JourneyResponse } from '../../../shared/api/contracts.js';
 import { JourneyError } from '../domain/errors.js';
 import { Journey } from '../domain/journey.js';
+import type { GeoPoint } from '../../../shared/sun/daylight.js';
 import type { Clock, JourneyRepository, RouteLookup } from '../domain/ports.js';
 
 export interface JourneyDependencies {
@@ -8,11 +9,13 @@ export interface JourneyDependencies {
   readonly routes: RouteLookup;
   readonly clock: Clock;
   readonly newId: () => string;
+  /** Where the player is, for the hours of daylight. Everyone is in one region until regions come from IP. */
+  readonly place: GeoPoint;
 }
 
-function view(journey: Journey, now: Date): JourneyResponse {
+function view(journey: Journey, now: Date, place: GeoPoint): JourneyResponse {
   const s = journey.snapshot();
-  const day = journey.today(now);
+  const day = journey.today(now, place);
   return {
     journey: {
       routeId: s.routeId,
@@ -26,6 +29,7 @@ function view(journey: Journey, now: Date): JourneyResponse {
       day: day.day,
       stepsDate: day.stepsDate,
       stepsEntered: day.stepsEntered,
+      daylight: day.daylight,
       walk: day.walk,
       kmAtDayStart: day.kmAtDayStart,
       kmToday: day.kmToday,
@@ -50,11 +54,11 @@ export async function planJourney(
   if (!(await deps.routes.exists(routeId))) throw new JourneyError('unknown_route');
   const journey = Journey.create(deps.newId(), accountId, routeId, dailySteps, timeZone);
   if (!(await deps.journeys.add(journey))) throw new JourneyError('journey_exists');
-  return view(journey, deps.clock.now());
+  return view(journey, deps.clock.now(), deps.place);
 }
 
 export async function currentJourney(deps: JourneyDependencies, accountId: string): Promise<JourneyResponse> {
-  return view(await load(deps, accountId), deps.clock.now());
+  return view(await load(deps, accountId), deps.clock.now(), deps.place);
 }
 
 export async function recordSteps(
@@ -67,7 +71,7 @@ export async function recordSteps(
   const entry = journey.recordYesterday(steps, now);
   await deps.journeys.saveEntry(journey.snapshot().id, entry);
   await deps.journeys.savePlan(journey);
-  return view(journey, now);
+  return view(journey, now, deps.place);
 }
 
 export async function changePlan(
@@ -81,5 +85,5 @@ export async function changePlan(
   const now = deps.clock.now();
   journey.changePlan(routeId, dailySteps, now);
   await deps.journeys.savePlan(journey);
-  return view(journey, now);
+  return view(journey, now, deps.place);
 }

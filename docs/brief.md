@@ -71,8 +71,8 @@ The traveller walks on **yesterday's** steps. This gives the game a calm daily r
 
 1. **First sync imports yesterday.** Right after the account is created and a step source is connected, the first sync fetches **yesterday's** steps. They become the budget for the very first day, so the traveller sets off on the day the player joins instead of waiting until tomorrow. Older history is not imported: the journey starts now.
 2. **Sync after midnight.** From then on, shortly after midnight (player's local time) the server fetches the previous day's steps from the connected tracker and stores them as today's step budget.
-3. **The walk starts at 06:00.** If the budget is above zero, the traveller packs up and sets off at 06:00.
-4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **the player's daily goal = walking until 20:00**. Fewer steps mean an earlier stop. The walk never goes past sunset; extra steps beyond the cap make the traveller cover more distance in the same time.
+3. **The walk starts at sunrise.** If the budget is above zero, the traveller packs up and sets off when the real sun rises where the player is.
+4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **the player's daily goal = walking from sunrise until half an hour after sunset**, so he reaches camp at dusk. Fewer steps mean an earlier stop. He never walks in the dark; extra steps beyond the goal make him cover more distance in the same time. A short winter day means a short walk on screen, never fewer kilometres.
 5. **Distance comes from steps.** The distance gained on the route is calculated from the steps (stride length); the walking time only spreads that distance across the day. When the walk ends the traveller has covered exactly the distance earned.
 6. **When the budget runs out during the day,** the traveller makes camp and rests until morning. The fire is lit only in the evening.
 7. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off.
@@ -90,12 +90,15 @@ apply to those numbers:
 - **Every day starts with "How many steps did you take yesterday?"** A window that can't be dismissed
   asks for yesterday's steps (the word _yesterday_ stands out, so nobody enters today's steps in the
   evening). The first answer starts day 1 on the road. Zero is a valid answer and means a rest day.
-- **The goal is a full day.** Steps equal to the player's daily goal let the traveller walk from 06:00
-  to 20:00; fewer steps end the walk earlier, more only quicken the pace.
+- **The goal is a full day.** Steps equal to the player's daily goal let the traveller walk from sunrise
+  to half an hour after sunset; fewer steps end the walk earlier, more only quicken the pace.
 - **Late answers.** Steps entered during the day start the walk then (after a few seconds of getting up
-  and packing) and last as long as the steps allow, but never past 20:00: entered at 18:00, the walk
-  lasts until 20:00 at most. Steps entered after 20:00 count towards the distance, but the traveller
-  sleeps on.
+  and packing) and last as long as the steps allow, but never past dusk (half an hour after sunset).
+  Steps entered after dusk count towards the distance, but the traveller stays at camp.
+- **Sunrise and sunset** are worked out from the date and the player's region (until regions come from
+  the IP address, everyone is in Słupsk), so the game's sun sets when the real one does. The scene keeps
+  its own day, drawn for a sunrise at 06:00 and a sunset at 20:00, and the real day is stretched or
+  squeezed onto it.
 - **A missed day is a rest day.** If a whole day passes without yesterday's steps, that day counts as zero
   and the next day asks about the day just gone.
 - **Corrections until midnight.** Yesterday's steps can be corrected the same day from the journal.

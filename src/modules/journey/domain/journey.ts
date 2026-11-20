@@ -1,6 +1,8 @@
 import { addDays, isTimeZone, localDate, localHour, type LocalDate } from '../../../shared/journey/calendar.js';
 import { journeyDay, type JourneyDay, type StepEntry } from '../../../shared/journey/journeyDay.js';
 import { isDailyGoal, isDayOfSteps } from '../../../shared/journey/rules.js';
+import { DEFAULT_DAYLIGHT } from '../../../shared/steps/dailyWalk.js';
+import { daylightOn, type GeoPoint } from '../../../shared/sun/daylight.js';
 import { JourneyError } from './errors.js';
 
 export interface JourneyState {
@@ -66,14 +68,21 @@ export class Journey {
     this.state = { ...this.state, routeId, dailySteps, routeSinceKm };
   }
 
-  today(now: Date): JourneyDay {
-    const { startedOn, dailySteps, entries, timeZone } = this.state;
-    return journeyDay({ startedOn, dailyGoal: dailySteps, entries, today: localDate(now, timeZone) });
+  /** Where the journey stands at `now`; the walk keeps to the daylight at `place`, where the player is. */
+  today(now: Date, place: GeoPoint): JourneyDay {
+    const date = localDate(now, this.state.timeZone);
+    return this.dayAt(date, daylightOn(date, this.state.timeZone, place) ?? DEFAULT_DAYLIGHT);
+  }
+
+  private dayAt(today: LocalDate, daylight: JourneyDay['daylight']): JourneyDay {
+    const { startedOn, dailySteps, entries } = this.state;
+    return journeyDay({ startedOn, dailyGoal: dailySteps, entries, today, daylight });
   }
 
   /** The whole distance on the road at `now`; today's steps count from the moment they are entered. */
   kmWalked(now: Date): number {
-    const day = this.today(now);
+    // Distance doesn't depend on when the sun sets, only the walk on screen does.
+    const day = this.dayAt(localDate(now, this.state.timeZone), DEFAULT_DAYLIGHT);
     return day.kmAtDayStart + day.kmToday;
   }
 }

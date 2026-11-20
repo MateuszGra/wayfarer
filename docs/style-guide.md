@@ -40,6 +40,7 @@ The palette is keyframed by hour and interpolated with smoothstep. Each keyframe
 
 Rules:
 
+- The hours here are the scene's own. The real clock is mapped onto them so the real sunrise falls at the scene's 6:00 and the real sunset at its 20:00 (`web/src/features/scene/composables/sceneClock.ts`); a short winter day is stretched, a long summer day squeezed.
 - Sun path: rises about 5:36, sets about 20:24, arc across the sky. Moon: about 19:48 to 6:48.
 - **Occlusion:** a sun or moon hidden behind the terrain lights nothing. Lake reflection, ridge rim light, sun rays, the sun veil and most of the lit/shaded contrast fade out over about one disc diameter as it sinks behind a peak.
 - Morning mist peaks around 6:00–7:30 and clears by 10:00.

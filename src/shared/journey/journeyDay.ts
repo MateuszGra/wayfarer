@@ -1,4 +1,5 @@
 import { distanceKm, walkingWindow, type WalkingWindow } from '../steps/dailyWalk.js';
+import type { Daylight } from '../sun/daylight.js';
 import { addDays, daysBetween, type LocalDate } from './calendar.js';
 
 /** Steps the player walked on `date`, which the traveller walks the day after. */
@@ -15,6 +16,8 @@ export interface JourneyDayInput {
   readonly dailyGoal: number;
   readonly entries: readonly StepEntry[];
   readonly today: LocalDate;
+  /** Sunrise and sunset today where the player is; the walk keeps to them. */
+  readonly daylight: Daylight;
 }
 
 export interface HistoryDay {
@@ -34,6 +37,8 @@ export interface JourneyDay {
   readonly stepsDate: LocalDate;
   /** Yesterday's steps if already entered (they can be corrected until midnight), else null. */
   readonly stepsEntered: number | null;
+  /** Sunrise and sunset today where the player is. */
+  readonly daylight: Daylight;
   /** Today's walk on screen, or null: a rest day, or the steps came too late to walk them on screen. */
   readonly walk: WalkingWindow | null;
   /** Distance covered by the end of yesterday's walk. */
@@ -48,7 +53,7 @@ export interface JourneyDay {
  * Where the journey stands today. The traveller walks on yesterday's steps; a day whose steps were never
  * entered is a rest day (zero steps), and days before the first entry don't exist on the road.
  */
-export function journeyDay({ startedOn, dailyGoal, entries, today }: JourneyDayInput): JourneyDay {
+export function journeyDay({ startedOn, dailyGoal, entries, today, daylight }: JourneyDayInput): JourneyDay {
   const stepsDate = addDays(today, -1);
   const byDate = new Map(entries.map((entry) => [entry.date, entry]));
   const todayEntry = byDate.get(stepsDate) ?? null;
@@ -69,7 +74,8 @@ export function journeyDay({ startedOn, dailyGoal, entries, today }: JourneyDayI
     day,
     stepsDate,
     stepsEntered: todayEntry?.steps ?? null,
-    walk: todayEntry ? walkingWindow(todayEntry.steps, dailyGoal, todayEntry.enteredAtHour) : null,
+    daylight,
+    walk: todayEntry ? walkingWindow(todayEntry.steps, dailyGoal, todayEntry.enteredAtHour, daylight) : null,
     kmAtDayStart,
     kmToday: todayEntry ? distanceKm(todayEntry.steps) : 0,
     history: startedOn ? history : [],

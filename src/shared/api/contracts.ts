@@ -69,6 +69,8 @@ export interface JourneyTodayDto {
   /** The date whose steps the player is asked for today. */
   readonly stepsDate: string;
   readonly stepsEntered: number | null;
+  /** Today's sunrise and sunset where the player is, as local hours; the walk keeps to them. */
+  readonly daylight: { readonly sunriseHour: number; readonly sunsetHour: number };
   readonly walk: { readonly startHour: number; readonly endHour: number } | null;
   readonly kmAtDayStart: number;
   readonly kmToday: number;

@@ -13,7 +13,7 @@ import {
 } from '../modules/auth/index.js';
 import { createSqlJourneyRepository } from '../modules/journey/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
-import { createOpenMeteo, createWeatherService } from '../modules/weather/index.js';
+import { createOpenMeteo, createWeatherService, DEFAULT_REGION } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
 import { readConfig } from './config.js';
 
@@ -38,6 +38,7 @@ const app = await buildApp({
     routes: { exists: async (id) => (await routeCatalog.all()).some((route) => route.id === id) },
     clock: { now: () => new Date() },
     newId: () => uuidv7(new Date()),
+    place: DEFAULT_REGION,
   },
   auth: {
     accounts: createSqlAccountRepository(db),
