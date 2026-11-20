@@ -4,5 +4,7 @@ dist/
 /public/
 coverage/
 .env
+# Production settings with passwords, filled in by hand and copied to the server as .env.
+.env.production
 *.log
 .DS_Store

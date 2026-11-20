@@ -4,6 +4,7 @@ A slow, cozy walking game powered by the player's real-world steps. A lone wande
 
 - What the game is and its rules: [docs/brief.md](docs/brief.md)
 - How it looks and moves: [docs/style-guide.md](docs/style-guide.md)
+- Agreed work not started yet: [docs/todo.md](docs/todo.md)
 - Visual reference: the scene itself at `/scene` (dev build or `?dev`), with the developer panel to set the hour, biome and behaviours
 
 ## Stack
@@ -208,7 +209,7 @@ The rules that turn Open-Meteo's weather codes, wind and temperature into the sc
    ```bash
    npm ci
    npm run build
-   node dist/db/migrate.js latest
+   node --env-file=.env dist/db/migrate.js latest
    ```
 5. Restart the app with `devil www restart <domain>`.
 
