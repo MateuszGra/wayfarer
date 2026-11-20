@@ -10,6 +10,7 @@ import {
 } from '../modules/auth/index.js';
 import { registerAchievementsHttp, type AchievementsDependencies } from '../modules/achievements/index.js';
 import { registerJourneyHttp, type JourneyDependencies } from '../modules/journey/index.js';
+import { registerNotificationsHttp, type NotificationsDependencies } from '../modules/notifications/index.js';
 import { registerRoutesHttp, type RouteCatalog } from '../modules/routes/index.js';
 import { registerWeatherHttp, type WeatherService } from '../modules/weather/index.js';
 import { ERROR_CODES } from '../shared/api/errorCodes.js';
@@ -23,6 +24,7 @@ export interface AppDependencies {
   readonly authHttp: AuthHttpOptions;
   readonly journey: JourneyDependencies;
   readonly achievements: AchievementsDependencies;
+  readonly notifications: NotificationsDependencies;
   readonly weather: WeatherService;
   /** Behind a reverse proxy (Passenger on MyDevil) the client address comes from X-Forwarded-For. */
   readonly trustProxy?: boolean;
@@ -44,6 +46,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     accountOf: (request) => request.auth?.account.id ?? '',
   });
   registerAchievementsHttp(app, deps.achievements, {
+    signedIn: requireSession(deps.auth),
+    accountOf: (request) => request.auth?.account.id ?? '',
+  });
+  registerNotificationsHttp(app, deps.notifications, {
     signedIn: requireSession(deps.auth),
     accountOf: (request) => request.auth?.account.id ?? '',
   });

@@ -8,6 +8,11 @@ export const DUSK_MARGIN_HOURS = 0.5;
 export const DEFAULT_DAYLIGHT: Daylight = { sunriseHour: 6, sunsetHour: 20 - DUSK_MARGIN_HOURS };
 // The reference day when no goal is given.
 export const FULL_DAY_STEPS = 10_000;
+// Fewer steps than this are a rest day on screen: he stays at camp (the steps still count as distance).
+export const MIN_WALK_STEPS = 100;
+// Any walk lasts at least an hour on screen, so a small day is still a walk and not a few minutes
+// between packing the camp and pitching it again. Dusk still ends it.
+export const MIN_WALK_HOURS = 1;
 // Average adult walking stride; refined later per player (height or tracker distance).
 export const DEFAULT_STRIDE_METRES = 0.75;
 
@@ -25,11 +30,11 @@ function assertStepCount(steps: number): void {
 /**
  * When the traveller walks today on yesterday's `steps`, within today's `daylight`. Reaching the player's
  * daily `goal` fills the whole walking day, from sunrise to half an hour after sunset; fewer steps end the
- * walk earlier, linearly (the brief keeps the exact curve open, so this is the place to change it); more
- * steps don't walk into the night, they only make the pace quicker. Steps entered later in the day
- * (`enteredAtHour`) start the walk then, and it lasts as long as the steps allow but never past the walking
- * day's end. Returns null when there is nothing to walk on screen: a rest day, or steps entered after the
- * walking day ended (they still count towards the distance).
+ * walk earlier, linearly (the brief keeps the exact curve open, so this is the place to change it), but
+ * never under an hour; more steps don't walk into the night, they only make the pace quicker. Steps entered
+ * later in the day (`enteredAtHour`) start the walk then, and it lasts as long as the steps allow but never
+ * past the walking day's end. Returns null when there is nothing to walk on screen: a rest day (under
+ * `MIN_WALK_STEPS`), or steps entered after the walking day ended (they still count towards the distance).
  */
 export function walkingWindow(
   steps: number,
@@ -39,9 +44,9 @@ export function walkingWindow(
 ): WalkingWindow | null {
   assertStepCount(steps);
   if (!Number.isInteger(goal) || goal <= 0) throw new RangeError(`Daily goal must be a positive integer, got ${goal}`);
-  if (steps === 0) return null;
+  if (steps < MIN_WALK_STEPS) return null;
   const latestEnd = daylight.sunsetHour + DUSK_MARGIN_HOURS;
-  const hours = (latestEnd - daylight.sunriseHour) * (Math.min(steps, goal) / goal);
+  const hours = Math.max(MIN_WALK_HOURS, (latestEnd - daylight.sunriseHour) * (Math.min(steps, goal) / goal));
   const startHour = Math.max(daylight.sunriseHour, enteredAtHour);
   const endHour = Math.min(latestEnd, startHour + hours);
   return startHour < endHour ? { startHour, endHour } : null;

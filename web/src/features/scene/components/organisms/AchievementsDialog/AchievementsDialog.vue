@@ -20,7 +20,14 @@ const props = withDefaults(defineProps<Props>(), { startTab: 'journal' });
 const emit = defineEmits<{ 'update:open': [open: boolean]; back: []; 'correct-steps': [] }>();
 
 const journey = useJourney();
-const { history, dailySteps, summary, road: trophies, world: worldTrophies, all: allTrophies } = useTrophies();
+const { history, dailySteps, summary, road, world, all: allTrophies } = useTrophies();
+// Won trophies come first in each list, the rest keep their order from the closest to the furthest.
+const wonFirst = <T extends { readonly won: boolean }>(list: readonly T[]): T[] => [
+  ...list.filter((trophy) => trophy.won),
+  ...list.filter((trophy) => !trophy.won),
+];
+const trophies = computed(() => wonFirst(road.value));
+const worldTrophies = computed(() => wonFirst(world.value));
 // Yesterday's steps can be corrected until midnight, from here.
 const enteredToday = computed(() => journey.journey.value?.today.stepsEntered ?? null);
 const newestFirst = computed(() => [...history.value].reverse());

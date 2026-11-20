@@ -39,6 +39,8 @@
   --pike-spot: #e6df9a;
   /* The wanderer's skin on trophy art, as in the scene. */
   --skin: #e8b993;
+  /* The corner shop's green neon. */
+  --neon: #4fd27a;
   --shadow-panel: 0 18px 50px rgba(10, 8, 20, 0.45);
   --text-sm: 13px;
   --text-md: 15px;

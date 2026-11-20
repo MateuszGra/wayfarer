@@ -123,4 +123,15 @@ const steps = (value: number): string => value.toLocaleString('pl-PL');
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
 }
+/* A small phone: a smaller medal leaves the name and description more width. */
+@media (max-width: 420px) {
+  .trophy-card {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+  .trophy-card__medal {
+    width: 52px;
+    height: 52px;
+  }
+}
 </style>

@@ -91,12 +91,21 @@ const km = computed(() => `${distanceKm(props.steps).toLocaleString('pl-PL', { m
   color: var(--rust-deep);
   font-weight: 600;
 }
+/* A narrow screen keeps the day on one line: a smaller stamp and less space between the columns. */
 @media (max-width: 560px) {
   .achievement-day {
-    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    padding: var(--space-2);
   }
   .achievement-day__mark {
-    grid-row: span 2;
+    width: 64px;
+  }
+  .achievement-day__mark :deep(svg) {
+    max-width: 44px;
+    max-height: 44px;
+  }
+  .achievement-day__note {
+    font-size: 10px;
   }
 }
 </style>

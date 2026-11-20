@@ -1,9 +1,10 @@
 /**
- * Rare moments in the game's world that a player can witness, each worth a trophy of its own: the angler
+ * Moments in the game's world that a player can witness, each worth a trophy of its own: a Ropucha corner
+ * shop in a Polish village (rare, though the trophy jokes it is on every corner), the angler
  * landing a pike instead of the usual small fish, Bigfoot stepping out between the beeches, and the
  * lighthouse beam turning straight at the player at night.
  */
-export const WORLD_EVENTS = ['pikeCaught', 'bigfootSeen', 'lighthouseGlare'] as const;
+export const WORLD_EVENTS = ['ropuchaSeen', 'pikeCaught', 'bigfootSeen', 'lighthouseGlare'] as const;
 
 export type WorldEventId = (typeof WORLD_EVENTS)[number];
 

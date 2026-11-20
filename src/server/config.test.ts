@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readConfig } from './config';
+import { readConfig, readMailConfig } from './config';
 
 const DATABASE_URL = 'postgres://localhost/wayfarer';
 
@@ -27,5 +27,29 @@ describe('readConfig', () => {
 
   it('keeps session cookies Secure unless turned off', () => {
     expect(readConfig({ DATABASE_URL }).secureCookies).toBe(true);
+  });
+});
+
+describe('readMailConfig', () => {
+  const MAIL = {
+    SMTP_HOST: 'mail23.mydevil.net',
+    SMTP_USER: 'noreply@mgrabowski.eu',
+    SMTP_PASSWORD: 'secret',
+    MAIL_FROM: 'Wayfarer <noreply@mgrabowski.eu>',
+  };
+
+  it('returns no mail settings when none are set, as in local development', () => {
+    expect(readMailConfig({ DATABASE_URL })).toBeNull();
+  });
+
+  it('refuses half-filled mail settings and names what is missing', () => {
+    expect(() => readMailConfig({ SMTP_HOST: 'mail23.mydevil.net', SMTP_USER: 'noreply@mgrabowski.eu' })).toThrow(
+      'SMTP_PASSWORD, MAIL_FROM not set',
+    );
+  });
+
+  it('sends over TLS on port 465 unless another port is set', () => {
+    expect(readMailConfig(MAIL)?.port).toBe(465);
+    expect(readMailConfig({ ...MAIL, SMTP_PORT: '587' })?.port).toBe(587);
   });
 });

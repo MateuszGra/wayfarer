@@ -183,6 +183,32 @@ const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, 
       <path d="M28.6 38.2l1.2 2 0.9-1.4 1.3 1.6 1.3-1.6 0.9 1.4 1.2-2Z" fill="var(--paper)" />
     </template>
 
+    <template v-else-if="id === 'ropuchaSeen'">
+      <!--
+        Our own toad, round and content, sitting in the green glow of a corner shop's neon at night: a wink
+        at a shop on every corner, not any real chain's mark.
+      -->
+      <circle cx="32" cy="32" r="30" fill="var(--ink)" />
+      <rect x="12" y="11" width="40" height="11" rx="3" fill="var(--neon)" opacity="0.25" />
+      <rect x="14" y="13" width="36" height="7" rx="2" fill="var(--neon)" />
+      <path d="M18 16.5h28" stroke="var(--paper)" stroke-width="1.6" stroke-dasharray="3.2 1.6" />
+      <!-- The toad: a broad body, bulging eyes on top, a wide smile and folded legs. -->
+      <ellipse cx="32" cy="45" rx="15" ry="9.5" fill="var(--pike-flank)" />
+      <ellipse cx="32" cy="48" rx="10" ry="5" fill="var(--cream)" opacity="0.85" />
+      <circle cx="24" cy="36" r="4.6" fill="var(--pike-flank)" />
+      <circle cx="40" cy="36" r="4.6" fill="var(--pike-flank)" />
+      <circle cx="24" cy="35.4" r="2.4" fill="var(--paper)" />
+      <circle cx="40" cy="35.4" r="2.4" fill="var(--paper)" />
+      <circle cx="24.6" cy="35.6" r="1.2" fill="var(--ink)" />
+      <circle cx="39.4" cy="35.6" r="1.2" fill="var(--ink)" />
+      <path d="M25 42.5q7 4.5 14 0" fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" />
+      <ellipse cx="19" cy="52" rx="5" ry="2.6" fill="var(--pike-back)" />
+      <ellipse cx="45" cy="52" rx="5" ry="2.6" fill="var(--pike-back)" />
+      <circle cx="28" cy="46" r="1" fill="var(--pike-back)" />
+      <circle cx="36" cy="44.5" r="1.2" fill="var(--pike-back)" />
+      <circle cx="38.5" cy="48.5" r="0.9" fill="var(--pike-back)" />
+    </template>
+
     <template v-else-if="id === 'postalVote'">
       <circle cx="32" cy="32" r="30" fill="var(--pine)" />
       <!-- A ballot sticking out of the envelope, crossed. -->

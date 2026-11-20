@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createInMemoryAchievements } from '../modules/achievements/index.js';
+import { createInMemoryNotifications } from '../modules/notifications/index.js';
 import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
 import { createInMemoryJourneys } from '../modules/journey/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
@@ -13,6 +14,7 @@ async function api(): Promise<FastifyInstance> {
     checkDatabase: async () => {},
     routeCatalog: createStaticRouteCatalog(),
     achievements: createInMemoryAchievements(new Date('2026-11-20T19:30:00Z')),
+    notifications: createInMemoryNotifications(),
     weather: createWeatherService({
       source: { current: async () => Promise.reject(new Error('offline')) },
       clock: { now: () => new Date(0) },

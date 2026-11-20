@@ -188,12 +188,21 @@ they entered day by day. The rules for days, the daily walk and distance are pur
 
 ## Achievements from the world
 
-The `achievements` module (`src/modules/achievements`) remembers the rare moments each player has witnessed in the scene, each worth a trophy: the angler landing a pike instead of the usual small fish (`pikeCaught`), the lighthouse beam turned full on the player at night (`lighthouseGlare`), every bird species perched on the wanderer's pack or tent (`bird:*`, for "Hitchcock") and Bigfoot stepping out between the beeches (`bigfootSeen`). The list lives in `src/shared/achievements/worldEvents.ts`; a sighting is kept once, with the first time it was seen.
+The `achievements` module (`src/modules/achievements`) remembers the rare moments each player has witnessed in the scene, each worth a trophy: a Ropucha corner shop in a Polish village (`ropuchaSeen`), the angler landing a pike instead of the usual small fish (`pikeCaught`), the lighthouse beam turned full on the player at night (`lighthouseGlare`), every bird species perched on the wanderer's pack or tent (`bird:*`, for "Hitchcock") and Bigfoot stepping out between the beeches (`bigfootSeen`). The list lives in `src/shared/achievements/worldEvents.ts`; a sighting is kept once, with the first time it was seen.
 
 | Endpoint                             | What it does                                                                                         |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `GET /api/achievements/world`        | The moments this player has seen                                                                     |
 | `PUT /api/achievements/world/:event` | Records a sighting (seeing it again changes nothing); `validation_failed` (400) for an unknown event |
+
+## Notifications
+
+The `notifications` module (`src/modules/notifications`) e-mails a reminder to enter yesterday's steps: at 10:00 in the player's time zone, and again at 22:00 if they are still missing. It is on by default and can be turned off in the settings. The reminders are sent by a job (`src/jobs/sendStepReminders.ts`) that cron runs every 15 minutes; each reminder is claimed in `sent_reminders` before it is sent, so it goes out once a day however often the job runs, and a failed e-mail is tried again on the next run.
+
+| Endpoint                          | What it does                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `GET /api/notifications/settings` | The player's notification settings: `{ "stepReminders": true }`                  |
+| `PUT /api/notifications/settings` | Changes them; `validation_failed` (400) when `stepReminders` isn't true or false |
 
 Road trophies count total steps, the best single day (AEZAKMI), days in a row with the goal reached and days on the road (the full beard, day 60). The scene reports a sighting when it happens in view. One started from the developer panel counts only in the local development build. A trophy won while the game is open is celebrated with a badge under the top edge; tapping it opens the trophies.
 
@@ -222,6 +231,11 @@ The rules that turn Open-Meteo's weather codes, wind and temperature into the sc
    node26 --env-file=.env dist/db/migrate.js latest
    ```
 5. Restart the app with `devil www restart <domain>`.
+6. Step reminders (an e-mail at 10:00 and, if the steps are still missing, at 22:00 in the player's time zone) are sent by a job that cron runs every 15 minutes. Fill in the `SMTP_*`, `MAIL_FROM` and `APP_URL` lines of `.env` (a mailbox from the panel's Mail section), then add this line with `crontab -e` on the server:
+   ```
+   */15 * * * * cd /usr/home/<user>/domains/<domain>/public_nodejs && /usr/local/bin/node26 dist/jobs/sendStepReminders.js >> ../logs/reminders.log 2>&1
+   ```
+   Cron's `PATH` doesn't include `/usr/local/bin`, hence the full path. The job writes a line to the log only when it sent something or an e-mail failed. Run it by hand the same way to test it; locally it is `npm run reminders:send`.
 
 How requests are served:
 

@@ -6,8 +6,14 @@ describe('walkingWindow', () => {
     expect(walkingWindow(0)).toBeNull();
   });
 
+  it('returns a rest day on screen below 100 steps', () => {
+    expect(walkingWindow(99)).toBeNull();
+  });
+
   it.each([
-    { steps: 1, endHour: 6.0014 },
+    { steps: 100, endHour: 7 },
+    { steps: 714, endHour: 7 },
+    { steps: 1_000, endHour: 7.4 },
     { steps: 5_000, endHour: 13 },
     { steps: 9_999, endHour: 19.9986 },
     { steps: 10_000, endHour: 20 },
@@ -38,6 +44,14 @@ describe('walkingWindow', () => {
 
   it('keeps the 06:00 start for steps entered before it', () => {
     expect(walkingWindow(10_000, 10_000, 5.5)).toEqual({ startHour: 6, endHour: 20 });
+  });
+
+  it('walks a small day for an hour from when its steps came in', () => {
+    expect(walkingWindow(100, 10_000, 14)).toEqual({ startHour: 14, endHour: 15 });
+  });
+
+  it('cuts even the shortest walk at dusk', () => {
+    expect(walkingWindow(100, 10_000, 19.5)).toEqual({ startHour: 19.5, endHour: 20 });
   });
 
   it('still walks steps entered just before 20:00, until 20:00', () => {

@@ -75,7 +75,8 @@ The traveller walks on **yesterday's** steps. This gives the game a calm daily r
 4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **the player's daily goal = walking from sunrise until half an hour after sunset**, so he reaches camp at dusk. Fewer steps mean an earlier stop. He never walks in the dark; extra steps beyond the goal make him cover more distance in the same time. A short winter day means a short walk on screen, never fewer kilometres.
 5. **Distance comes from steps.** The distance gained on the route is calculated from the steps (stride length); the walking time only spreads that distance across the day. When the walk ends the traveller has covered exactly the distance earned.
 6. **When the budget runs out during the day,** the traveller makes camp and rests until morning. The fire is lit only in the evening.
-7. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off.
+7. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off. On screen, under 100 steps is a rest day too (the steps still add their distance).
+8. **Even a small day is an hour's walk.** From 100 steps up the walk lasts at least an hour, so it isn't a few minutes between packing the camp and pitching it again. Dusk still ends it. This changes only the time on screen: the distance, the goal and the trophies count the steps as entered.
 
 #### Until a tracker is connected: entering steps by hand
 

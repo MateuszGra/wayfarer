@@ -58,4 +58,13 @@ const number = (value: number, digits = 0): string => value.toLocaleString('pl-P
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+/* A small phone, either way up: smaller tiles, so the journal below them has room. */
+@media (max-width: 420px), (max-height: 460px) {
+  .achievement-stats__item {
+    padding: var(--space-2);
+  }
+  .achievement-stats__item dd {
+    font-size: 18px;
+  }
+}
 </style>

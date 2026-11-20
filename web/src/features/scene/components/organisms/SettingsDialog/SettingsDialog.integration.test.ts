@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError } from '@/shared/api/client';
 import { createMemoryHistory, createRouter } from 'vue-router';
+import { pl } from '@/shared/i18n/pl';
 import SettingsDialog from './SettingsDialog.vue';
 
 const routerAt = () =>
@@ -10,6 +11,13 @@ const routerAt = () =>
 // The network boundary: our own API module, replaced so no request leaves the test.
 const api = vi.hoisted(() => ({ changePassword: vi.fn<(current: string, next: string) => Promise<void>>() }));
 vi.mock('@/shared/api/auth', () => api);
+const notificationsApi = vi.hoisted(() => ({
+  fetchNotificationSettings: vi.fn<() => Promise<{ stepReminders: boolean }>>(),
+  saveNotificationSettings: vi.fn<(settings: { stepReminders: boolean }) => Promise<{ stepReminders: boolean }>>(),
+}));
+vi.mock('@/shared/api/notifications', () => notificationsApi);
+const NETWORK_ERROR = pl['errors.network'];
+const reminders = () => query('settings-step-reminders')?.querySelector<HTMLButtonElement>('button[role="switch"]');
 
 // The dialog renders through a portal, so it is queried on the document rather than the wrapper.
 const query = (testId: string) => document.body.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
@@ -44,6 +52,8 @@ async function changePassword() {
 
 beforeEach(() => {
   api.changePassword.mockReset().mockResolvedValue(undefined);
+  notificationsApi.fetchNotificationSettings.mockReset().mockResolvedValue({ stepReminders: true });
+  notificationsApi.saveNotificationSettings.mockReset().mockImplementation(async (settings) => settings);
 });
 afterEach(() => {
   document.body.innerHTML = '';
@@ -116,5 +126,32 @@ describe('SettingsDialog', () => {
 
     expect(query('settings-password-new')).toBeNull();
     expect(query('settings-password-changed')?.textContent?.trim()).toBe('Hasło zostało zmienione.');
+  });
+
+  it('shows step reminders as on when the server says so', async () => {
+    await openSettings();
+
+    expect(reminders()?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('saves step reminders turned off', async () => {
+    await openSettings();
+
+    reminders()?.click();
+    await flushPromises();
+
+    expect(notificationsApi.saveNotificationSettings).toHaveBeenCalledWith({ stepReminders: false });
+    expect(reminders()?.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('turns the switch back and says why when the change could not be saved', async () => {
+    notificationsApi.saveNotificationSettings.mockRejectedValueOnce(new ApiRequestError(null, null));
+    await openSettings();
+
+    reminders()?.click();
+    await flushPromises();
+
+    expect(reminders()?.getAttribute('aria-checked')).toBe('true');
+    expect(query('settings-notifications-error')?.textContent?.trim()).toBe(NETWORK_ERROR);
   });
 });

@@ -12,7 +12,7 @@ Work agreed on but not started yet. Remove an item once it is done.
 - Using the token deletes it and signs out every other session, as a password change in the settings does.
 - Requests for a link are limited per address and per client address, so nobody can flood a mailbox.
 - Needs:
-  - a sending-only mailbox (e.g. `noreply@mgrabowski.eu`) with its SMTP settings in `.env` (the `SMTP_*` lines in `.env.production` are ready);
+  - the mailbox and mailer that step reminders already use (`createSmtpMailer` in the notifications module, `SMTP_*` in `.env`);
   - a migration for the tokens;
   - two endpoints, two screens and API tests.
 

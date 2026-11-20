@@ -48,6 +48,20 @@ export interface WorldSightingsTable {
   seen_at: Generated<Date>;
 }
 
+export interface NotificationSettingsTable {
+  account_id: string;
+  step_reminders: Generated<boolean>;
+  updated_at: Generated<Date>;
+}
+
+export interface SentRemindersTable {
+  account_id: string;
+  /** `YYYY-MM-DD` in the player's time zone. */
+  local_date: string;
+  slot: string;
+  sent_at: Generated<Date>;
+}
+
 export interface Database {
   players: PlayersTable;
   accounts: AccountsTable;
@@ -55,4 +69,6 @@ export interface Database {
   journeys: JourneysTable;
   step_entries: StepEntriesTable;
   world_sightings: WorldSightingsTable;
+  notification_settings: NotificationSettingsTable;
+  sent_reminders: SentRemindersTable;
 }

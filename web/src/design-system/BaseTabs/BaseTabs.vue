@@ -98,6 +98,9 @@ defineSlots<Record<T, () => unknown>>();
 /* On a small phone a long label wraps onto two lines; beside it the icon would sit far from the words,
    so it goes above them instead, the label centred under it. */
 @media (max-width: 420px) {
+  .base-tabs {
+    gap: var(--space-3);
+  }
   .base-tabs__tab {
     flex-direction: column;
     gap: 2px;
@@ -123,5 +126,15 @@ defineSlots<Record<T, () => unknown>>();
 }
 .base-tabs__panel:focus-visible {
   outline: none;
+}
+/* A phone on its side: the tabs keep their icons beside the labels but take less height. */
+@media (max-height: 460px) {
+  .base-tabs {
+    gap: var(--space-2);
+  }
+  .base-tabs__tab {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+  }
 }
 </style>

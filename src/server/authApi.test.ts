@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { AttemptLimiter, createInMemoryAuth, type InMemoryAuth } from '../modules/auth/index.js';
 import { createInMemoryJourneys } from '../modules/journey/index.js';
 import { createInMemoryAchievements } from '../modules/achievements/index.js';
+import { createInMemoryNotifications } from '../modules/notifications/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
 import { createWeatherService } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
@@ -16,6 +17,7 @@ async function api(limit = 100): Promise<FastifyInstance> {
     checkDatabase: async () => {},
     routeCatalog: createStaticRouteCatalog(),
     achievements: createInMemoryAchievements(),
+    notifications: createInMemoryNotifications(),
     weather: createWeatherService({
       source: { current: async () => Promise.reject(new Error('offline')) },
       clock: { now: () => new Date(0) },

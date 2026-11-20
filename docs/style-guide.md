@@ -97,7 +97,7 @@ Mountain biomes come in three elevation levels. **Low** is foothills: gentle rel
 Buildings:
 
 - Cabins (mountains, forest): wooden walls `#8A5C3A` with plank lines and dark roofs `#4E3526`, plus a chimney.
-- Coastal pines: conifers shaped like a loose spruce. The lower third of the trunk is bare, the tiers are uneven and set high, and the tree leans slightly. They grow only on green ground, never on the beach or bare sand.
+- Coastal pines: conifers shaped like a loose spruce, in muted green on a rust-brown trunk. The lower third of the trunk is bare and ends where the lowest tier starts, the tiers are uneven and set high, and the tree leans slightly. They grow only on green ground, never on the beach or bare sand.
 - Lighthouse: a tapered red tower `#B04A3A` with two white bands, a gallery and a lamp room. It stands on the green belt and is clearly taller than the trees around it.
   - There is one per long stretch of coast, never two side by side.
   - At night the lamp turns full circle. Side-on, the beam swings left and right. It is a cone: narrow at the lamp, widening outward, then running almost parallel and fading with distance. When it turns toward the viewer it shrinks to a point and the lamp flares, briefly dazzling the scene.
@@ -202,7 +202,8 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - In the evening it curls up on the far side of the fire, facing it, tail round its nose; its eyes catch the firelight, blink every few seconds and close when it dozes. When he turns in, it walks to the tent and sleeps inside with him, never alone outside. At dawn it comes out with him, sits by the fire (it does not sleep there in the morning) and does its own stretch, the cat's bow, together with his.
 - Camp, sitting and sleeping each switch at a set hour, but the fade between them lasts about a second and a half of animation time, never game minutes, so at the real speed of the day nobody is left half transparent.
 
-- On a frosty day (−1 °C and below) it wears a rust knitted jumper over its whole body, with two cream stripes and a rolled collar. Only the legs, the tail and the head come out of it.
+- In frost (−1 °C and below) or whenever it snows it wears a rust knitted jumper over its whole body, with two cream stripes and a rolled collar. Only the legs, the tail and the head come out of it.
+- In a downpour, or in a thunderstorm's rain, it wears a yellow oilskin cape that hangs like a poncho to a straight hem, with a hood that has ears of its own (as big as the cat's) and a brim above the eyes, and little yellow wellingtons over the paws. Drizzle and ordinary rain don't bother it. In a freezing downpour the cape goes over the jumper.
 
 ## 8b. Weather
 
@@ -217,13 +218,15 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - A long lake between low wooded shores, with no mountains anywhere; the far shores lie mirrored in the water.
 - The woods are mixed: round broadleaves, a third of pines, and birches with slender white trunks marked in black under narrow, airy crowns. A birch trunk ends inside its crown and never shows through the leaves.
 - The near foreground has no rocks: small bushes with reeds at their feet, every stem topped by a bulrush head, long arching leaves between the stems.
+- At most one wooden jetty in view. Drawn straight out from the shore it would read as a tower, so, like the sea groynes, it runs off to the right as it goes out: a dark plank deck seen a little from above (its width level with the shore, planks across it), on two rows of piles, starting on the shore, where no trees grow. The angler's rowing boat is moored at its end whenever he isn't out fishing.
 - On the water, all in one scale (the angler's rowing boat about 4.5 m): a dinghy under white sails (about 6 m, mast about 8 m) crossing only when there is some wind, and a pair of swans (about 1.3 m each) gliding slowly. The angler fishes here as on the mountain lake.
 
 ## 8d. Polish villages
 
 - White houses with red roofs, of two kinds: gable end to the road (narrow, steep roof, the long side going back in shade) or eaves to the road (wide, a low hipped roof); each with a chimney and small windows, yards between them and trees behind.
 - In the middle a brick Gothic church: a nave with buttresses and tall pointed windows, a square tower with a cornice and a tall spire.
-- Fields are muted ochres and greens; rapeseed and grain never show as a bright yellow.
+- Fields are greyish beiges and muted greens; rapeseed and grain never show as yellow. The game's palette is a sombre one.
+- Rarely (one village in twenty) a corner shop stands at the end of the street: a flat white pavilion with a big window and a lit green sign "ROPUCHA" on its roof, readable at its distance, glowing after dusk. Our own name and look, never a real chain's.
 - Storks: white with black flight feathers, long red legs bent back at the knee, a long neck in an S and a long red bill; some stand, some probe the grass.
 
 ## 9. Ambient life

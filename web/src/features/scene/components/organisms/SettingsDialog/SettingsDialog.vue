@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { BaseButton, BaseDialog } from '@/design-system';
+import { BaseButton, BaseDialog, BaseSwitch } from '@/design-system';
 import { t } from '@/shared/i18n';
 import SettingsSection from '../../molecules/SettingsSection/SettingsSection.vue';
 import { useChangePassword } from '../../../composables/useChangePassword';
+import { useNotificationSettings } from '../../../composables/useNotificationSettings';
 import ChangePasswordForm, { type PasswordChange } from '../ChangePasswordForm/ChangePasswordForm.vue';
 
 export interface Props {
@@ -28,14 +29,17 @@ const changePassword = async (change: PasswordChange): Promise<void> => {
     passwordOpen.value = false;
   }
 };
+const notifications = useNotificationSettings();
 watch(
   () => props.open,
   (open) => {
-    if (!open) {
+    if (open) void notifications.load();
+    else {
       password.reset();
       passwordOpen.value = false;
     }
   },
+  { immediate: true },
 );
 </script>
 
@@ -50,6 +54,24 @@ watch(
     @back="emit('back')"
   >
     <div class="settings">
+      <SettingsSection :title="t('settings.notifications.title')">
+        <BaseSwitch
+          :model-value="notifications.stepReminders.value ?? false"
+          :disabled="notifications.stepReminders.value === null"
+          :label="t('settings.notifications.stepReminders')"
+          :description="t('settings.notifications.stepRemindersNote')"
+          data-testid="settings-step-reminders"
+          @update:model-value="notifications.setStepReminders"
+        />
+        <p
+          v-if="notifications.error.value"
+          class="settings__error"
+          role="alert"
+          data-testid="settings-notifications-error"
+        >
+          {{ notifications.error.value }}
+        </p>
+      </SettingsSection>
       <SettingsSection :title="t('settings.password.title')">
         <BaseButton
           v-if="!passwordOpen"
@@ -98,6 +120,11 @@ watch(
   margin: 0;
   font-size: var(--text-sm);
   color: var(--ink-dim);
+}
+.settings__error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--rust);
 }
 .settings__status {
   margin: 0;

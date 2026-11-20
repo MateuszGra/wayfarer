@@ -32,3 +32,31 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
     devPassword: devLogin ? DEV_PASSWORD : undefined,
   };
 }
+
+/** Outgoing e-mail (the SMTP mailbox on MyDevil) and the game's address for links in it. */
+export interface MailConfig {
+  readonly host: string;
+  readonly port: number;
+  readonly user: string;
+  readonly password: string;
+  readonly from: string;
+  readonly appUrl: string;
+}
+
+const MAIL_KEYS = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'MAIL_FROM'] as const;
+
+/** The mail settings, or null when none are set (local development); half-filled settings are an error. */
+export function readMailConfig(env: NodeJS.ProcessEnv = process.env): MailConfig | null {
+  const missing = MAIL_KEYS.filter((key) => !env[key]);
+  if (missing.length === MAIL_KEYS.length) return null;
+  if (missing.length > 0) throw new Error(`Mail settings are incomplete in .env: ${missing.join(', ')} not set`);
+  return {
+    host: env['SMTP_HOST'] ?? '',
+    // MyDevil's SMTP takes TLS on 465.
+    port: Number(env['SMTP_PORT'] ?? 465),
+    user: env['SMTP_USER'] ?? '',
+    password: env['SMTP_PASSWORD'] ?? '',
+    from: env['MAIL_FROM'] ?? '',
+    appUrl: env['APP_URL'] ?? 'http://localhost:5173',
+  };
+}

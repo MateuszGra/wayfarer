@@ -2,7 +2,8 @@
 // TEMPORARY BRIDGE: the whole scene in one file, grown from the first single-page prototype; the host
 // element, the start options and the control API are at the bottom. It is ported into typed modules
 // (sky, landscape, biomes, wanderer, camp, weather) step by step; until then it is excluded from lint and format.
-import { Application, Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
+import { leadOf, pitchHour, seatOut, tentUp } from '../campSchedule';
 
 /** @type {import('./prototypeScene').startPrototypeScene} */
 export async function startPrototypeScene(host, options = {}) {
@@ -78,8 +79,8 @@ export async function startPrototypeScene(host, options = {}) {
   // `speed` is the parallax factor relative to the path the traveller walks on.
   const BIOMES = {
     fields: {
-      // Kujawy and Greater Poland: flat plains in a patchwork of rapeseed, grain and meadow (muted ochres,
-      // never a bright yellow that would shout over the rest of the palette), poplar avenues
+      // Kujawy and Greater Poland: flat plains in a patchwork of stubble, grain and meadow (greyish beiges
+      // and muted greens, never a bright yellow: the game's palette is a sombre one), poplar avenues
       // along field roads, white villages with red roofs around a brick church, farmsteads, hay bales,
       // storks feeding in the meadow, a tractor now and then, a hunting stand at a field edge, and a band
       // of forest on the horizon.
@@ -91,14 +92,16 @@ export async function startPrototypeScene(host, options = {}) {
         { kind: 'hill', depth: 0.9, base: 0.645, amp: 0.02, wave: 0.6, oct: 3, speed: 0.012, color: 0x6c8574, fog: 0.3,
           trees: { type: 'round', spacing: 0.005, h: [0.02, 0.038], density: 0.95, mix: 0.4, groves: 0.32 } },
         { kind: 'hill', depth: 0.7, base: 0.675, amp: 0.018, wave: 0.5, oct: 3, speed: 0.03, color: 0x9fae6a, fog: 0.22,
-          patchwork: { colors: [0xc2b46e, 0xbcae80, 0x9fb06c], bands: 4 },
+          patchwork: { colors: [0xb4ad93, 0xaea78d, 0x97a472], bands: 4 },
           stands: { spacing: 1.6, chance: 0.55, scale: 0.6 } },
         { kind: 'hill', depth: 0.5, base: 0.725, amp: 0.028, wave: 0.45, oct: 3, speed: 0.08, color: 0x9aae5e, fog: 0.14,
-          patchwork: { colors: [0xc8b866, 0xc4b080, 0x98b061, 0xb2bd6e], bands: 5, bales: true },
-          village: { wall: 0xeee6d2, roof: 0xb24a30, church: 0xa54c33, spacing: 1.1 },
+          patchwork: { colors: [0xb9b092, 0xb3a98c, 0x92a467, 0xa4ab78], bands: 5, bales: true },
+          // Now and then a village has a little corner shop under a green neon sign, "Ropucha". Rare on
+          // purpose: more of them spoil the countryside (the trophy's "on every corner" is only a joke).
+          village: { wall: 0xeee6d2, roof: 0xb24a30, church: 0xa54c33, spacing: 1.1, shops: 0.05 },
           farms: { spacing: 0.9, chance: 0.6 }, tractors: { spacing: 1.3, chance: 0.45 } },
         { kind: 'hill', depth: 0.32, base: 0.83, amp: 0.024, wave: 0.4, oct: 3, speed: 0.22, color: 0x86a552, fog: 0.07,
-          patchwork: { colors: [0xccba63, 0xc8b281, 0x8daa58], bands: 6, bales: true },
+          patchwork: { colors: [0xbcb293, 0xb6ab8d, 0x889f60], bands: 6, bales: true },
           trees: { type: 'poplar', spacing: 0.05, h: [0.1, 0.125], density: 1, avenue: 0.26, avenueShare: 0.24, color: 0x4f6e44 },
           storks: { spacing: 0.7, chance: 0.55 }, shrines: { spacing: 2.4, chance: 0.6 } },
         { kind: 'ground', depth: 0.07, base: 0.96, amp: 0.016, wave: 0.3, oct: 3, speed: 1, color: 0x6c8444, path: 0xb79c6c,
@@ -164,7 +167,8 @@ export async function startPrototypeScene(host, options = {}) {
         // The near shore is low and its trees stand in clumps, so the lake shows between them.
         { kind: 'hill', depth: 0.42, base: 0.86, amp: 0.04, wave: 0.3, oct: 3, speed: 0.25, color: 0x3a5d42, fog: 0.28,
           trees: { type: 'round', spacing: 0.013, h: [0.03, 0.055], density: 0.45, mix: 0.35, birch: 0.45, groves: 0.6 },
-          cabins: { spacing: 1.5, chance: 0.6, size: 0.012, wall: 0x8a5c3a, roof: 0x4e3526 } },
+          cabins: { spacing: 1.5, chance: 0.6, size: 0.012, wall: 0x8a5c3a, roof: 0x4e3526 },
+          jetties: { spacing: 3.2, chance: 0.6 } },
         { kind: 'hill', depth: 0.2, base: 0.925, amp: 0.035, wave: 0.25, oct: 3, speed: 0.55, color: 0x274630, fog: 0.15,
           trees: { type: 'round', spacing: 0.03, h: [0.09, 0.16], density: 0.4, mix: 0.3, birch: 0.5, groves: 0.4 } },
         { kind: 'ground', depth: 0.06, base: 0.955, amp: 0.025, wave: 0.2, oct: 3, speed: 1, color: 0x2d3424, path: 0x6f604a,
@@ -285,9 +289,6 @@ export async function startPrototypeScene(host, options = {}) {
 
   const DEMO_WALK = { startHour: 7.2, endHour: 19.3 };
   const CLEAR_WEATHER = { sky: 'clear', precipitation: 'none', storm: false, wind: 'breeze', frost: false };
-  // Getting up and packing before a walk that starts at dawn takes a while; when the player only just
-  // entered the steps later in the day, he gets going after a short stretch instead.
-  const MORNING_LEAD_H = 0.6;
   const state = {
     hour: options.hour ?? 18.3, auto: options.auto ?? false, dayLength: options.dayLengthSeconds ?? 120, t: options.animationTime ?? 0, day: 12,
     offsetU: 0, speed: 1, phase: 0,
@@ -538,14 +539,15 @@ export async function startPrototypeScene(host, options = {}) {
       halfDisk(gl, cx, cy, rr, -1, n); halfDisk(gr, cx, cy, rr, 1, n);
     }
   }
-  // Coastal pine: a conifer like a spruce but looser. The lower third of the trunk is bare,
-  // the tiers are uneven and set high, and the whole tree leans a little away from the sea wind.
-  function coastPineHalves(gl, gr, x, y, h, r) {
+  // Coastal pine: a conifer like a spruce but looser. The lower third of the trunk is bare and drawn in its
+  // own rust-brown (`bark`), the tiers are uneven and set high, and the whole tree leans a little away
+  // from the sea wind.
+  function coastPineHalves(gl, gr, bark, x, y, h, r) {
     const tw = Math.max(1.4, h * 0.04), lean = (r - 0.5) * h * 0.12;
     const base = 0.36, tiers = 5;
     const at = f => x + lean * f;
-    gl.poly([x - tw / 2, y + 2, x, y + 2, at(base + 0.1), y - h * (base + 0.1), at(base + 0.1) - tw * 0.4, y - h * (base + 0.1)]).fill(0xffffff);
-    gr.poly([x, y + 2, x + tw / 2, y + 2, at(base + 0.1) + tw * 0.4, y - h * (base + 0.1), at(base + 0.1), y - h * (base + 0.1)]).fill(0xffffff);
+    // The trunk stops where the lowest tier starts, so it never shows through the needles.
+    bark.poly([x - tw / 2, y + 2, x + tw / 2, y + 2, at(base) + tw * 0.3, y - h * base, at(base) - tw * 0.3, y - h * base]).fill(0xffffff);
     const wMax = h * 0.3;
     for (const [g, sd] of [[gl, -1], [gr, 1]]) {
       const p = [at(1), y - h];
@@ -580,11 +582,12 @@ export async function startPrototypeScene(host, options = {}) {
       const u = (k + (T.avenue ? 0 : hash(k, L.seed + 29) * 0.8)) * T.spacing;
       if (T.groves && noise1(u / 0.22, L.seed + 5) < T.groves) continue;
       const sx = (u - uOff) * S;
+      if (L.jettySpans?.some(([from, to]) => sx > from && sx < to)) continue;
       const h = lerp(T.h[0], T.h[1], hash(k, L.seed + 41)) * H;
       const y = yAt(L, sx, uOff) + h * 0.04;
       const isPine = T.mix ? hash(k, L.seed + 53) < T.mix : T.type === 'pine';
       if (T.type === 'poplar') poplarHalves(L.tL, L.tR, sx, y, h);
-      else if (T.type === 'coastpine') coastPineHalves(L.tL, L.tR, sx, y, h, hash(k, L.seed + 67));
+      else if (T.type === 'coastpine') coastPineHalves(L.tL, L.tR, L.bark, sx, y, h, hash(k, L.seed + 67));
       else if (isPine) pineHalves(L.tL, L.tR, sx, y, h * (T.type === 'round' ? 1.25 : 1));
       else if (T.birch && hash(k, L.seed + 57) < T.birch) birchHalves(L.tL, L.tR, L.bark, L.barkMarks, sx, y, h * 1.15, hash(k, L.seed + 67));
       else roundHalves(L.tL, L.tR, sx, y, h, hash(k, L.seed + 67));
@@ -658,6 +661,30 @@ export async function startPrototypeScene(host, options = {}) {
     L.roofs.rect(t0 + tw / 2 - s * 0.04, y - tH - s * 3.05, s * 0.08, s * 0.5).fill(0xffffff);
     L.roofs.rect(t0 + tw / 2 - s * 0.2, y - tH - s * 2.92, s * 0.4, s * 0.07).fill(0xffffff);
   }
+  // A small flat-roofed corner shop at the end of the village street: a wide shop window, a glass door and
+  // a green neon fascia reading "Ropucha" (a toad, not any real chain), glowing from dusk.
+  // Drawn a little larger than the houses (a modern pavilion whose sign must still be readable here).
+  function villageShop(L, sx, y, houseS) {
+    const s = houseS * 1.25, w = s * 4, h = s * 1.4;
+    L.walls.rect(sx - w / 2, y - h, w, h + 1).fill(0xffffff);
+    L.planks.rect(sx - w / 2 - s * 0.08, y - h - s * 0.12, w + s * 0.16, s * 0.14).fill(0xffffff);
+    L.win.rect(sx - w * 0.42, y - h * 0.6, w * 0.56, h * 0.48).fill(0xffffff);
+    L.win.rect(sx + w * 0.22, y - h * 0.62, w * 0.16, h * 0.62).fill(0xffffff);
+    // The sign stands on the roof as a lit box, wider than the shop window and tall enough to read.
+    const signY = y - h - s * 0.8, signH = s * 0.72;
+    L.planks.rect(sx - w * 0.3, signY + signH, s * 0.12, s * 0.8 - signH + s * 0.72).fill(0xffffff);
+    L.planks.rect(sx + w * 0.3 - s * 0.12, signY + signH, s * 0.12, s * 0.8 - signH + s * 0.72).fill(0xffffff);
+    L.neonGlow.roundRect(sx - w / 2 - s * 0.35, signY - s * 0.3, w + s * 0.7, signH + s * 0.6, s * 0.4).fill(0xffffff);
+    L.neon.rect(sx - w / 2 + s * 0.06, signY, w - s * 0.12, signH).fill(0xffffff);
+    const label = new Text({
+      text: 'ROPUCHA',
+      style: { fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: '900', fontSize: signH * 0.72, fill: 0xffffff, letterSpacing: s * 0.03 },
+    });
+    label.anchor.set(0.5);
+    label.position.set(sx, signY + signH / 2);
+    label.resolution = 3;
+    L.shopTexts.addChild(label);
+  }
   function drawVillage(L, uOff, x1) {
     const spacing = L.village.spacing ?? 2.6;
     const k0 = Math.floor((uOff - 0.3) / spacing), k1 = Math.ceil((uOff + x1 / S + 0.3) / spacing);
@@ -675,6 +702,13 @@ export async function startPrototypeScene(host, options = {}) {
         const y = yAt(L, sx, uOff) + 1;
         if (hash(i, k * 7 + L.seed) < 0.75) roundHalves(L.tL, L.tR, sx + side * s * 1.7, y + 1, s * (2.4 + hash(i, k * 9 + L.seed) * 1.2), hash(i, k * 11 + L.seed));
         villageHouse(L, sx, y, s, [hash(i, k * 3 + 1), hash(i, k * 3 + 2), hash(i, k * 3 + 3), hash(i, k * 3 + 4)]);
+      }
+      const natural = hash(k, L.seed + 12) < L.village.shops;
+      if (L.village.shops && (state.allShops || natural)) {
+        // At the end of the street on the right, just past the last house.
+        const sx = cx + s * 2.6 + (Math.ceil(n / 2) + 1.2) * s * 3.2;
+        villageShop(L, sx, yAt(L, sx, uOff) + 1, s);
+        L.shops.push({ u: sx / S + uOff, natural });
       }
       const y = yAt(L, cx, uOff) + 1;
       roundHalves(L.tL, L.tR, cx - s * 3, y + 1, s * 3.4, hash(k, L.seed + 8));
@@ -991,6 +1025,53 @@ export async function startPrototypeScene(host, options = {}) {
       }
     });
   }
+  // Wooden jetties on the lake. Seen from the side, a jetty running straight out from the shore would rise
+  // up the picture like a tower, so, like the sea groynes, it runs off to the right as it goes out. Seen a
+  // little from above, its deck is a band whose width lies along the shore (level in the picture), planked
+  // across, with a dark edge and piles under it: drawn with a vertical width it would read as a fence.
+  // The slots are wider than any screen, so there is at most one jetty in view.
+  function drawJetty(L, sx, k, uOff) {
+    const piles = 4;
+    const shore = yAt(L, sx, uOff);
+    // Along the jetty, q runs from 0 on the shore to 1 at its far end; (x, y) is its left edge there.
+    const run = H * 0.09, rise = H * 0.05;
+    const at = (q) => {
+      const f = 1 - 0.4 * q;
+      return { x: sx + q * run, y: shore - q * rise + H * 0.002, f, w: H * 0.03 * f, side: H * 0.004 * f };
+    };
+    const a = at(0), b = at(1);
+    for (let i = 0; i < piles; i++) {
+      const p = at(0.25 + (0.75 * i) / (piles - 1));
+      const pw = Math.max(1.4, H * 0.004 * p.f), drop = H * 0.011 * p.f;
+      for (const x of [p.x + pw / 2, p.x + p.w - pw / 2]) L.jettyPosts.rect(x - pw / 2, p.y, pw, p.side + drop).fill(0xffffff);
+    }
+    // The left side of the deck, its planks' ends, faces the viewer as a dark strip.
+    L.jettySeams.poly([a.x, a.y, b.x, b.y, b.x, b.y + b.side, a.x, a.y + a.side]).fill(0xffffff);
+    L.jettyDeck.poly([a.x, a.y, a.x + a.w, a.y, b.x + b.w, b.y, b.x, b.y]).fill(0xffffff);
+    // Gaps between the planks, which lie across the jetty, level with the shore.
+    for (let i = 1; i < 16; i++) {
+      const p = at(i / 16);
+      L.jettySeams.moveTo(p.x, p.y).lineTo(p.x + p.w, p.y).stroke({ width: Math.max(0.6, H * 0.001 * p.f), color: 0xffffff });
+    }
+    // The angler's rowing boat, moored alongside the end of the jetty; shown only while he isn't out fishing.
+    const boatLen = H * 0.065 * b.f, u = boatLen / 60, bx = b.x + b.w + boatLen * 0.6, by = b.y + b.side + H * 0.008 * b.f;
+    const B = (pts) => pts.flatMap(([x, y]) => [bx + x * u, by + y * u]);
+    L.jettyBoat.poly(B([[-30, -8], [30, -8], [24, 0], [-24, 0]])).fill(0xffffff);
+    L.jettyBoatRim.poly(B([[-30, -9], [30, -9], [30, -7], [-30, -7]])).fill(0xffffff);
+    L.jettyBoatRim.moveTo(b.x + b.w, b.y + b.side * 0.5).lineTo(bx - 28 * u, by - 8 * u).stroke({ width: Math.max(0.6, H * 0.0008), color: 0xffffff });
+    // The shore is clear of trees where the jetty starts and along it, or they would hide it.
+    L.jettySpans.push([sx - H * 0.02, bx + boatLen * 0.6]);
+  }
+  function drawJetties(L, uOff, x1) {
+    const J = L.jetties;
+    L.jettySpans = [];
+    // One put in view from the developer panel stands alone.
+    if (L.forcedJettyU !== undefined) { drawJetty(L, (L.forcedJettyU - uOff) * S, -1, uOff); return; }
+    eachSlot(J.spacing, uOff, x1, k => {
+      if (hash(k, L.seed + 71) > J.chance) return;
+      drawJetty(L, ((k + 0.35 + hash(k, L.seed + 72) * 0.3) * J.spacing - uOff) * S, k, uOff);
+    });
+  }
   function eachSlot(spacing, uOff, x1, fn) {
     const k0 = Math.floor((uOff - 0.3) / spacing), k1 = Math.ceil((uOff + x1 / S + 0.3) / spacing);
     for (let k = k0; k <= k1; k++) fn(k);
@@ -1138,6 +1219,7 @@ export async function startPrototypeScene(host, options = {}) {
     const xs = [], ys = [];
     for (let x = -step * 2; x <= x1; x += step) { xs.push(x); ys.push(yAt(L, x, uOff)); }
     for (const g of L.graphics) g.clear();
+    if (L.shopTexts) { L.shopTexts.removeChildren().forEach((text) => text.destroy()); L.shops = []; }
     const pts = [xs[0], H + BELOW + 20];
     for (let i = 0; i < xs.length; i++) pts.push(xs[i], ys[i]);
     pts.push(xs[xs.length - 1], H + BELOW + 20);
@@ -1146,6 +1228,7 @@ export async function startPrototypeScene(host, options = {}) {
     if (L.snow) drawSnow(L, xs, ys, uOff, side);
     if (L.path) drawPath(L, xs, ys, uOff, x1);
     if (L.rows) drawRows(L, xs, ys, uOff);
+    if (L.jetties) drawJetties(L, uOff, x1);
     if (L.trees) drawTrees(L, uOff, x1);
     if (L.cabins) drawCabins(L, uOff, x1);
     if (L.patchwork) drawPatchwork(L, xs, ys, uOff);
@@ -1189,16 +1272,23 @@ export async function startPrototypeScene(host, options = {}) {
     L.c = new Container();
     const add = () => { const g = new Graphics(); L.c.addChild(g); L.graphics.push(g); return g; };
     L.g = add();
+    // The jetty starts on the shore and runs out over the water, in front of the land and behind its trees.
+    if (L.jetties) { L.jettyBoat = add(); L.jettyBoatRim = add(); L.jettyPosts = add(); L.jettyDeck = add(); L.jettySeams = add(); L.jettySpans = []; }
     if (L.faces) { L.shL = add(); L.shR = add(); L.gully = add(); }
     if (L.snow) { L.sgL = add(); L.sgR = add(); }
     if (L.path) { L.pathG = add(); L.gully = add(); }
     if (L.patchwork) { L.patches = L.patchwork.colors.map(() => add()); L.bales = add(); L.balesShade = add(); }
     if (L.rows) L.rowG = add();
     if (L.trees || L.cabins || L.village || L.tufts) { L.tL = add(); L.tR = add(); }
-    if (L.trees?.birch) { L.bark = add(); L.barkMarks = add(); }
+    if (L.trees?.birch || L.trees?.type === 'coastpine') { L.bark = add(); L.barkMarks = add(); }
     if (L.beach) L.wet = add();
     if (L.lighthouse) { L.lhRed = add(); L.lhWhite = add(); }
     if (L.cabins || L.village || L.boats || L.lighthouse || L.fence || L.farms) { L.walls = add(); L.planks = add(); L.church = add(); L.roofs = add(); L.win = add(); }
+    if (L.village?.shops) {
+      // The shop sign: its green panel, a soft halo that brightens with the dusk, and the lettering.
+      L.neonGlow = add(); L.neonGlow.blendMode = 'add'; L.neon = add();
+      L.shopTexts = new Container(); L.c.addChild(L.shopTexts); L.shops = [];
+    }
     if (L.tractors) { L.tractor = add(); L.tractorDark = add(); L.tractorHub = add(); }
     if (L.stands || L.storks || L.shrines) { L.wood = add(); L.woodLines = add(); L.stork = add(); L.storkDark = add(); L.storkRed = add(); }
     if (L.rim) { L.rimG = add(); L.rimG.blendMode = 'add'; }
@@ -1337,6 +1427,8 @@ export async function startPrototypeScene(host, options = {}) {
   // seconds a crossing takes, so the pace is the same on every screen width. The animation clock restarts
   // with every page load, so the first slot always brings a vessel, `start` seconds in: otherwise a
   // player could open the game several times and never see the sea in use.
+  // Whether a Ropucha shop has been reported in view; once is enough.
+  let ropuchaReported = false;
   // How far the weather lets fair-weather boats out, eased so a change of weather fades them in or out.
   let fairK = 1;
   const SHIPS = {
@@ -1958,8 +2050,9 @@ export async function startPrototypeScene(host, options = {}) {
   const CAT_SCALE = 1.4;
   const CAT = { fur: 0x211e26, far: 0x17151b, sheen: 0x3a3542, ear: 0x52363f, nose: 0x6a4250, eye: 0xf5c542, pupil: 0x17121a, whisker: 0x8e8a96 };
   const CAT_JUMPER = { wool: 0xa5462c, stripe: 0xe8dcc0, collar: 0x84361f };
+  const CAT_CAPE = { coat: 0xe2ad22, shade: 0xb8851a, sheen: 0xf5d566 };
   function drawCat(g, eg, pose, face, phase, o = {}) {
-    const { look = [0, 0], shut = false, t = 0, coat = false } = o;
+    const { look = [0, 0], shut = false, t = 0, coat = false, cape = false } = o;
     g.clear(); eg.clear();
     const X = (u) => u * face, Y = (v) => -v;
     const blob = (cx, cy, rx, ry, rot = 0, color = CAT.fur, fluff = 0.035) => {
@@ -1989,21 +2082,59 @@ export async function startPrototypeScene(host, options = {}) {
       for (const dy of [-0.25, 0.2]) blob(cx + dy * ry * Math.sin(rot), cy + dy * ry * Math.cos(rot), rx * 0.92, ry * 0.11, rot, CAT_JUMPER.stripe, 0);
       if (collar) blob(collar[0], collar[1], collar[2], collar[3], collar[4] ?? 0, CAT_JUMPER.collar, 0.05);
     };
+    // In a downpour a yellow oilskin cape: it lies over the back like a poncho, a little wider than the body,
+    // and hangs to a straight hem below the middle of it, over the jumper when there is one too. The hood
+    // is drawn with the head.
+    const raincape = (cx, cy, rx, ry, rot = 0) => {
+      if (!cape) return;
+      const P = (ex, ey) => [X(cx + ex * Math.cos(rot) - ey * Math.sin(rot)), Y(cy + ex * Math.sin(rot) + ey * Math.cos(rot))];
+      const hem = -ry * 0.45, pts = [];
+      for (let k = 0; k <= 20; k++) {
+        const a = Math.PI * (k / 20);
+        pts.push(...P(Math.cos(a) * rx * 1.1, Math.max(hem, Math.sin(a) * ry * 1.14)));
+      }
+      pts.push(...P(-rx * 1.06, hem), ...P(rx * 1.06, hem));
+      g.poly(pts).fill(CAT_CAPE.coat);
+      g.poly([...P(-rx * 1.06, hem), ...P(rx * 1.06, hem), ...P(rx * 1.02, hem + ry * 0.16), ...P(-rx * 1.02, hem + ry * 0.16)]).fill(CAT_CAPE.shade);
+      // The rain runs off its shiny shoulders.
+      const sheen = [];
+      for (let k = 4; k <= 12; k++) { const a = Math.PI * (k / 20); sheen.push(...P(Math.cos(a) * rx * 0.8, Math.sin(a) * ry * 0.86)); }
+      for (let k = 12; k >= 4; k--) { const a = Math.PI * (k / 20); sheen.push(...P(Math.cos(a) * rx * 0.62, Math.sin(a) * ry * 0.64)); }
+      g.poly(sheen).fill(CAT_CAPE.sheen);
+    };
     const leg = (hx, hy, fx, fy, w, color = CAT.fur) => {
       g.moveTo(X(hx), Y(hy)).lineTo(X(fx), Y(fy + w * 0.4)).stroke({ width: w, color, cap: 'round' });
       g.ellipse(X(fx + 0.5), Y(fy + w * 0.42), w * 0.7, w * 0.45).fill(color);
+      if (!cape) return;
+      // Little yellow wellingtons with the cape, over the paws only.
+      const boot = color === CAT.far ? CAT_CAPE.shade : CAT_CAPE.coat;
+      g.ellipse(X(fx + 0.6), Y(fy + w * 0.45), w * 0.82, w * 0.56).fill(boot);
+      g.moveTo(X(fx - w * 0.1), Y(fy + w * 0.95)).lineTo(X(fx + w * 0.9), Y(fy + w * 0.95)).stroke({ width: w * 0.28, color: CAT_CAPE.shade, cap: 'round' });
     };
     const head = (hx, hy, tilt = 0, lying = false) => {
       hx += look[0] * 0.6; hy += look[1] * 0.8;
       const R = (x, y) => [hx + x * Math.cos(tilt) - y * Math.sin(tilt), hy + x * Math.sin(tilt) + y * Math.cos(tilt)];
       const tri = (pts, color) => g.poly(pts.flatMap(([x, y]) => { const [u, v] = R(x, y); return [X(u), Y(v)]; })).fill(color);
       const ear = lying ? 0.75 : 1;
-      tri([[-3.8, 2], [-3.3, 2 + 5.8 * ear], [-0.5, 4.2]], CAT.far);
-      tri([[0.3, 4.4], [3, 4.4 + 4 * ear], [4.7, 2.6]], CAT.fur);
-      tri([[1.1, 4.4], [3, 4.4 + 2.9 * ear], [3.9, 3]], CAT.ear);
+      const ears = (lift, far, near, inner) => {
+        tri([[-3.8, 2 + lift], [-3.3, 2 + lift + 5.8 * ear], [-0.5, 4.2 + lift]], far);
+        tri([[0.3, 4.4 + lift], [3, 4.4 + lift + 4 * ear], [4.7, 2.6 + lift]], near);
+        tri([[1.1, 4.4 + lift], [3, 4.4 + lift + 2.9 * ear], [3.9, 3 + lift]], inner);
+      };
+      if (!cape) ears(0, CAT.far, CAT.fur, CAT.ear);
       const c = R(0, 0); blob(c[0], c[1], 5.5, 4.7, tilt);
       const ch = R(-0.4, -1.7); blob(ch[0], ch[1], 5.3, 3.1, tilt, CAT.fur, 0.07);
-      const sh = R(-1.2, 2.6); blob(sh[0], sh[1], 2.8, 1.2, tilt + 0.25, CAT.sheen, 0);
+      if (cape) {
+        // The hood: over the crown and the back of the head, down to the cheek, with a stiff brim just
+        // above the eyes, so the face looks out of it.
+        tri([[-5.9, -3], [-6.9, 0.8], [-5.6, 4.6], [-3, 6.9], [0.8, 7.5], [3.6, 6.2], [5.4, 3.8], [3.7, 2.7], [0.6, 3.1], [-1.4, 1.3], [-2.4, -2.6], [-3.6, -4.3]], CAT_CAPE.coat);
+        tri([[5.4, 3.8], [3.7, 2.7], [0.6, 3.1], [0.9, 3.9], [3.6, 3.6]], CAT_CAPE.shade);
+        tri([[-4.8, 3.6], [-2.6, 5.9], [0.2, 6.5], [-2.3, 5.1]], CAT_CAPE.sheen);
+        // The hood has ears of its own, raised by its thickness so they stick out as far as the cat's do.
+        ears(2.6, CAT_CAPE.shade, CAT_CAPE.coat, CAT_CAPE.sheen);
+      } else {
+        const sh = R(-1.2, 2.6); blob(sh[0], sh[1], 2.8, 1.2, tilt + 0.25, CAT.sheen, 0);
+      }
       tri([[4.6, -0.2], [5.6, -0.1], [5.1, -0.9]], CAT.nose);
       for (const [dy, ex] of [[0.4, 9.4], [-0.6, 9.6], [-1.6, 9]]) {
         const a = R(4.6, -1), b = R(ex, dy - 1.2 + (dy - 0.4) * 0.6);
@@ -2040,6 +2171,7 @@ export async function startPrototypeScene(host, options = {}) {
       leg(7.5, by - 2, ...foot(7.5, Math.PI * 1.5), 3.2);
       blob(6.8, by - 1, 4.4, 4.6);
       jumper(-0.6, by + 0.3, 10.6, 5.7, 0, [9.6, by + 1.6, 1.8, 4.6], [6.8, by - 0.6, 4.3, 4.4]);
+      raincape(0, by + 0.6, 11, 5.6);
       head(11.6, by + 4 + Math.sin(phase * 2) * 0.25);
     } else if (pose === 'sit' || pose === 'wash') {
       const flick = Math.sin(t * 2.2) * 0.7;
@@ -2051,8 +2183,9 @@ export async function startPrototypeScene(host, options = {}) {
       leg(4.8, 7, 5, 0, 2.7, CAT.far);
       blob(3.8, 10.2, 4.8, 7.4, -0.15);
       jumper(-2.2, 6.9, 7.8, 6.6, 0, [4, 16, 3.7, 1.6, -0.15], [3.6, 9.2, 4.8, 6.6, -0.15]);
-      // The jumper reaches down to the ground, so the tail wrapped round the paws comes out over it.
-      if (coat) wrapTail();
+      raincape(0.2, 9.6, 8.4, 7.4);
+      // The jumper and the cape reach down low, so the tail wrapped round the paws comes out over them.
+      if (coat || cape) wrapTail();
       if (pose === 'wash') {
         // Licks the raised paw in quick strokes: the paw rises to the mouth and over the cheek, the head
         // dips to meet it.
@@ -2070,13 +2203,15 @@ export async function startPrototypeScene(host, options = {}) {
       blob(0, 5.2, 9.5, 5.2);
       blob(-2, 8.2, 5.5, 1.4, 0.05, CAT.sheen, 0);
       jumper(-0.2, 5.4, 9.6, 5.1, 0, [8.6, 6.4, 1.5, 4]);
-      blob(7.6, 1.6, 2.6, 1.3);
+      raincape(0, 5.6, 9.8, 5.2);
+      blob(7.6, 1.6, 2.6, 1.3, 0, cape ? CAT_CAPE.coat : CAT.fur);
       head(8.2, 10.2);
     } else if (pose === 'curl') {
       const br = 1 + Math.sin(t * 1.5) * 0.03;
       blob(0, 5.2 * br, 11, 5.6 * br);
       blob(-2, 8.6 * br, 6, 1.6, 0.08, CAT.sheen, 0);
       jumper(-0.4, 5.3 * br, 10.6, 5.5 * br);
+      raincape(-0.4, 5.4 * br, 10.8, 5.6 * br);
       head(7.6, 5.4, -0.15, true);
       tail([-10.5, 2.5], [-1, -1.4], [11, 2.6], 2.7);
     } else if (pose === 'stretch') {
@@ -2085,6 +2220,7 @@ export async function startPrototypeScene(host, options = {}) {
       leg(5.5, 4, 13, 0, 2.8, CAT.far);
       blob(-1, 7.4, 10.5, 4.3, -0.38);
       jumper(-1, 7.5, 10.3, 4.3, -0.38, [8.6, 3.9, 1.5, 3.7, -0.38]);
+      raincape(-1, 7.6, 10.4, 4.4, -0.38);
       leg(-6, 10, -5.5, 0, 3.2);
       leg(6.5, 4, 14.4, 0, 3);
       head(12.2, 5.6, 0.1);
@@ -2094,6 +2230,7 @@ export async function startPrototypeScene(host, options = {}) {
       leg(7, 8, 14, 3, 3, CAT.far);
       blob(0, 9, 11.5, 4.8, 0.1);
       jumper(0, 9.1, 11.2, 4.8, 0.1, [10.6, 10.3, 1.6, 4.3, 0.1]);
+      raincape(0, 9.3, 11.4, 4.9, 0.1);
       leg(-6, 8, -13, 2.5, 3.2);
       leg(8, 8, 15.2, 4, 3.2);
       head(12.6, 12.8);
@@ -2374,12 +2511,9 @@ export async function startPrototypeScene(host, options = {}) {
   // Each switches at one moment; the fade between states is timed on the animation clock (see
   // `approachLevels`), because at the real speed of the day a fade spread over game minutes would leave
   // him and the camp half transparent for half an hour.
-  // In the morning the camp stays until he packs it for today's walk; with no walk today it stays all day.
-  const morningAt = () => (state.walk ? state.walk.startHour : 24);
-  const leadOf = (walk) => walk.leadHours ?? MORNING_LEAD_H;
-  function campTarget(h) { return h >= 19.9 || h < morningAt() - (state.walk ? leadOf(state.walk) * 0.67 : 0) ? 1 : 0; }
-  // The stump is packed away before the tent, once he's up in the morning.
-  function seatTarget(h) { return h >= 19.5 || h < morningAt() - (state.walk ? leadOf(state.walk) * 0.8 : 0) ? 1 : 0; }
+  // When the camp stands and the stump is out, by the hour and today's walk (see campSchedule.ts).
+  function campTarget(h) { return tentUp(h, state.walk) ? 1 : 0; }
+  function seatTarget(h) { return seatOut(h, state.walk) ? 1 : 0; }
   function sleepTarget(h) { return h >= 23.2 || h < 5 ? 1 : 0; }
   const LEVEL_FADE_S = 1.4;
   const campLevels = { camp: null, seat: null, sleep: null };
@@ -2393,7 +2527,7 @@ export async function startPrototypeScene(host, options = {}) {
   }
   function statusOf(h, walking, sleep) {
     if (walking) return 'walking';
-    if (h >= 19.3 && h < 20.3) return 'pitchingCamp';
+    if (h >= pitchHour(state.walk) && h < pitchHour(state.walk) + 1) return 'pitchingCamp';
     if (sleep > 0.5) return 'sleeping';
     if (state.walk && h >= state.walk.startHour - leadOf(state.walk) && h < state.walk.startHour) return 'packingUp';
     return 'resting';
@@ -2424,7 +2558,8 @@ export async function startPrototypeScene(host, options = {}) {
     { id: 'catRide', group: 'cat' }, { id: 'catDown', group: 'cat' }, { id: 'catWash', group: 'cat' },
     ...BIRD_IDS.map((id) => ({ id, group: 'bird' })), { id: 'shootingStar', group: 'world' },
     { id: 'ship', group: 'world' }, { id: 'fishingBoat', group: 'world' }, { id: 'angler', group: 'world' },
-    { id: 'sailboat', group: 'world' }, { id: 'swans', group: 'world' },
+    { id: 'sailboat', group: 'world' }, { id: 'swans', group: 'world' }, { id: 'shop', group: 'world', biomes: ['fields'] },
+    { id: 'jetty', group: 'world', biomes: ['lakes'] },
     { id: 'bigfoot', group: 'world' },
   ];
   const forced = {};
@@ -2504,6 +2639,8 @@ export async function startPrototypeScene(host, options = {}) {
     milky.alpha = 0.13 * P.stars;
     drawShootingStar(t, P.stars);
     if (P.stars >= 0.6 && shooting.t0 < 0) available.add('shootingStar');
+    if (state.biome === 'fields' && !state.allShops) available.add('shop');
+    if (env.layers.some((L) => L.jetties)) available.add('jetty');
 
     const sp = (h - 5.6) / (20.4 - 5.6);
     const sunUp = sp > 0 && sp < 1;
@@ -2583,7 +2720,11 @@ export async function startPrototypeScene(host, options = {}) {
       if (L.pathG) { const pc = colorAt(L.path, L.depth); L.pathG.tint = pc; L.gully.tint = mix(pc, col, 0.6); }
       if (L.rowG) L.rowG.tint = mix(col, mul(col, P.light, 1.3), 0.25);
       if (L.tL) { const tc = L.trees && L.trees.color ? colorAt(L.trees.color, L.depth) : mul(col, 0xffffff, 0.93); L.tL.tint = sideTint(tc, -sk); L.tR.tint = sideTint(tc, sk); }
-      if (L.bark) { L.bark.tint = sideTint(colorAt(0xe8e4da, L.depth), sk * 0.5); L.barkMarks.tint = colorAt(0x2e2a28, L.depth); }
+      if (L.bark) {
+        // Birch bark is white with black marks; a coastal pine's trunk is rust-orange.
+        const barkColor = L.trees.type === 'coastpine' ? 0x7f5442 : 0xe8e4da;
+        L.bark.tint = sideTint(colorAt(barkColor, L.depth), sk * 0.5); L.barkMarks.tint = colorAt(0x2e2a28, L.depth);
+      }
       if (L.walls) {
         const B = L.cabins || L.village || L.boats || L.lighthouse || L.fence || { wall: 0xeee6d2, roof: 0xb24a30 };
         const wc = colorAt(B.wall, L.depth), rc = colorAt(B.roof, L.depth);
@@ -2591,7 +2732,27 @@ export async function startPrototypeScene(host, options = {}) {
         L.win.tint = mix(mul(wc, 0xffffff, 0.45), 0xffc46b, nightK);
       }
       if (L.wet) L.wet.tint = mul(col, 0xb8ad9c);
+      if (L.jettyDeck) {
+        // Old planks darkened by the weather, like the beams under them.
+        L.jettyDeck.tint = sideTint(colorAt(0x564130, L.depth), sk * 0.4);
+        L.jettyPosts.tint = L.jettySeams.tint = colorAt(0x2c2119, L.depth);
+        L.jettyBoat.tint = colorAt(0x7a5236, L.depth); L.jettyBoatRim.tint = colorAt(0x4a3020, L.depth);
+        // The moored boat is the angler's: while he is out fishing it is gone from the jetty.
+        const out = !!env.ships?.angler?.visible;
+        L.jettyBoat.visible = L.jettyBoatRim.visible = !out;
+      }
       if (L.patches) L.patchwork.colors.forEach((c, n) => { L.patches[n].tint = colorAt(c, L.depth); });
+      // A Ropucha shop in view, at any hour: the easiest moment in the world to witness.
+      if (L.shops && !ropuchaReported) {
+        const shop = L.shops.find((it) => { const x = (it.u - layerOffset(L)) * S; return x > 0 && x < W; });
+        if (shop) { ropuchaReported = true; options.onWorldEvent?.({ id: 'ropuchaSeen', forced: !shop.natural }); }
+      }
+      if (L.neon) {
+        // The neon reads green by day and burns brighter after dusk, with a halo round it.
+        L.neon.tint = mix(colorAt(0x2f8f4e, L.depth), 0x58f07e, nightK * 0.85);
+        L.neonGlow.tint = 0x4cf07a; L.neonGlow.alpha = 0.06 + 0.5 * nightK;
+        L.shopTexts.tint = mix(colorAt(0xe6f2e2, L.depth), 0xf2fff4, nightK);
+      }
       if (L.church) L.church.tint = sideTint(colorAt(L.village?.church ?? 0xa54c33, L.depth), sk * 0.6);
       if (L.wood) {
         L.wood.tint = sideTint(colorAt(0x6e4b30, L.depth), sk * 0.4);
@@ -2976,7 +3137,12 @@ export async function startPrototypeScene(host, options = {}) {
       if (walking && !riding && !birdPos) available.add('catRide');
       if (walking && !riding && !onBreak) available.add('catWash');
       if (dark < 0.4 && !birdPos && !riding) for (const id of BIRD_IDS) available.add(id);
-      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t, coat: state.weather.frost });
+      // The cat wears its jumper in the frost and whenever it snows, and its yellow cape with the hood up
+      // in a downpour or a thunderstorm's rain (light rain doesn't bother it); in freezing rain, both.
+      const fall = state.weather.precipitation;
+      const catCold = state.weather.frost || fall === 'snow' || fall === 'heavySnow';
+      const catWet = fall === 'heavyRain' || (state.weather.storm && (fall === 'rain' || fall === 'drizzle'));
+      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t, coat: catCold, cape: catWet });
       catC.position.set(pos[0], pos[1]);
       // It fades out as it slips through the tent door and fades in as it comes back out.
       catC.alpha = camp > 0.01 ? smooth(4, 24, Math.abs(cat.x - tentRelX)) : 1;
@@ -3094,20 +3260,27 @@ export async function startPrototypeScene(host, options = {}) {
       lastSkyHour = -1;
       if (skyChanged && env) buildClouds(env.def);
     },
-    setBiome(id) { if (BIOMES[id] && id !== state.biome) { state.biome = id; buildEnvironment(); } },
+    setBiome(id) { if (BIOMES[id] && id !== state.biome) { state.biome = id; state.allShops = false; buildEnvironment(); } },
     levelsOf(id) { return LEVELED_BIOMES.includes(id) ? Object.keys(LEVELS) : ['mid']; },
     setLevel(level) { if (LEVELS[level] && level !== state.level) { state.level = level; buildEnvironment(); } },
-    reseed() { state.seed += 1; buildEnvironment(); },
+    reseed() { state.seed += 1; state.allShops = false; buildEnvironment(); },
     // The landscape of a place on the route, set in one go so the scene is rebuilt once.
     setLandscape({ biome, level, seed }) {
       if (!BIOMES[biome]) return;
       if (biome === state.biome && level === state.level && seed === state.seed) return;
-      state.biome = biome; if (LEVELS[level]) state.level = level; state.seed = seed;
+      state.biome = biome; if (LEVELS[level]) state.level = level; state.seed = seed; state.allShops = false;
       buildEnvironment();
     },
     trigger(id) {
       if (!BEHAVIOURS.some((b) => b.id === id)) return;
       if (id === 'shootingStar') { shooting.next = state.t; return; }
+      // The corner shop: every village in view gets one, until the scene moves to another place.
+      if (id === 'shop') { state.allShops = true; buildEnvironment(); return; }
+      // A jetty a little left of the middle of the view, so it runs out across it.
+      if (id === 'jetty') {
+        for (const L of env.layers) if (L.jetties) { L.forcedJettyU = layerOffset(L) + (W * 0.4) / S; L.u0 = -1e9; }
+        return;
+      }
       if (id === 'catDown') { cat.pendingDown = true; return; }
       if (BIRD_IDS.includes(id)) { forcedBirdSpecies = BIRD_IDS.indexOf(id); forced.bird = state.t; return; }
       forced[id] = state.t;

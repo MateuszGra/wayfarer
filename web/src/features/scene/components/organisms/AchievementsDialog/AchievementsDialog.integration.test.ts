@@ -72,7 +72,7 @@ describe('AchievementsDialog', () => {
 
     await showTrophies();
 
-    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 3 z 13');
+    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 3 z 14');
   });
 
   it('lists the moments seen in the world apart, marking the one already seen', async () => {
@@ -116,5 +116,17 @@ describe('AchievementsDialog', () => {
     await flushPromises();
 
     expect(query('[data-testid="trophies-count"]')).not.toBeNull();
+  });
+
+  it('puts the won trophies at the top of the list', async () => {
+    await openAchievements();
+
+    await showTrophies();
+
+    const names = [
+      ...document.body.querySelectorAll('[aria-label="Puchary do zdobycia"] [data-testid^="trophy-"]'),
+    ].map((card) => card.getAttribute('data-testid'));
+    expect(names.slice(0, 2)).toEqual(['trophy-aezakmi', 'trophy-dragonborn']);
+    expect(names[2]).toBe('trophy-tenOutOfTen');
   });
 });

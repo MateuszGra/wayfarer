@@ -28,7 +28,9 @@ export type BehaviourId =
   | 'angler'
   | 'bigfoot'
   | 'sailboat'
-  | 'swans';
+  | 'swans'
+  | 'shop'
+  | 'jetty';
 
 export type BehaviourGroup = 'wanderer' | 'cat' | 'bird' | 'world';
 

@@ -97,3 +97,9 @@ export interface WorldEventsResponse {
   /** The moments in the world this player has seen, with when they first saw each, ISO 8601. */
   readonly seen: readonly { readonly id: SightingId; readonly seenAt: string }[];
 }
+
+/** The player's notification choices; also the body of a change. */
+export interface NotificationSettingsDto {
+  /** An e-mail at 10:00, and again at 22:00, while yesterday's steps are not entered. */
+  readonly stepReminders: boolean;
+}

@@ -104,6 +104,7 @@ describe('the full-beard trophy', () => {
 describe('worldTrophyProgress', () => {
   it('wins the trophy of a moment once it has been seen', () => {
     expect(worldTrophyProgress(['bigfootSeen'])).toEqual([
+      { id: 'ropuchaSeen', measure: 'sighting', goal: 1, done: 0, won: false },
       { id: 'pikeCaught', measure: 'sighting', goal: 1, done: 0, won: false },
       { id: 'bigfootSeen', measure: 'sighting', goal: 1, done: 1, won: true },
       { id: 'lighthouseGlare', measure: 'sighting', goal: 1, done: 0, won: false },

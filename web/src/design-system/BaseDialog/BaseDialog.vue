@@ -186,6 +186,26 @@ const onEscape = (event: KeyboardEvent): void => {
   letter-spacing: 0.06em;
   text-align: center;
 }
+/* A small phone: the window takes nearly the whole screen and the paper margins shrink. */
+@media (max-width: 420px), (max-height: 460px) {
+  .base-dialog__content {
+    padding: var(--space-2);
+  }
+  .base-dialog__wide {
+    width: calc(100vw - 2 * var(--space-2));
+    height: calc(100dvh - 2 * var(--space-2));
+  }
+  .base-dialog__wide > :deep(.base-card__inner) {
+    padding: var(--space-2);
+  }
+}
+/* A phone on its side: the title gives up height so the content has room. */
+@media (max-height: 460px) {
+  .base-dialog__title {
+    margin: var(--space-1) 0 var(--space-2);
+    font-size: 20px;
+  }
+}
 .base-dialog__title--hidden {
   position: absolute;
   width: 1px;
