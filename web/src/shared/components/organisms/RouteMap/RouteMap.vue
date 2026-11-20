@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, type GeoJSONSource, type LngLatBoundsLike, type StyleSpecification } from 'maplibre-gl';
+import {
+  Map as MapLibreMap,
+  setWorkerUrl,
+  type GeoJSONSource,
+  type LngLatBoundsLike,
+  type StyleSpecification,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { RoutePoint } from '@shared/api/contracts';
 import { routeProgress, todaySegment } from '@shared/routes/progress';
 import { t } from '@/shared/i18n';
+
+// MapLibre looks for its worker next to its own module. In a production build that module is inlined into
+// one of our chunks and the worker file is never copied, so the map stayed blank; `?url` makes Vite emit
+// the (self-contained) worker and hands us its address.
+setWorkerUrl(mapWorkerUrl);
 
 export interface Props {
   path: readonly RoutePoint[] | null;
