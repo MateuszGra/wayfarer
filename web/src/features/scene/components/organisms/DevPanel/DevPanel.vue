@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { BaseButton, BaseCollapsible, BasePanel } from '@/design-system';
+import type { WeatherResponse } from '@shared/api/contracts';
 import { FULL_BEARD_DAYS } from '@shared/wanderer/beard';
+import type { Precipitation, Sky, Weather, Wind } from '@shared/weather/weather';
 import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
@@ -19,10 +21,16 @@ export interface Props {
   collapsed: boolean;
   /** Behaviours that can be started right now. */
   behaviours?: readonly SceneBehaviour[];
+  /** The latest reading from the weather API, or null before it arrives. */
+  apiWeather?: WeatherResponse | null;
+  /** The weather the scene shows now. */
+  weather: Weather;
+  /** Whether the scene follows the API or a weather set by hand here. */
+  weatherFromApi: boolean;
 }
 
 defineOptions({ name: 'DevPanel' });
-const props = withDefaults(defineProps<Props>(), { behaviours: () => [] });
+const props = withDefaults(defineProps<Props>(), { behaviours: () => [], apiWeather: null });
 const emit = defineEmits<{
   'update:hour': [hour: number];
   'update:collapsed': [collapsed: boolean];
@@ -34,6 +42,8 @@ const emit = defineEmits<{
   'select-level': [level: ElevationLevel];
   reseed: [];
   trigger: [id: BehaviourId];
+  'update:weather': [weather: Weather];
+  'follow-api-weather': [];
 }>();
 
 const clock = computed(() => {
@@ -51,7 +61,27 @@ const behaviourGroups = computed(() =>
     (g) => g.items.length > 0,
   ),
 );
+// Every section folds away, so on a small screen the panel only takes the room of what is in use.
+const timeOpen = ref(true);
+const beardOpen = ref(true);
+const placeOpen = ref(true);
 const behavioursOpen = ref(false);
+const weatherOpen = ref(false);
+const SKIES: readonly Sky[] = ['clear', 'partly', 'overcast', 'fog'];
+const FALLS: readonly Precipitation[] = ['none', 'drizzle', 'rain', 'heavyRain', 'snow', 'heavySnow'];
+const WINDS: readonly Wind[] = ['calm', 'breeze', 'strong'];
+const setWeather = (change: Partial<Weather>): void => emit('update:weather', { ...props.weather, ...change });
+const apiLine = computed(() => {
+  const w = props.apiWeather;
+  if (!w) return t('dev.weatherNoApi');
+  const code = `${t(`weather.sky.${w.weather.sky}`)}, ${t(`weather.fall.${w.weather.precipitation}`)}`;
+  return t('dev.weatherApi', {
+    region: w.region,
+    temperature: w.temperatureC.toLocaleString('pl-PL', { maximumFractionDigits: 1 }),
+    wind: Math.round(w.windKmh),
+    code,
+  });
+});
 const sliderValue = (event: Event): number => Number((event.target as HTMLInputElement).value);
 </script>
 
@@ -81,10 +111,10 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
 
     <BasePanel id="dev-panel-body" class="dev-panel__body" :inert="collapsed">
       <p class="dev-panel__title">{{ t('dev.title') }}</p>
-      <section class="dev-panel__group">
-        <label class="dev-panel__label" for="dev-hour">{{ t('dev.time') }} · {{ clock }}</label>
+      <BaseCollapsible v-model:open="timeOpen" :title="`${t('dev.time')} · ${clock}`" data-testid="dev-time">
         <input
           id="dev-hour"
+          :aria-label="t('dev.time')"
           class="dev-panel__slider"
           type="range"
           min="0"
@@ -108,12 +138,12 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
         <BaseButton size="sm" data-testid="dev-day-length" @click="emit('cycle-day-length')">
           {{ t('dev.dayLength', { minutes: dayLengthMinutes }) }}
         </BaseButton>
-      </section>
+      </BaseCollapsible>
 
-      <section class="dev-panel__group">
-        <label class="dev-panel__label" for="dev-beard">{{ beardLabel }}</label>
+      <BaseCollapsible v-model:open="beardOpen" :title="beardLabel" data-testid="dev-beard-section">
         <input
           id="dev-beard"
+          :aria-label="beardLabel"
           class="dev-panel__slider"
           type="range"
           min="1"
@@ -123,10 +153,9 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
           data-testid="dev-beard"
           @input="emit('update:beardDay', sliderValue($event))"
         />
-      </section>
+      </BaseCollapsible>
 
-      <section class="dev-panel__group">
-        <p class="dev-panel__label">{{ t('dev.place') }}</p>
+      <BaseCollapsible v-model:open="placeOpen" :title="t('dev.place')" data-testid="dev-place">
         <div class="dev-panel__row">
           <BaseButton
             v-for="id in biomeIds"
@@ -153,7 +182,80 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
           </BaseButton>
         </div>
         <BaseButton size="sm" data-testid="dev-reseed" @click="emit('reseed')">{{ t('dev.reseed') }}</BaseButton>
-      </section>
+      </BaseCollapsible>
+
+      <BaseCollapsible v-model:open="weatherOpen" :title="t('dev.weather')" data-testid="dev-weather">
+        <p class="dev-panel__hint" data-testid="dev-weather-api">{{ apiLine }}</p>
+        <div class="dev-panel__row">
+          <BaseButton
+            size="sm"
+            :variant="weatherFromApi ? 'primary' : 'ghost'"
+            data-testid="dev-weather-from-api"
+            @click="emit('follow-api-weather')"
+          >
+            {{ t('dev.weatherFromApi') }}
+          </BaseButton>
+        </div>
+        <div v-for="group in ['sky', 'fall', 'wind'] as const" :key="group" class="dev-panel__group" role="group">
+          <p class="dev-panel__label">{{ t(`dev.weather.${group}`) }}</p>
+          <div class="dev-panel__row">
+            <template v-if="group === 'sky'">
+              <BaseButton
+                v-for="sky in SKIES"
+                :key="sky"
+                size="sm"
+                :variant="weather.sky === sky ? 'primary' : 'ghost'"
+                :data-testid="`dev-sky-${sky}`"
+                @click="setWeather({ sky })"
+              >
+                {{ t(`weather.sky.${sky}`) }}
+              </BaseButton>
+            </template>
+            <template v-else-if="group === 'fall'">
+              <BaseButton
+                v-for="fall in FALLS"
+                :key="fall"
+                size="sm"
+                :variant="weather.precipitation === fall ? 'primary' : 'ghost'"
+                :data-testid="`dev-fall-${fall}`"
+                @click="setWeather({ precipitation: fall })"
+              >
+                {{ t(`weather.fall.${fall}`) }}
+              </BaseButton>
+            </template>
+            <template v-else>
+              <BaseButton
+                v-for="wind in WINDS"
+                :key="wind"
+                size="sm"
+                :variant="weather.wind === wind ? 'primary' : 'ghost'"
+                :data-testid="`dev-wind-${wind}`"
+                @click="setWeather({ wind })"
+              >
+                {{ t(`weather.wind.${wind}`) }}
+              </BaseButton>
+            </template>
+          </div>
+        </div>
+        <div class="dev-panel__row">
+          <BaseButton
+            size="sm"
+            :variant="weather.storm ? 'primary' : 'ghost'"
+            data-testid="dev-storm"
+            @click="setWeather({ storm: !weather.storm })"
+          >
+            {{ t('weather.storm') }}
+          </BaseButton>
+          <BaseButton
+            size="sm"
+            :variant="weather.frost ? 'primary' : 'ghost'"
+            data-testid="dev-frost"
+            @click="setWeather({ frost: !weather.frost })"
+          >
+            {{ t('weather.frost') }}
+          </BaseButton>
+        </div>
+      </BaseCollapsible>
 
       <BaseCollapsible v-model:open="behavioursOpen" :title="t('dev.behaviours')" data-testid="dev-behaviours">
         <div
@@ -189,8 +291,18 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
   position: absolute;
   top: max(var(--space-4), env(safe-area-inset-top));
   right: var(--gutter);
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
   width: min(300px, calc(100vw - 2 * var(--space-4) - 32px));
+  display: flex;
+  flex-direction: column;
+  /* The aside reaches the bottom of the screen only to bound the panel's height; the empty part below a
+     short panel must not catch taps meant for the scene. */
+  pointer-events: none;
   transition: transform 0.25s ease;
+}
+.dev-panel__tab,
+.dev-panel__body {
+  pointer-events: auto;
 }
 .dev-panel--collapsed {
   transform: translateX(calc(100% + var(--gutter)));
@@ -215,9 +327,11 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
 .dev-panel__body {
   display: grid;
   gap: var(--space-4);
-  /* With the behaviours open the panel is taller than a phone screen, so it scrolls on its own. */
-  max-height: calc(100dvh - 2 * var(--space-4));
+  /* The panel sits below the menu button, so its height is bounded by the aside, not by the screen. */
+  max-height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .dev-panel__title {
   margin: 0;

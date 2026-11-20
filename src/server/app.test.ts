@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
+import { createInMemoryJourneys } from '../modules/journey/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
+import { createWeatherService } from '../modules/weather/index.js';
 import { buildApp, type AppDependencies } from './app.js';
 
 const apps: FastifyInstance[] = [];
@@ -10,6 +12,11 @@ async function appWith(overrides: Partial<AppDependencies> = {}): Promise<Fastif
   const app = await buildApp({
     checkDatabase: async () => {},
     routeCatalog: createStaticRouteCatalog(),
+    weather: createWeatherService({
+      source: { current: async () => Promise.reject(new Error('offline')) },
+      clock: { now: () => new Date(0) },
+    }),
+    journey: createInMemoryJourneys(),
     auth: createInMemoryAuth(),
     authHttp: { secureCookies: true, limiter: new AttemptLimiter(100, 60_000) },
     ...overrides,

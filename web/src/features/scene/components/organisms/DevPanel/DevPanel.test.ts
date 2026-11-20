@@ -2,6 +2,8 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import DevPanel from './DevPanel.vue';
 
+const CLEAR = { sky: 'clear', precipitation: 'none', storm: false, wind: 'breeze', frost: false } as const;
+
 const panel = (props: Partial<InstanceType<typeof DevPanel>['$props']> = {}) =>
   mount(DevPanel, {
     props: {
@@ -14,6 +16,8 @@ const panel = (props: Partial<InstanceType<typeof DevPanel>['$props']> = {}) =>
       level: 'mid',
       levels: ['low', 'mid', 'high'],
       collapsed: false,
+      weather: CLEAR,
+      weatherFromApi: true,
       ...props,
     },
   });
@@ -122,5 +126,50 @@ describe('DevPanel', () => {
     await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
 
     expect(wrapper.get('[data-testid="dev-behaviours-none"]').text()).toBe('W tej chwili nic nie da się wywołać.');
+  });
+
+  it('shows the latest weather reading from the API', async () => {
+    const wrapper = panel({
+      apiWeather: {
+        region: 'Słupsk',
+        weather: { sky: 'overcast', precipitation: 'rain', storm: false, wind: 'breeze', frost: false },
+        temperatureC: 4.6,
+        windKmh: 16.6,
+        observedAt: '2026-11-20T13:15:00.000Z',
+      },
+    });
+
+    await wrapper.get('[data-testid="dev-weather"] button').trigger('click');
+
+    expect(wrapper.get('[data-testid="dev-weather-api"]').text()).toBe(
+      'Z API: Słupsk · 4,6 °C · 17 km/h · Pochmurno, Deszcz',
+    );
+  });
+
+  it('sets the weather by hand, one layer at a time', async () => {
+    const wrapper = panel();
+    await wrapper.get('[data-testid="dev-weather"] button').trigger('click');
+
+    await wrapper.get('[data-testid="dev-fall-heavySnow"]').trigger('click');
+
+    expect(wrapper.emitted('update:weather')).toEqual([[{ ...CLEAR, precipitation: 'heavySnow' }]]);
+  });
+
+  it('switches a storm on', async () => {
+    const wrapper = panel();
+    await wrapper.get('[data-testid="dev-weather"] button').trigger('click');
+
+    await wrapper.get('[data-testid="dev-storm"]').trigger('click');
+
+    expect(wrapper.emitted('update:weather')).toEqual([[{ ...CLEAR, storm: true }]]);
+  });
+
+  it('goes back to the weather from the API', async () => {
+    const wrapper = panel({ weatherFromApi: false });
+    await wrapper.get('[data-testid="dev-weather"] button').trigger('click');
+
+    await wrapper.get('[data-testid="dev-weather-from-api"]').trigger('click');
+
+    expect(wrapper.emitted('follow-api-weather')).toEqual([[]]);
   });
 });

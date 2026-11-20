@@ -18,6 +18,11 @@ const MESSAGE_KEYS: Record<ErrorCode, TranslationKey> = {
   password_too_long: 'errors.password_too_long',
   password_unchanged: 'errors.password_unchanged',
   password_breached: 'errors.password_breached',
+  journey_not_found: 'errors.journey_not_found',
+  journey_exists: 'errors.journey_exists',
+  unknown_route: 'errors.unknown_route',
+  invalid_steps: 'errors.invalid_steps',
+  weather_unavailable: 'errors.weather_unavailable',
 };
 
 export function errorMessageKey(code: string | null): TranslationKey {

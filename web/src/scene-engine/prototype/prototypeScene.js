@@ -109,7 +109,7 @@ export async function startPrototypeScene(host, options = {}) {
     baltic: {
       name: 'Bałtyk', lake: 0.585, clouds: 6, rays: 0.5, mist: 0.7, fireflies: 0.1, mistAfter: [0], birdColor: 0xf4f3ee,
       water: { tint: 0x9db5c4, body: 0x2c5a68, bodyAlpha: 0.55, shimmer: 90 },
-      ships: true,
+      vessels: ['cargo', 'cutter'],
       // Looking out to the open sea from a green coastal belt. No islands: the Baltic shore is a clean,
       // flat horizon. Pines and the lighthouse stand on the green ground behind the beach.
       layers: [
@@ -128,6 +128,8 @@ export async function startPrototypeScene(host, options = {}) {
       overlay: null,
     },
     mountains: {
+      // Now and then, by day, an angler drifts across the lake in a rowing boat.
+      vessels: ['angler'],
       name: 'Góry i jezioro', sprig: 0xf2efe6, snowLine: 0.27, lake: 0.655, clouds: 5, rays: 0.7, mist: 1.0, fireflies: 0.6, mistAfter: [1, 3],
       layers: [
         { kind: 'ridge', depth: 1.0, base: 0.56, amp: 0.36, wave: 0.42, oct: 5, ridged: true, sharp: 1.3, speed: 0.01, color: 0xa9bdd0, snow: 0.62, faces: true, fog: 0.4, reflect: true, rim: true },
@@ -154,7 +156,8 @@ export async function startPrototypeScene(host, options = {}) {
         { kind: 'ridge', depth: 1, base: 0.6, amp: 0.17, wave: 0.5, oct: 4, speed: 0.01, color: 0x93a7ad, faces: true, fog: 0.5, rim: true },
         { kind: 'hill', depth: 0.8, base: 0.66, amp: 0.12, wave: 0.36, oct: 4, speed: 0.035, color: 0x6f8c70, fog: 0.45,
           trees: { type: 'round', spacing: 0.006, h: [0.012, 0.02], density: 0.95 } },
-        { kind: 'hill', depth: 0.6, base: 0.74, amp: 0.1, wave: 0.3, oct: 3, speed: 0.1, color: 0x4f7653, fog: 0.4,
+        // Rarely, far off on this wooded ridge, something big and hairy walks between the beeches.
+        { kind: 'hill', depth: 0.6, base: 0.74, amp: 0.1, wave: 0.3, oct: 3, speed: 0.1, color: 0x4f7653, fog: 0.4, bigfoot: true,
           trees: { type: 'round', spacing: 0.009, h: [0.025, 0.045], density: 0.95, mix: 0.15 },
           cabins: { spacing: 1.3, chance: 0.6, size: 0.009, wall: 0x8a5c3a, roof: 0x4e3526 } },
         { kind: 'hill', depth: 0.38, base: 0.84, amp: 0.07, wave: 0.28, oct: 3, speed: 0.25, color: 0x35583c, fog: 0.3,
@@ -249,11 +252,20 @@ export async function startPrototypeScene(host, options = {}) {
   const TENT_SCALE = 2.1;
   const CYCLE_S = (2 * STRIDE) / (0.6 * WALK_U_PER_S * 850);
 
+  const DEMO_WALK = { startHour: 7.2, endHour: 19.3 };
+  const CLEAR_WEATHER = { sky: 'clear', precipitation: 'none', storm: false, wind: 'breeze', frost: false };
+  // Getting up and packing before a walk that starts at dawn takes a while; when the player only just
+  // entered the steps later in the day, he gets going after a short stretch instead.
+  const MORNING_LEAD_H = 0.6;
   const state = {
     hour: options.hour ?? 18.3, auto: options.auto ?? false, dayLength: options.dayLengthSeconds ?? 120, t: options.animationTime ?? 0, day: 12,
     offsetU: 0, speed: 1, phase: 0,
     biome: options.biome ?? 'baltic', level: options.level ?? 'mid', seed: options.seed ?? 7,
     still: options.still ?? false, hideWanderer: options.hideWanderer ?? false, beard: options.beard ?? 0.2,
+    // Today's walk: from `startHour` to `endHour`, after `leadHours` of getting up and packing. Null is a
+    // day at camp (no steps yet, or a rest day). Without a walk given, the demo day of the prototype.
+    walk: options.walk === undefined ? DEMO_WALK : options.walk,
+    weather: options.weather ?? CLEAR_WEATHER,
   };
 
   // ---------- textures ----------
@@ -348,7 +360,11 @@ export async function startPrototypeScene(host, options = {}) {
   const veilC = new Container();
   const actors = new Container();
   const front = new Container();
-  app.stage.addChild(skyGroup, landscape, veilC, actors, front);
+  // Rain or snow falls in front of everything, and a lightning flash lights the whole picture.
+  const precipG = new Graphics();
+  const flash = new Sprite(Texture.WHITE);
+  flash.blendMode = 'add';
+  app.stage.addChild(skyGroup, landscape, veilC, actors, front, precipG, flash);
 
   const sky = new Sprite(skyTex); skyGroup.addChild(sky);
   const milky = addSprite(skyGroup, glowTex, { add: true, tint: 0xc4ccff });
@@ -388,10 +404,17 @@ export async function startPrototypeScene(host, options = {}) {
   }
 
   let clouds = [];
+  // Fewer clouds on a clear day, the biome's usual number when it is partly cloudy, a crowded sky when
+  // overcast or foggy.
+  function cloudCount(def) {
+    const sky = state.weather.sky;
+    return sky === 'clear' ? Math.ceil(def.clouds * 0.6) : sky === 'partly' ? def.clouds : def.clouds * 2 + 4;
+  }
+
   function buildClouds(def) {
     cloudsC.removeChildren().forEach(c => c.destroy({ children: true }));
     clouds = [];
-    for (let i = 0; i < def.clouds; i++) {
+    for (let i = 0; i < cloudCount(def); i++) {
       const r0 = hash(i, state.seed + 300), r1 = hash(i, state.seed + 301), r2 = hash(i, state.seed + 302);
       const c = new Container();
       const shade = new Graphics(), body = new Graphics(), hi = new Graphics();
@@ -1020,11 +1043,16 @@ export async function startPrototypeScene(host, options = {}) {
       if (spec === 'lake') {
         landscape.addChild(env.lake.c);
         // Outside the sea's mask, because a ship's superstructure rises above the horizon line.
-        if (def.ships) { env.ships = { cargo: new Graphics(), cutter: new Graphics() }; landscape.addChild(env.ships.cargo, env.ships.cutter); }
+        if (def.vessels) {
+          env.ships = Object.fromEntries(def.vessels.map((kind) => [kind, new Graphics()]));
+          landscape.addChild(...Object.values(env.ships));
+        }
       }
       else {
         const L = makeLayer(spec, i);
         landscape.addChild(L.c);
+        // Drawn right after its ridge: in front of that ridge's trees, behind every nearer layer.
+        if (L.bigfoot) { env.bigfoot = { g: new Graphics(), L }; landscape.addChild(env.bigfoot.g); }
         if (L.fog) { L.fogS = new Sprite(fogTex); landscape.addChild(L.fogS); }
         if (L.reflect && env.lake) { L.rg = new Graphics(); env.lake.refl.addChild(L.rg); }
         if (L.kind === 'ground') env.ground = L;
@@ -1046,9 +1074,40 @@ export async function startPrototypeScene(host, options = {}) {
       rays.push({ s: addSprite(landscape, rayTex, { add: true }), a: (i - 2.5) * 0.13 + (hash(i, state.seed) - 0.5) * 0.08, w: 0.05 + hash(i, state.seed + 1) * 0.1, k: 0.6 + hash(i, state.seed + 2) * 0.6 });
       rays[i].s.anchor.set(0, 0.5);
     }
-    if (def.overlay) { env.overlay = makeLayer(def.overlay, 99); front.addChild(env.overlay.c); }
+    if (def.overlay) {
+      env.overlay = makeLayer(def.overlay, 99); front.addChild(env.overlay.c);
+      // The foreground rocks and ferns must never hide the wanderer, the cat or the camp: a soft window
+      // over them makes the foreground nearly see-through there (see `layoutEnvironment`).
+      env.overlayWindow = new Sprite(Texture.WHITE); front.addChild(env.overlayWindow);
+      env.overlay.c.mask = env.overlayWindow;
+    }
     buildClouds(def);
     layoutEnvironment();
+  }
+
+  // Fully drawn foreground everywhere, except a soft ellipse rising from the bottom edge over the wanderer,
+  // from the tent behind him to the cat's place past the fire, where only a trace of it is left.
+  const OVERLAY_TRACE = 0.18;
+  function drawOverlayWindow() {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(W)); c.height = Math.max(1, Math.round(H));
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    const tx = W * (W > H ? 0.44 : 0.6);
+    const cx = tx - 10 * unit, rx = 260 * unit, ry = 230 * unit;
+    x.save();
+    x.translate(cx, H); x.scale(rx / ry, 1);
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, ry);
+    g.addColorStop(0, `rgba(0,0,0,${1 - OVERLAY_TRACE})`);
+    g.addColorStop(0.7, `rgba(0,0,0,${1 - OVERLAY_TRACE})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.globalCompositeOperation = 'destination-out';
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, ry, 0, Math.PI * 2); x.fill();
+    x.restore();
+    const old = env.overlayWindow.texture;
+    env.overlayWindow.texture = Texture.from(c);
+    if (old !== Texture.WHITE) old.destroy(true);
+    env.overlayWindow.width = W; env.overlayWindow.height = H;
   }
 
   function layoutEnvironment() {
@@ -1061,7 +1120,7 @@ export async function startPrototypeScene(host, options = {}) {
         L.fogS.position.set(0, y0); L.fogS.width = W; L.fogS.height = H - y0 + 10;
       }
     }
-    if (env.overlay) env.overlay.u0 = -1e9;
+    if (env.overlay) { env.overlay.u0 = -1e9; drawOverlayWindow(); }
     const lk = env.lake;
     if (lk) {
       const Ly = env.lakeY;
@@ -1083,8 +1142,17 @@ export async function startPrototypeScene(host, options = {}) {
   // player could open the game several times and never see the sea in use.
   const SHIPS = {
     cargo: { id: 'ship', slot: 150, cross: 110, chance: 0.7, start: 40, y: 0.005, len: 0.17, depth: 0.92, seed: 611 },
+    // A rowing boat at anchor while its angler fishes: it fades in at a spot on the lake and stays there for
+    // the visit (`cross` seconds), so as the wanderer walks on it slides past with the lake like the rest
+    // of the landscape and leaves the screen. Only out in daylight.
+    angler: { id: 'angler', slot: 130, cross: 120, chance: 0.6, start: 20, y: 0.032, len: 0.05, depth: 0.55, seed: 614, daytime: true, anchored: true },
     cutter: { id: 'fishingBoat', slot: 70, cross: 45, chance: 0.65, start: 4, y: 0.045, len: 0.1, depth: 0.72, seed: 612 },
   };
+  // How fast the lake surface moves past as the wanderer walks: between the far shore (0.07) and the near
+  // wooded bank (0.25), as far away as a boat on it looks.
+  const LAKE_SPEED = 0.15;
+  // Where each anchored vessel lies for its current visit, in lake units.
+  const anchors = {};
   // Where a vessel is now: progress 0..1 across the screen and its heading, or null when the sea is empty.
   function shipPass(kind, t, forcedAgeS) {
     const sh = SHIPS[kind];
@@ -1142,6 +1210,101 @@ export async function startPrototypeScene(host, options = {}) {
       g.circle(-6, -30, 1.4).fill({ color: 0x5ee08a, alpha: nightK });
       g.rect(-10, -28, 18, 6).fill({ color: 0xffd58a, alpha: nightK * 0.8 });
     }
+  }
+
+  // Now and then a fish bites: over five seconds of a 28-second cast the rod dips, rises bent, the fish
+  // comes up wriggling on the line and is swung into the boat; then he casts again.
+  const CATCH = { cast: 28, length: 5, chance: 0.5, seed: 617 };
+  function drawAngler(g, col, t) {
+    g.clear();
+    const cast = Math.floor(t / CATCH.cast), c = mod(t, CATCH.cast);
+    const catching = hash(cast, CATCH.seed) < CATCH.chance && c < CATCH.length;
+    const water = [58, 0];
+    // The rod tip: resting with a small twitch now and then, dipping at the bite, raised and bent while
+    // the fish comes up.
+    const twitch = Math.sin(t * 0.9) > 0.92 ? Math.sin(t * 25) * 2 : 0;
+    let tip = [52, -40 + twitch];
+    let fish = null;
+    if (catching) {
+      if (c < 1) tip = [53, -34 + Math.sin(c * 30) * 1.5];
+      else if (c < 3) { tip = [44, -50]; const k = smooth(1, 3, c); fish = [lerp(water[0], 46, k), lerp(water[1], -36, k)]; }
+      else if (c < 4) { tip = [lerp(44, 20, c - 3), -50]; const k = smooth(3, 4, c); fish = [lerp(46, 0, k), lerp(-36, -14, k)]; }
+      else tip = [lerp(20, 52, smooth(4, 5, c)), lerp(-50, -40, smooth(4, 5, c))];
+    }
+    // Rings spreading where the line meets the water; a splash ring when the fish leaves it.
+    const splash = catching && c > 1 && c < 2.2;
+    for (let i = 0; i < 2; i++) {
+      const k = mod(t * (splash ? 1.2 : 0.35) + i * 0.5, 1);
+      g.ellipse(water[0], 0.5, 4 + k * 16, 1 + k * 3).stroke({ width: 1, color: 0xffffff, alpha: (splash ? 0.7 : 0.45) * (1 - k) });
+    }
+    g.poly([-30, -8, 30, -8, 24, 0, -24, 0]).fill(col(0x7a5236));
+    g.rect(-30, -9, 60, 2).fill(col(0x5a3a25));
+    // The angler sits in the stern, rod held up and out over the water.
+    g.roundRect(-14, -25, 12, 17, 4).fill(col(0x3f5a4a));
+    g.circle(-8, -29, 4.2).fill(col(0xd8b08c));
+    g.ellipse(-8, -32.5, 7, 1.6).fill(col(0x4a3a2a));
+    g.roundRect(-11.5, -37, 7, 5, 2).fill(col(0x4a3a2a));
+    const bend = fish ? -8 : 0;
+    g.moveTo(-4, -18).quadraticCurveTo(24, -46 + bend, tip[0], tip[1]).stroke({ width: 1.4, color: col(0x3a3028) });
+    const end = fish ?? (catching && c >= 4 ? null : water);
+    if (end) g.moveTo(tip[0], tip[1]).quadraticCurveTo(lerp(tip[0], end[0], 0.5) + 4, lerp(tip[1], end[1], 0.6), end[0], end[1]).stroke({ width: 0.6, color: col(0xe8e4da), alpha: 0.8 });
+    if (fish) {
+      // A silver fish hanging from the line, head down, wriggling.
+      const w = Math.sin(t * 22) * 0.5;
+      g.ellipse(fish[0], fish[1] + 5, 2.2, 5).fill(col(0xc9d2d6));
+      g.poly([fish[0], fish[1] + 9, fish[0] - 3 + w * 2, fish[1] + 13, fish[0] + 3 + w * 2, fish[1] + 13]).fill(col(0xa9b4ba));
+    }
+    g.moveTo(-6, -18).lineTo(-2, -18).stroke({ width: 3, color: col(0xd8b08c), cap: 'round' });
+  }
+
+  // Bigfoot: a rare, distant walker on a wooded ridge of the beech forest, drawn in its own units
+  // (ground at 0, about 40 tall, facing +x) and hazed like the ridge it walks on.
+  const BIGFOOT = { slot: 600, cross: 70, chance: 0.3, start: 240, seed: 615, height: 0.04 };
+  // It always walks from right to left, facing left.
+  function bigfootPass(t, forcedAgeS) {
+    if (forcedAgeS < BIGFOOT.cross) return { k: forcedAgeS / BIGFOOT.cross, dir: -1 };
+    const slot = Math.floor((t - BIGFOOT.start) / BIGFOOT.slot), k = (t - BIGFOOT.start - slot * BIGFOOT.slot) / BIGFOOT.cross;
+    if (slot < 0 || k >= 1 || hash(slot, BIGFOOT.seed) > BIGFOOT.chance) return null;
+    if (t - forcedAgeS + BIGFOOT.cross > BIGFOOT.start + slot * BIGFOOT.slot) return null;
+    return { k, dir: -1 };
+  }
+  function drawBigfoot(g, color, phase) {
+    g.clear();
+    // A foot is lifted while it swings forward and planted while it moves back under the body; the other
+    // way round it would glide backwards, a moonwalk.
+    const swing = Math.sin(phase), lift = Math.max(0, -Math.cos(phase)), lift2 = Math.max(0, Math.cos(phase));
+    const darkHair = mul(color, 0xffffff, 0.7), lightHair = mix(color, 0xc89a70, 0.3);
+    // The solid shape first: thick legs and arms, a heavy forward-leaning body, a small head.
+    const limb = (x1, y1, x2, y2, w) => g.moveTo(x1, y1).lineTo(x2, y2).stroke({ width: w, color, cap: 'round' });
+    const legA = [-1, -18, -1 - swing * 7, -1 - lift * 2], legB = [1, -18, 1 + swing * 7, -1 - lift2 * 2];
+    const armA = [3, -32, 4 + swing * 6, -16], armB = [0, -32, -2 - swing * 6, -16];
+    limb(...legA, 6.5); limb(...legB, 6.5);
+    g.ellipse(2, -27, 8.5, 11.5).fill(color);
+    g.circle(6.5, -38.5, 5).fill(color);
+    limb(...armA, 4.6); limb(...armB, 4.6);
+
+    // Then the hair: short strands hanging down over every part in two shades, the outer ones reaching
+    // past the outline so the edge is shaggy, all swaying a little with the stride.
+    const strand = (x, y, len, lean, shade) =>
+      g.moveTo(x, y).quadraticCurveTo(x + lean * 0.4, y + len * 0.55, x + lean, y + len).stroke({ width: 0.75, color: shade, cap: 'round' });
+    const sway = swing * 0.6;
+    const coat = (cx, cy, rx, ry, count, seed) => {
+      for (let k = 0; k < count; k++) {
+        const a = hash(k, seed) * Math.PI * 2, r = Math.sqrt(hash(k, seed + 1)) * 1.05;
+        const x = cx + Math.cos(a) * rx * r, y = cy + Math.sin(a) * ry * r;
+        strand(x, y - 1.5, 2.6 + hash(k, seed + 2) * 2.4, ((x - cx) / rx) * 1.2 + sway, k % 3 === 0 ? lightHair : darkHair);
+      }
+    };
+    const limbCoat = ([x1, y1, x2, y2], w, count, seed) => {
+      for (let k = 0; k < count; k++) {
+        const q = hash(k, seed), side = (hash(k, seed + 1) - 0.5) * w;
+        strand(lerp(x1, x2, q) + side, lerp(y1, y2, q) - 1, 2.2 + hash(k, seed + 2) * 2, side * 0.3 + sway, k % 3 === 0 ? lightHair : darkHair);
+      }
+    };
+    limbCoat(legA, 7, 26, 701); limbCoat(legB, 7, 26, 711);
+    coat(2, -27, 8.5, 11.5, 90, 721);
+    coat(6.5, -38.5, 5, 5, 28, 731);
+    limbCoat(armA, 5, 22, 741); limbCoat(armB, 5, 22, 751);
   }
 
   // ---------- traveller ----------
@@ -1408,6 +1571,11 @@ export async function startPrototypeScene(host, options = {}) {
     const hip = { x: 0, y: -HIP_H + 1.6 * amp * (0.5 + 0.5 * Math.cos(2 * p - 0.3)) - stretch * 1.5 };
     const qA = mod(p / (Math.PI * 2), 1), qB = mod(qA + 0.5, 1);
     let fA = footAt(qA, amp), fB = footAt(qB, amp);
+    // Standing still the stride shrinks to nothing and both feet would land on one spot, reading as a
+    // single leg; as he slows down they settle a hip's width apart instead.
+    const stand = 1 - clamp(amp * 2.5);
+    fA = { ...fA, x: fA.x + 6.5 * stand };
+    fB = { ...fB, x: fB.x - 6.5 * stand };
     // Kicking the pebble hard: the near leg draws back with a bent knee (kickBack), then snaps through
     // nearly straight to well ahead of vertical, toe up (kick), while the other foot stays planted under
     // him. A bent knee at the strike or a foot close under the coat read as a high step or a stumble.
@@ -1505,8 +1673,9 @@ export async function startPrototypeScene(host, options = {}) {
   // their own graphic so firelight can brighten them.
   const CAT_SCALE = 1.4;
   const CAT = { fur: 0x211e26, far: 0x17151b, sheen: 0x3a3542, ear: 0x52363f, nose: 0x6a4250, eye: 0xf5c542, pupil: 0x17121a, whisker: 0x8e8a96 };
+  const CAT_JUMPER = { wool: 0xa5462c, stripe: 0xe8dcc0, collar: 0x84361f };
   function drawCat(g, eg, pose, face, phase, o = {}) {
-    const { look = [0, 0], shut = false, t = 0 } = o;
+    const { look = [0, 0], shut = false, t = 0, coat = false } = o;
     g.clear(); eg.clear();
     const X = (u) => u * face, Y = (v) => -v;
     const blob = (cx, cy, rx, ry, rot = 0, color = CAT.fur, fluff = 0.035) => {
@@ -1525,6 +1694,16 @@ export async function startPrototypeScene(host, options = {}) {
         const q = k / 24, [px, py] = qbez(a, c, b, q);
         g.circle(X(px), Y(py), r0 * (1 + 0.3 * Math.sin(q * Math.PI * 0.8)) * (1 - 0.72 * q * q)).fill(CAT.fur);
       }
+    };
+    // On a frosty day the cat wears a knitted jumper over the whole body, chest and rump included, with
+    // two cream stripes and a rolled collar at the neck. Only the legs, the tail and the head come out of
+    // it, so it is still plainly the same cat. `front` is an extra piece for a chest that sticks out.
+    const jumper = (cx, cy, rx, ry, rot = 0, collar = null, front = null) => {
+      if (!coat) return;
+      blob(cx, cy, rx, ry, rot, CAT_JUMPER.wool, 0.02);
+      if (front) blob(front[0], front[1], front[2], front[3], front[4] ?? 0, CAT_JUMPER.wool, 0.02);
+      for (const dy of [-0.25, 0.2]) blob(cx + dy * ry * Math.sin(rot), cy + dy * ry * Math.cos(rot), rx * 0.92, ry * 0.11, rot, CAT_JUMPER.stripe, 0);
+      if (collar) blob(collar[0], collar[1], collar[2], collar[3], collar[4] ?? 0, CAT_JUMPER.collar, 0.05);
     };
     const leg = (hx, hy, fx, fy, w, color = CAT.fur) => {
       g.moveTo(X(hx), Y(hy)).lineTo(X(fx), Y(fy + w * 0.4)).stroke({ width: w, color, cap: 'round' });
@@ -1576,15 +1755,20 @@ export async function startPrototypeScene(host, options = {}) {
       leg(-5.5, by - 2, ...foot(-5.5, Math.PI), 3.2);
       leg(7.5, by - 2, ...foot(7.5, Math.PI * 1.5), 3.2);
       blob(6.8, by - 1, 4.4, 4.6);
+      jumper(-0.6, by + 0.3, 10.6, 5.7, 0, [9.6, by + 1.6, 1.8, 4.6], [6.8, by - 0.6, 4.3, 4.4]);
       head(11.6, by + 4 + Math.sin(phase * 2) * 0.25);
     } else if (pose === 'sit' || pose === 'wash') {
       const flick = Math.sin(t * 2.2) * 0.7;
-      tail([-8.5, 2], [-1, -1.2], [8.8, 1.6 + flick], 2.4);
+      const wrapTail = () => tail([-8.5, 2], [-1, -1.2], [8.8, 1.6 + flick], 2.4);
+      wrapTail();
       blob(-2.5, 6.6, 7, 6.6);
       blob(-4.6, 10, 3.6, 1.4, 0.4, CAT.sheen, 0);
       g.ellipse(X(-0.5), Y(1), 3.2, 1.3).fill(CAT.fur);
       leg(4.8, 7, 5, 0, 2.7, CAT.far);
       blob(3.8, 10.2, 4.8, 7.4, -0.15);
+      jumper(-2.2, 6.9, 7.8, 6.6, 0, [4, 16, 3.7, 1.6, -0.15], [3.6, 9.2, 4.8, 6.6, -0.15]);
+      // The jumper reaches down to the ground, so the tail wrapped round the paws comes out over it.
+      if (coat) wrapTail();
       if (pose === 'wash') {
         // Licks the raised paw in quick strokes: the paw rises to the mouth and over the cheek, the head
         // dips to meet it.
@@ -1601,12 +1785,14 @@ export async function startPrototypeScene(host, options = {}) {
       tail([-8, 4], [-11.5, -1], [-9.5 + Math.sin(t * 1.1) * 0.8, -8], 2.3);
       blob(0, 5.2, 9.5, 5.2);
       blob(-2, 8.2, 5.5, 1.4, 0.05, CAT.sheen, 0);
+      jumper(-0.2, 5.4, 9.6, 5.1, 0, [8.6, 6.4, 1.5, 4]);
       blob(7.6, 1.6, 2.6, 1.3);
       head(8.2, 10.2);
     } else if (pose === 'curl') {
       const br = 1 + Math.sin(t * 1.5) * 0.03;
       blob(0, 5.2 * br, 11, 5.6 * br);
       blob(-2, 8.6 * br, 6, 1.6, 0.08, CAT.sheen, 0);
+      jumper(-0.4, 5.3 * br, 10.6, 5.5 * br);
       head(7.6, 5.4, -0.15, true);
       tail([-10.5, 2.5], [-1, -1.4], [11, 2.6], 2.7);
     } else if (pose === 'stretch') {
@@ -1614,6 +1800,7 @@ export async function startPrototypeScene(host, options = {}) {
       leg(-7, 10, -7.6, 0, 3, CAT.far);
       leg(5.5, 4, 13, 0, 2.8, CAT.far);
       blob(-1, 7.4, 10.5, 4.3, -0.38);
+      jumper(-1, 7.5, 10.3, 4.3, -0.38, [8.6, 3.9, 1.5, 3.7, -0.38]);
       leg(-6, 10, -5.5, 0, 3.2);
       leg(6.5, 4, 14.4, 0, 3);
       head(12.2, 5.6, 0.1);
@@ -1622,6 +1809,7 @@ export async function startPrototypeScene(host, options = {}) {
       leg(-7, 8, -14, 3.5, 3, CAT.far);
       leg(7, 8, 14, 3, 3, CAT.far);
       blob(0, 9, 11.5, 4.8, 0.1);
+      jumper(0, 9.1, 11.2, 4.8, 0.1, [10.6, 10.3, 1.6, 4.3, 0.1]);
       leg(-6, 8, -13, 2.5, 3.2);
       leg(8, 8, 15.2, 4, 3.2);
       head(12.6, 12.8);
@@ -1689,12 +1877,14 @@ export async function startPrototypeScene(host, options = {}) {
   const fireCore = addSprite(actors, glowTex, { add: true, tint: 0xffb060 });
 
   const grassG = new Graphics();
+  // Hoarfrost: the upper half of every blade and a rime crust on the ground, drawn over the green grass.
+  const frostG = new Graphics();
   const flowerG = new Graphics();
   const smokeC = new Container();
   const steamC = new Container();
   const sparksC = new Container();
   const fliesC = new Container();
-  actors.addChild(grassG, flowerG, tentC, campC, pebbleG, trav, catC, birdG, fireC, smokeC, steamC, sparksC, fliesC);
+  actors.addChild(grassG, frostG, flowerG, tentC, campC, pebbleG, trav, catC, birdG, fireC, smokeC, steamC, sparksC, fliesC);
   actors.setChildIndex(tentGlow, actors.children.length - 1);
   actors.setChildIndex(lanternGlow, actors.children.length - 1);
   actors.setChildIndex(fireGlow, actors.children.length - 1);
@@ -1732,7 +1922,8 @@ export async function startPrototypeScene(host, options = {}) {
   }
 
   function drawGrass(t, wind) {
-    grassG.clear(); flowerG.clear();
+    grassG.clear(); flowerG.clear(); frostG.clear();
+    const frost = state.weather.frost;
     const L = env.ground;
     if (!L || !L.grass) return;
     const G = L.grass, F = L.flowers, uOff = layerOffset(L);
@@ -1748,9 +1939,22 @@ export async function startPrototypeScene(host, options = {}) {
         const off = (b - (blades - 1) / 2) * h * 0.18;
         const hb = h * (0.6 + 0.4 * hash(k * 7 + b, L.seed + 85));
         const w = hb * 0.07 + 0.7;
-        grassG.poly([sx + off - w, y, sx + off + w, y, sx + off * 1.9 + sw * hb * 0.22, y - hb]).fill(0xffffff);
+        const tx = sx + off * 1.9 + sw * hb * 0.22;
+        grassG.poly([sx + off - w, y, sx + off + w, y, tx, y - hb]).fill(0xffffff);
+        if (frost) {
+          // Rime grows on the blade from the tip down, thicker than the blade itself, so it reads as a crust.
+          const a = 0.55, lx = lerp(sx + off - w, tx, a), rx = lerp(sx + off + w, tx, a), ya = y - hb * a;
+          frostG.poly([lx - 0.3, ya, rx + 0.3, ya, tx, y - hb - 0.3]).fill({ color: 0xffffff, alpha: 0.55 });
+        }
       }
-      if (F && hash(k, L.seed + 87) < F.density) {
+      if (frost) {
+        // A white crust along the ground between the tufts, with a few crystals catching the light.
+        const gap = G.spacing * S;
+        frostG.roundRect(sx - gap * 0.6, y - H * 0.0025, gap * 1.2, H * 0.003, H * 0.0015).fill({ color: 0xffffff, alpha: 0.4 });
+        if (hash(k, L.seed + 91) < 0.35) frostG.circle(sx + (hash(k, L.seed + 93) - 0.5) * gap, y - H * 0.004, Math.max(0.8, H * 0.0016)).fill(0xffffff);
+      }
+      // Nothing blooms in a frost.
+      if (!frost && F && hash(k, L.seed + 87) < F.density) {
         const col = F.colors[Math.floor(hash(k, L.seed + 89) * F.colors.length)];
         flowerG.circle(sx + sw * h * 0.22, y - h, Math.max(1.4, h * 0.09)).fill(col);
       }
@@ -1817,14 +2021,68 @@ export async function startPrototypeScene(host, options = {}) {
     if (env) { buildClouds(env.def); layoutEnvironment(); }
   }
 
+  // ---------- weather ----------
+  // How much a sky hides the sun and greys the light, from 0 (clear) to about 1.
+  const SKY_COVER = { clear: 0, partly: 0.18, overcast: 0.85, fog: 0.8 };
+  const WIND_STRENGTH = { calm: 0.35, breeze: 1, strong: 2.2 };
+  const RAIN_DROPS = { drizzle: 70, rain: 170, heavyRain: 340 };
+  const SNOW_FLAKES = { snow: 110, heavySnow: 260 };
+  const grey = (c) => { const [r, g, b] = rgb(c); const l = r * 0.3 + g * 0.59 + b * 0.11; return hex([l, l, l]); };
+  const cover = () => SKY_COVER[state.weather.sky] + (state.weather.storm ? 0.15 : 0) + (state.weather.precipitation !== 'none' ? 0.08 : 0);
+  /** The time of day's palette under today's sky: a heavy sky greys and dims it and hides the stars. */
+  function weatherPalette(P) {
+    const g = clamp(cover());
+    if (g <= 0) return P;
+    const toGrey = (c, k) => mix(c, grey(c), k);
+    return {
+      ...P,
+      top: toGrey(P.top, g * 0.75), hor: toGrey(P.hor, g * 0.6), haze: toGrey(P.haze, g * 0.6),
+      light: toGrey(P.light, g * 0.7), cloud: mix(toGrey(P.cloud, g * 0.6), 0x8a9098, g * 0.35),
+      bright: P.bright * (1 - 0.3 * g), stars: P.stars * (1 - g),
+    };
+  }
+  // Rain streaks or snowflakes, each on its own fixed track so the fall is steady, not random each frame.
+  function drawPrecipitation(t, P, windK) {
+    precipG.clear();
+    const kind = state.weather.precipitation;
+    if (kind === 'none') return;
+    const snow = kind === 'snow' || kind === 'heavySnow';
+    const count = snow ? SNOW_FLAKES[kind] : RAIN_DROPS[kind];
+    const light = mul(0xffffff, P.light, Math.max(P.bright, 0.5));
+    const slant = (snow ? 0.15 : 0.12) * windK;
+    for (let i = 0; i < count; i++) {
+      const speed = H * (snow ? 0.06 + hash(i, 902) * 0.06 : 0.9 + hash(i, 902) * 0.5);
+      const y = mod(hash(i, 901) * (H + 60) + t * speed, H + 60) - 30;
+      const x = mod(hash(i, 900) * W + y * slant + (snow ? Math.sin(t * 0.8 + i) * H * 0.01 : 0), W);
+      if (snow) {
+        precipG.circle(x, y, (1 + hash(i, 903) * 1.6) * (H / 850)).fill({ color: light, alpha: 0.85 });
+      } else {
+        const len = H * (kind === 'drizzle' ? 0.012 : 0.026);
+        precipG.moveTo(x, y).lineTo(x - len * slant, y - len).stroke({ width: Math.max(1, H / 900), color: light, alpha: kind === 'drizzle' ? 0.28 : 0.38 });
+      }
+    }
+  }
+  // Lightning: now and then, at a moment picked per stretch of the clock, a double flash that fades.
+  // Flashes are left out for players who ask for less motion; the storm still darkens the sky.
+  const calmMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function lightning(t) {
+    if (!state.weather.storm || calmMotion) return 0;
+    const stretch = Math.floor(t / 11), at = 2 + hash(stretch, 904) * 7, x = t - stretch * 11 - at;
+    if (x < 0 || x > 1) return 0;
+    return Math.exp(-x * 9) + 0.6 * Math.exp(-Math.max(0, x - 0.18) * 12) * (x > 0.18 ? 1 : 0);
+  }
+
   // ---------- frame ----------
   // Whether the tent stands, the stump and props are out, and he is asleep in the tent, by the hour.
   // Each switches at one moment; the fade between states is timed on the animation clock (see
   // `approachLevels`), because at the real speed of the day a fade spread over game minutes would leave
   // him and the camp half transparent for half an hour.
-  function campTarget(h) { return h >= 19.9 || h < 6.8 ? 1 : 0; }
+  // In the morning the camp stays until he packs it for today's walk; with no walk today it stays all day.
+  const morningAt = () => (state.walk ? state.walk.startHour : 24);
+  const leadOf = (walk) => walk.leadHours ?? MORNING_LEAD_H;
+  function campTarget(h) { return h >= 19.9 || h < morningAt() - (state.walk ? leadOf(state.walk) * 0.67 : 0) ? 1 : 0; }
   // The stump is packed away before the tent, once he's up in the morning.
-  function seatTarget(h) { return h >= 19.5 || h < 6.72 ? 1 : 0; }
+  function seatTarget(h) { return h >= 19.5 || h < morningAt() - (state.walk ? leadOf(state.walk) * 0.8 : 0) ? 1 : 0; }
   function sleepTarget(h) { return h >= 23.2 || h < 5 ? 1 : 0; }
   const LEVEL_FADE_S = 1.4;
   const campLevels = { camp: null, seat: null, sleep: null };
@@ -1840,7 +2098,7 @@ export async function startPrototypeScene(host, options = {}) {
     if (walking) return 'walking';
     if (h >= 19.3 && h < 20.3) return 'pitchingCamp';
     if (sleep > 0.5) return 'sleeping';
-    if (h >= 6.4 && h < 7.2) return 'packingUp';
+    if (state.walk && h >= state.walk.startHour - leadOf(state.walk) && h < state.walk.startHour) return 'packingUp';
     return 'resting';
   }
 
@@ -1868,7 +2126,8 @@ export async function startPrototypeScene(host, options = {}) {
     { id: 'hat', group: 'wanderer' }, { id: 'pebble', group: 'wanderer' },
     { id: 'catRide', group: 'cat' }, { id: 'catDown', group: 'cat' }, { id: 'catWash', group: 'cat' },
     ...BIRD_IDS.map((id) => ({ id, group: 'bird' })), { id: 'shootingStar', group: 'world' },
-    { id: 'ship', group: 'world' }, { id: 'fishingBoat', group: 'world' },
+    { id: 'ship', group: 'world' }, { id: 'fishingBoat', group: 'world' }, { id: 'angler', group: 'world' },
+    { id: 'bigfoot', group: 'world' },
   ];
   const forced = {};
   let forcedBirdSpecies = 0;
@@ -1890,7 +2149,8 @@ export async function startPrototypeScene(host, options = {}) {
       if (state.hour >= 24) { state.hour -= 24; state.day++; }
     }
     const h = state.hour;
-    const walking = !state.still && h >= 7.2 && h < 19.3;
+    const walk = state.walk;
+    const walking = !state.still && !!walk && h >= walk.startHour && h < walk.endHour;
     // Now and then on the road he stops for a few seconds to take in the view, and some stretches he
     // walks with his pipe in his teeth. Both are fixed loops of the animation clock.
     const viewPause = walking ? Math.max(smooth(0, 0.8, mod(t, 80) - 52) * (1 - smooth(0, 0.8, mod(t, 80) - 59.5)), forcedWindow('view', 7.5)) : 0;
@@ -1910,17 +2170,20 @@ export async function startPrototypeScene(host, options = {}) {
     const grassStalk = walking && !walkPipe && (state.biome === 'meseta' || state.biome === 'forest' || state.biome === 'fields') && ((mod(t, 50) > 22 && mod(t, 50) < 46) || grassForced);
     // Morning: while the camp is packed up he stands, and as he gets up he stretches once with a yawn.
     // The stretch lasts a few real seconds whatever the clock speed, so it's timed on the animation clock.
-    const morningStand = !walking && !state.still && h >= 6.6 && h < 7.2;
+    const lead = walk ? leadOf(walk) : 0;
+    const morningStand = !walking && !state.still && !!walk && h >= walk.startHour - lead && h < walk.startHour;
     if (morningStand && stretchStartT === null) stretchStartT = t;
     if (!morningStand) stretchStartT = null;
     const stretch = stretchStartT === null ? 0 : smooth(0, 0.6, t - stretchStartT) * (1 - smooth(3.6, 4.4, t - stretchStartT));
     // After the stretch he packs up, bent over and busy with his hands, until about 07:00, then waits ready.
-    const packing = morningStand && h < 7.0 ? smooth(0, 0.6, t - (stretchStartT ?? t) - 4.4) * (1 - smooth(6.95, 7.0, h)) : 0;
+    const packedAt = walk ? walk.startHour - lead / 3 : 0;
+    const packing = morningStand && h < packedAt ? smooth(0, 0.6, t - (stretchStartT ?? t) - 4.4) * (1 - smooth(packedAt - lead / 12, packedAt, h)) : 0;
     state.speed += ((walking ? 1 - viewPause : 0) - state.speed) * Math.min(1, dt * 2.2);
     if (!walking && state.speed < 0.003) state.speed = 0;
     state.offsetU += state.speed * dt * WALK_U_PER_S;
     state.phase += Math.sqrt(state.speed) * dt * Math.PI * 2 / CYCLE_S;
-    const wind = 0.6 + 0.4 * Math.sin(t * 0.13) * Math.sin(t * 0.31 + 1);
+    const windK = WIND_STRENGTH[state.weather.wind];
+    const wind = (0.6 + 0.4 * Math.sin(t * 0.13) * Math.sin(t * 0.31 + 1)) * windK;
 
     if (walking) {
       for (const id of ['drink', 'strap', 'hat']) available.add(id);
@@ -1929,7 +2192,7 @@ export async function startPrototypeScene(host, options = {}) {
       if (viewPause < 0.01) available.add('view');
       if (!pebbles.some((pb) => pb.age < 0)) available.add('pebble');
     }
-    const P = paletteAt(h);
+    const P = weatherPalette(paletteAt(h));
     const def = env.def;
     if (Math.abs(h - lastSkyHour) > 0.004) { paintSky(P); lastSkyHour = h; }
 
@@ -1969,7 +2232,14 @@ export async function startPrototypeScene(host, options = {}) {
     // Visibility fades over about one disc diameter so the sun dims as it sinks behind a peak.
     const skylineAt = x => { let y = H; for (const L of env.layers) y = Math.min(y, yAt(L, x, layerOffset(L))); return y; };
     const visibility = (x, y, r) => clamp((skylineAt(x) - y) / (r * 2) + 0.5);
-    const sunVis = sunUp ? visibility(sunX, sunY, H * 0.026) : 0;
+    // A heavy sky hides the sun and moon: no disc, no glow, no rays, no light on the ridges.
+    const clearSky = 1 - clamp(cover());
+    // The sun's glow, halo and veil and the moon get their alpha anew every frame they show (above), so
+    // dimming them here never builds up; the disc has no alpha of its own, so it is set outright.
+    sunDisc.alpha = clearSky;
+    if (sunUp) for (const o of [sunGlow, sunHalo, sunVeil]) o.alpha *= clearSky;
+    if (moon.visible) moon.alpha *= clearSky;
+    const sunVis = sunUp ? visibility(sunX, sunY, H * 0.026) * clearSky : 0;
     const moonVis = moon.visible ? visibility(moon.x, moon.y, H * 0.022) * moon.alpha : 0;
     sunVeil.alpha *= sunVis;
     const shadowCol = mix(mul(P.haze, 0xffffff, 0.55), 0x2b2f66, 0.35);
@@ -1981,10 +2251,11 @@ export async function startPrototypeScene(host, options = {}) {
     const coolMul = mix(0x6670a8, P.haze, 0.3);
     const sideTint = (col, s) => s < 0 ? mix(col, mul(col, coolMul), -s * shadeAmt * 1.2) : mix(col, mul(col, P.light, 1.3), s * litAmt);
     const nightK = clamp((0.75 - P.bright) / 0.45);
+    const dark = 1 - clamp(P.bright);
 
     for (const c of clouds) {
       const span = W + c.cw * 2;
-      c.c.x = mod(c.base * span + t * c.speed * (S / 900) - state.offsetU * S * 0.02, span) - c.cw * 0.5;
+      c.c.x = mod(c.base * span + t * c.speed * windK * (S / 900) - state.offsetU * S * 0.02, span) - c.cw * 0.5;
       c.body.tint = P.cloud;
       c.shade.tint = mix(P.cloud, shadowCol, 0.42);
       c.hi.tint = mix(P.cloud, mul(0xffffff, P.light, 1.15), 0.5 * (1 - nightK * 0.7));
@@ -1992,7 +2263,7 @@ export async function startPrototypeScene(host, options = {}) {
     drawBirds(t, P, def.birdColor);
 
     // Landscape.
-    const mist = clamp(smooth(4.5, 6.2, h) * (1 - smooth(7.6, 10, h)));
+    const mist = clamp(smooth(4.5, 6.2, h) * (1 - smooth(7.6, 10, h)) + (state.weather.sky === 'fog' ? 1 : 0));
     const fogMul = (0.3 + 0.9 * mist) * def.mist;
     const fogColor = mix(P.haze, 0xffffff, 0.12 + mist * 0.15);
     const colorAt = (c, depth) => mix(mul(c, P.light, P.bright), P.haze, Math.pow(depth, 1.5) * 0.85 + 0.03);
@@ -2005,6 +2276,10 @@ export async function startPrototypeScene(host, options = {}) {
       if (L.sgL) {
         const sc = mix(mul(0xf4f8ff, P.light, Math.max(P.bright, 0.45) * 1.05), P.haze, clamp(L.depth * 0.3));
         L.sgL.tint = sideTint(sc, -sk * 1.3); L.sgR.tint = sideTint(sc, sk * 1.3);
+      }
+      if (state.weather.frost && L.depth < 0.8) {
+        // Frost greys the open ground nearby; far off it is lost in the haze.
+        L.g.tint = mix(col, mul(0xdde6ee, P.light, Math.max(P.bright, 0.45)), 0.35 * (1 - L.depth / 0.8));
       }
       if (L.pathG) { const pc = colorAt(L.path, L.depth); L.pathG.tint = pc; L.gully.tint = mix(pc, col, 0.6); }
       if (L.rowG) L.rowG.tint = mix(col, mul(col, P.light, 1.3), 0.25);
@@ -2080,20 +2355,47 @@ export async function startPrototypeScene(host, options = {}) {
     }
 
     if (env.ships) {
-      for (const kind of ['cargo', 'cutter']) {
+      for (const kind of Object.keys(env.ships)) {
         const sh = SHIPS[kind], g = env.ships[kind];
         const pass = shipPass(kind, t, forcedAge(sh.id));
-        g.visible = !!pass;
-        if (!pass) { available.add(sh.id); continue; }
+        // Daylight-only vessels slip away as the light goes rather than vanishing.
+        g.alpha = sh.daytime ? 1 - smooth(0.3, 0.45, dark) : 1;
+        g.visible = !!pass && g.alpha > 0.01;
+        if (!g.visible) { if (!sh.daytime || dark < 0.3) available.add(sh.id); continue; }
         const len = sh.len * H, sc = len / 100;
-        const x = lerp(-len, W + len, pass.dir > 0 ? pass.k : 1 - pass.k);
+        let x = lerp(-len, W + len, pass.dir > 0 ? pass.k : 1 - pass.k);
+        if (sh.anchored) {
+          // Its spot on the lake is fixed when the visit begins, mostly on the right so that a walking
+          // wanderer passes it; from then on it moves only as the lake does.
+          const visit = Math.round((t - pass.k * sh.cross) / 10);
+          if (anchors[kind]?.visit !== visit) {
+            const startX = W * (0.45 + 0.45 * hash(visit, sh.seed + 2));
+            anchors[kind] = { visit, u: startX / S + state.offsetU * LAKE_SPEED };
+          }
+          x = (anchors[kind].u - state.offsetU * LAKE_SPEED) * S;
+          g.alpha *= smooth(0, 0.05, pass.k) * (1 - smooth(0.95, 1, pass.k));
+        }
         const col = (c) => colorAt(c, sh.depth);
         if (kind === 'cargo') drawCargoShip(g, col, nightK);
+        else if (kind === 'angler') drawAngler(g, col, t);
         else drawCutter(g, col, nightK, t);
-        const rock = kind === 'cutter' ? 1 : 0.15;
+        const rock = kind === 'cargo' ? 0.15 : 1;
         g.position.set(x, env.lakeY + sh.y * H + Math.sin(t * 1.3) * 0.6 * rock);
         g.scale.set(sc * pass.dir, sc);
         g.rotation = Math.sin(t * 1.1) * 0.03 * rock * pass.dir;
+      }
+    }
+
+    if (env.bigfoot) {
+      const bf = env.bigfoot, pass = bigfootPass(t, forcedAge('bigfoot'));
+      bf.g.visible = !!pass && dark < 0.5;
+      if (!bf.g.visible && dark < 0.5) available.add('bigfoot');
+      if (bf.g.visible) {
+        const x = lerp(-W * 0.05, W * 1.05, pass.dir > 0 ? pass.k : 1 - pass.k);
+        const sc = (BIGFOOT.height * H) / 40;
+        drawBigfoot(bf.g, colorAt(0x3b2c22, bf.L.depth), t * 4.2);
+        bf.g.position.set(x, yAt(bf.L, x, layerOffset(bf.L)) + 1);
+        bf.g.scale.set(sc * pass.dir, sc);
       }
     }
 
@@ -2153,25 +2455,29 @@ export async function startPrototypeScene(host, options = {}) {
     const groundY = x => yAt(G, x, gOff) + 2;
     const tx = W * (W > H ? 0.44 : 0.6), ty = groundY(tx);
     const { camp, seat, sleep } = approachLevels(h, dt);
-    const fireK = camp * (1 - 0.6 * sleep);
+    // The fire is lit for the evening and the night only, even when he stays at camp all day.
+    const daytime = smooth(7, 7.3, h) * (1 - smooth(19.1, 19.4, h));
+    const fireK = camp * (1 - 0.6 * sleep) * (1 - daytime);
     const flick = 0.85 + 0.15 * Math.sin(t * 17) * Math.sin(t * 6.1);
-    const dark = 1 - clamp(P.bright);
     const amb = mix(mul(0xffffff, P.light, clamp(P.bright * 1.05, 0.16, 1.1)), P.haze, 0.08);
     const charTint = mix(amb, 0xffb987, fireK * dark * 0.8);
 
     // Every minute or so a pebble lies on the path ahead. As it comes within reach he draws his leg back
-    // and kicks it hard and straight: it flies low and far ahead, bounces twice, rolls and stops, and he
-    // passes it later. Distances, heights and speeds are in his units (850 to the screen height);
+    // and kicks it hard and straight: it flies low and far ahead, bounces twice, rolls and stops. Each
+    // pebble is good for one to three kicks, drawn when it appears: while kicks are left, he kicks it again
+    // when he catches up with it, and after the last one he walks past it. Distances, heights and speeds are in his units (850 to the screen height);
     // the toe cap of the swung boot meets the pebble's near side at 41.
     pebbleG.clear();
     let kick = 0, kickBack = 0;
     const PEBBLE_G = 900, PEBBLE_KICK = { vx: 520, vy: 150 };
     const pebbleWaiting = pebbles.some((pb) => pb.age < 0);
-    if (walking && !pebbleWaiting && (mod(t, 60) < dt * 1.5 || forcedAge('pebble') < dt * 1.5)) pebbles.push({ u: gOff + (tx + 150 * unit) / S, h: 0, vx: 0, vy: 0, age: -1 });
+    if (walking && !pebbleWaiting && (mod(t, 60) < dt * 1.5 || forcedAge('pebble') < dt * 1.5)) {
+      pebbles.push({ u: gOff + (tx + 150 * unit) / S, h: 0, vx: 0, vy: 0, age: -1, kicksLeft: 1 + Math.floor(Math.random() * 3) });
+    }
     for (const pb of pebbles) {
       let px = (pb.u - gOff) * S;
       const d = (px - tx) / unit;
-      if (pb.age < 0 && d < 41) { pb.age = 0; pb.vx = PEBBLE_KICK.vx; pb.vy = PEBBLE_KICK.vy; }
+      if (pb.age < 0 && d < 41) { pb.age = 0; pb.vx = PEBBLE_KICK.vx; pb.vy = PEBBLE_KICK.vy; pb.kicksLeft--; }
       if (pb.age >= 0) {
         pb.age += dt;
         pb.vy -= PEBBLE_G * dt;
@@ -2186,6 +2492,8 @@ export async function startPrototypeScene(host, options = {}) {
         px = (pb.u - gOff) * S;
         // Follow-through: the leg stays up a moment after the strike, then drops back into the stride.
         kick = Math.max(kick, 1 - smooth(0.1, 0.4, pb.age));
+        // Come to rest ahead of him with a kick left: it waits for the next one.
+        if (pb.kicksLeft > 0 && pb.h === 0 && pb.vx < 8 && (pb.u - gOff) * S - tx > 60 * unit) { pb.age = -1; pb.vx = 0; }
       } else {
         // Wind-up from 72 to 52, then the snap forward over the last few units before the strike. Both fade
         // when he stops (to take in the view), so he never stands still with his leg drawn back.
@@ -2330,7 +2638,7 @@ export async function startPrototypeScene(host, options = {}) {
       if (walking && !riding && !birdPos) available.add('catRide');
       if (walking && !riding && !onBreak) available.add('catWash');
       if (dark < 0.4 && !birdPos && !riding) for (const id of BIRD_IDS) available.add(id);
-      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t });
+      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t, coat: state.weather.frost });
       catC.position.set(pos[0], pos[1]);
       // It fades out as it slips through the tent door and fades in as it comes back out.
       catC.alpha = camp > 0.01 ? smooth(4, 24, Math.abs(cat.x - tentRelX)) : 1;
@@ -2408,6 +2716,13 @@ export async function startPrototypeScene(host, options = {}) {
 
     drawGrass(t, wind);
     grassG.tint = mix(colorAt(G.color, G.depth), mul(0xffffff, P.light, P.bright * 0.8), G.grass ? G.grass.light : 0.25);
+    // Hoarfrost is a cold blue-white that takes the light of the hour, never brighter than snow on the ridges.
+    frostG.tint = mix(mul(0xeef4ff, P.light, Math.max(P.bright, 0.45) * 1.05), P.haze, 0.08);
+    if (state.weather.frost) grassG.tint = mix(grassG.tint, 0x8a9a8c, 0.25);
+    drawPrecipitation(t, P, windK);
+    const bolt = lightning(t);
+    flash.visible = bolt > 0.01;
+    if (flash.visible) { flash.width = W; flash.height = H; flash.tint = 0xdfe6ff; flash.alpha = bolt * 0.32; }
     flowerG.tint = charTint;
 
     if (state.hideWanderer) {
@@ -2422,7 +2737,7 @@ export async function startPrototypeScene(host, options = {}) {
     }
   }
 
-  state.speed = !state.still && state.hour >= 7.2 && state.hour < 19.3 ? 1 : 0;
+  state.speed = !state.still && state.walk && state.hour >= state.walk.startHour && state.hour < state.walk.endHour ? 1 : 0;
   layout();
   buildEnvironment();
   app.ticker.add(frame);
@@ -2433,6 +2748,13 @@ export async function startPrototypeScene(host, options = {}) {
     setAuto(on) { state.auto = on; },
     setBeard(length) { state.beard = clamp(length); },
     setDayLength(seconds) { state.dayLength = seconds; },
+    setWalk(walk) { state.walk = walk; },
+    setWeather(weather) {
+      const skyChanged = weather.sky !== state.weather.sky;
+      state.weather = weather;
+      lastSkyHour = -1;
+      if (skyChanged && env) buildClouds(env.def);
+    },
     setBiome(id) { if (BIOMES[id] && id !== state.biome) { state.biome = id; buildEnvironment(); } },
     levelsOf(id) { return LEVELED_BIOMES.includes(id) ? Object.keys(LEVELS) : ['mid']; },
     setLevel(level) { if (LEVELS[level] && level !== state.level) { state.level = level; buildEnvironment(); } },

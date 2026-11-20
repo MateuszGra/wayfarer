@@ -11,7 +11,9 @@ import {
   uuidv7,
   type AccountId,
 } from '../modules/auth/index.js';
+import { createSqlJourneyRepository } from '../modules/journey/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
+import { createOpenMeteo, createWeatherService } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
 import { readConfig } from './config.js';
 
@@ -23,11 +25,20 @@ if (config.devPassword)
   console.warn(`DEV_LOGIN is on: the password "${config.devPassword}" signs in with any address.`);
 const db = createDatabase(config.databaseUrl);
 
+const routeCatalog = createStaticRouteCatalog();
+
 const app = await buildApp({
   checkDatabase: async () => {
     await sql`select 1`.execute(db);
   },
-  routeCatalog: createStaticRouteCatalog(),
+  routeCatalog,
+  weather: createWeatherService({ source: createOpenMeteo(), clock: { now: () => new Date() } }),
+  journey: {
+    journeys: createSqlJourneyRepository(db),
+    routes: { exists: async (id) => (await routeCatalog.all()).some((route) => route.id === id) },
+    clock: { now: () => new Date() },
+    newId: () => uuidv7(new Date()),
+  },
   auth: {
     accounts: createSqlAccountRepository(db),
     sessions: createSqlSessionRepository(db),

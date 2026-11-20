@@ -24,6 +24,12 @@ describe('useClockHour', () => {
     expect(hour()).toBe(18.5);
   });
 
+  it('counts the seconds too', () => {
+    const { hour } = mountWithClock(() => new Date(2026, 10, 19, 18, 30, 36));
+
+    expect(hour()).toBe(18.51);
+  });
+
   it('follows the clock after each interval', async () => {
     let now = new Date(2026, 10, 19, 23, 45);
     const { hour } = mountWithClock(() => now);

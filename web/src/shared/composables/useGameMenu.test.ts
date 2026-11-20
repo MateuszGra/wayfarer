@@ -1,8 +1,9 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { useGameMenu, type GameOverlay } from './useGameMenu';
+import { returnToOverlay, useGameMenu, type GameOverlay } from './useGameMenu';
+import { setSplashPlayingForTests, useSplash } from './useSplash';
 
 const api = vi.hoisted(() => ({ logout: vi.fn<() => Promise<void>>(), fetchCurrentAccount: vi.fn() }));
 vi.mock('@/shared/api/auth', () => api);
@@ -71,6 +72,37 @@ describe('useGameMenu', () => {
     await menu.logout();
 
     expect(router.currentRoute.value.path).toBe('/login');
+  });
+
+  it('opens a window asked for at start only once the splash screen is over', async () => {
+    setSplashPlayingForTests(true);
+    const { menu } = mountMenu('achievements');
+    const openDuringSplash = menu.overlay.value;
+
+    useSplash().finish();
+    await nextTick();
+
+    expect(openDuringSplash).toBeNull();
+    expect(menu.overlay.value).toBe('achievements');
+  });
+
+  it('ignores Escape while the splash screen is playing', () => {
+    setSplashPlayingForTests(true);
+    const { menu } = mountMenu();
+
+    pressEscape();
+
+    expect(menu.overlay.value).toBeNull();
+  });
+
+  it('reopens the window the player left for another screen, once', () => {
+    returnToOverlay('settings');
+
+    const back = mountMenu().menu.overlay.value;
+    const later = mountMenu().menu.overlay.value;
+
+    expect(back).toBe('settings');
+    expect(later).toBeNull();
   });
 
   it('stops listening to Escape once unmounted', () => {

@@ -8,8 +8,8 @@ describe('trophyProgress', () => {
     expect(trophyProgress(0).map((trophy) => trophy.id)).toEqual([
       'aezakmi',
       'dragonborn',
-      'postalVote',
       'kremowka',
+      'postalVote',
       'ringBearer',
       'forrest',
       'twardowski',

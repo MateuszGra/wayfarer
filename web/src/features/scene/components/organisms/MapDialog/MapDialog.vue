@@ -2,8 +2,7 @@
 import { computed } from 'vue';
 import { BaseDialog } from '@/design-system';
 import RouteMap from '@/shared/components/organisms/RouteMap/RouteMap.vue';
-import { usePlan } from '@/shared/composables/usePlan';
-import { useProgress } from '@/shared/composables/useProgress';
+import { useJourney } from '@/shared/composables/useJourney';
 import { useRoutes } from '@/shared/composables/useRoutes';
 import { t } from '@/shared/i18n';
 import JourneyProgress from '../../molecules/JourneyProgress/JourneyProgress.vue';
@@ -17,9 +16,13 @@ defineProps<Props>();
 const emit = defineEmits<{ 'update:open': [open: boolean]; back: [] }>();
 
 const { routes, error } = useRoutes();
-const { routeId, dailySteps } = usePlan();
-const { doneKm } = useProgress();
-const route = computed(() => routes.value.find((r) => r.id === routeId.value) ?? routes.value[0] ?? null);
+const journey = useJourney();
+const dailySteps = computed(() => journey.journey.value?.journey.dailySteps ?? 0);
+const doneKm = journey.kmOnRoute;
+const todayKm = journey.kmToday;
+const route = computed(
+  () => routes.value.find((r) => r.id === journey.journey.value?.journey.routeId) ?? routes.value[0] ?? null,
+);
 </script>
 
 <template>
@@ -35,7 +38,7 @@ const route = computed(() => routes.value.find((r) => r.id === routeId.value) ??
     @back="emit('back')"
   >
     <div class="map-dialog">
-      <RouteMap :path="route?.path ?? null" :length-km="route?.lengthKm ?? 0" :done-km="doneKm" />
+      <RouteMap :path="route?.path ?? null" :length-km="route?.lengthKm ?? 0" :done-km="doneKm" :today-km="todayKm" />
       <div class="map-dialog__note">
         <p v-if="error" class="map-dialog__error" role="alert">{{ t(error) }}</p>
         <JourneyProgress
@@ -43,6 +46,7 @@ const route = computed(() => routes.value.find((r) => r.id === routeId.value) ??
           :route-id="route.id"
           :length-km="route.lengthKm"
           :done-km="doneKm"
+          :today-km="todayKm"
           :daily-steps="dailySteps"
         />
       </div>

@@ -35,3 +35,12 @@ export function apiPost<T = void>(path: string, body: object = {}, fetcher: type
     fetcher,
   );
 }
+
+/** A JSON PUT; a 204 answer resolves to undefined. */
+export function apiPut<T = void>(path: string, body: object, fetcher: typeof fetch = fetch): Promise<T> {
+  return request<T>(
+    path,
+    { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+    fetcher,
+  );
+}

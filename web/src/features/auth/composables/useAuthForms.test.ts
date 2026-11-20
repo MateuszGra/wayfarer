@@ -30,20 +30,19 @@ const CREDENTIALS = { email: 'ana@example.com', password: 'camino2026' };
 
 beforeEach(() => {
   resetSessionForTests();
-  localStorage.clear();
   api.login.mockReset().mockResolvedValue({ email: 'ana@example.com' });
   api.register.mockReset().mockResolvedValue({ email: 'ana@example.com' });
 });
 
 describe('useAuthForms', () => {
-  it('signs in and takes a first-time player to plan the journey', async () => {
+  it('signs in and takes the player on to the game, where the router sends a new player to plan first', async () => {
     const { forms, router } = await mountForms();
 
     await forms.login(CREDENTIALS);
     await flushPromises();
 
     expect(useSession().account.value).toEqual({ email: 'ana@example.com' });
-    expect(router.currentRoute.value.path).toBe('/start');
+    expect(router.currentRoute.value.path).toBe('/scene');
   });
 
   it('returns the player to the page they were sent to sign in from', async () => {
@@ -61,7 +60,7 @@ describe('useAuthForms', () => {
     await forms.login(CREDENTIALS);
     await flushPromises();
 
-    expect(router.currentRoute.value.path).toBe('/start');
+    expect(router.currentRoute.value.path).toBe('/scene');
   });
 
   it('shows the server answer in the player words and stays on sign-in', async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RoutePoint } from '../api/contracts.js';
-import { routeProgress } from './progress.js';
+import { routeProgress, todaySegment } from './progress.js';
 
 // Two equal legs along the equator, so the drawn path splits evenly in degrees.
 const PATH: readonly RoutePoint[] = [
@@ -59,5 +59,27 @@ describe('routeProgress', () => {
 
   it('throws for a path with a single point', () => {
     expect(() => routeProgress([[0, 0]], 1000, 0)).toThrow(RangeError);
+  });
+});
+
+describe('todaySegment', () => {
+  it('runs from where the day started to where today takes the traveller, across a bend', () => {
+    // 200 km route over two equal legs: 50 km done before today, 100 km after it.
+    expect(todaySegment(PATH, 200, 150, 100)).toEqual([
+      [5, 0],
+      [10, 0],
+      [15, 0],
+    ]);
+  });
+
+  it('is a single point on a rest day', () => {
+    expect(todaySegment(PATH, 200, 50, 0)).toEqual([[5, 0]]);
+  });
+
+  it('starts at the beginning on the first day', () => {
+    expect(todaySegment(PATH, 200, 50, 50)).toEqual([
+      [0, 0],
+      [5, 0],
+    ]);
   });
 });

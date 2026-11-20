@@ -3,7 +3,6 @@ import { useRoute, useRouter } from 'vue-router';
 import type { AccountDto } from '@shared/api/contracts';
 import { login, register } from '@/shared/api/auth';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
-import { signedInHome } from '@/shared/composables/usePlan';
 import { useSession } from '@/shared/composables/useSession';
 
 export interface Credentials {
@@ -30,7 +29,8 @@ export function useAuthForms() {
     error.value = null;
     try {
       session.signedIn(await call());
-      await router.push(safeRedirect(route.query['redirect']) ?? signedInHome());
+      // The router takes a player without a journey on to plan one.
+      await router.push(safeRedirect(route.query['redirect']) ?? '/scene');
     } catch (failure) {
       error.value = apiErrorMessage(failure);
     } finally {

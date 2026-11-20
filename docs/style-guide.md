@@ -200,6 +200,16 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - In the evening it curls up on the far side of the fire, facing it, tail round its nose; its eyes catch the firelight, blink every few seconds and close when it dozes. When he turns in, it walks to the tent and sleeps inside with him, never alone outside. At dawn it comes out with him, sits by the fire (it does not sleep there in the morning) and does its own stretch, the cat's bow, together with his.
 - Camp, sitting and sleeping each switch at a set hour, but the fade between them lasts about a second and a half of animation time, never game minutes, so at the real speed of the day nobody is left half transparent.
 
+- On a frosty day (−1 °C and below) it wears a rust knitted jumper over its whole body, with two cream stripes and a rolled collar. Only the legs, the tail and the head come out of it.
+
+## 8b. Weather
+
+- The weather is layered, not drawn per case, and every biome gets the same layers: the **sky** (clear, partly cloudy, overcast, fog), what **falls** (none, drizzle, rain, downpour, snow, blizzard), a **storm**, the **wind** (calm, breeze, gale) and **frost**.
+- The weather changes the palette of the hour and never replaces it: a heavy sky greys and dims the light, hides the sun, moon and stars, and adds clouds. Day and night still follow the clock.
+- Wind speeds up the clouds and bends the grass, fire and smoke. Rain and snow fall in front of everything and slant with the wind.
+- Frost sits on the tips of the grass blades and as a thin white crust along the ground; nearby meadows go a little grey and no flowers bloom.
+- Lightning is a short double flash over the whole picture, and is left out with reduced motion.
+
 ## 9. Ambient life
 
 - Grass tufts sway with a slowly changing wind. They are drawn **behind** the wanderer, never over him.

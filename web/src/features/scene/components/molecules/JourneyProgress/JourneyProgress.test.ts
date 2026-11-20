@@ -25,4 +25,16 @@ describe('JourneyProgress', () => {
     expect(line(wrapper, 'progress-summary')).toBe('3200 z 3200 km · 100%');
     expect(wrapper.find('[data-testid="progress-at-goal"]').exists()).toBe(false);
   });
+
+  it('shows what today added, so the steps just entered count at once', () => {
+    const wrapper = mount(JourneyProgress, {
+      props: { routeId: 'baltic-santiago', lengthKm: 3200, doneKm: 6, dailySteps: 10_000, todayKm: 6 },
+    });
+
+    expect(wrapper.get('[data-testid="progress-today"]').text()).toBe('Dziś +6 km');
+  });
+
+  it('leaves out the today line before any steps are in', () => {
+    expect(panel(214).find('[data-testid="progress-today"]').exists()).toBe(false);
+  });
 });

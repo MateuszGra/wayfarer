@@ -54,3 +54,21 @@ export function routeProgress(path: readonly RoutePoint[], lengthKm: number, don
   const end = path[path.length - 1] as RoutePoint;
   return { walked, remaining: [end], position: end, fraction };
 }
+
+/**
+ * The stretch of the drawn path today's steps cover: from where the traveller started the day to where
+ * the day's distance takes him. Shown apart from the rest of the walked route, so the player sees what
+ * yesterday's steps earned the moment they are entered.
+ */
+export function todaySegment(
+  path: readonly RoutePoint[],
+  lengthKm: number,
+  doneKm: number,
+  todayKm: number,
+): RoutePoint[] {
+  const before = routeProgress(path, lengthKm, Math.max(0, doneKm - todayKm));
+  const after = routeProgress(path, lengthKm, doneKm);
+  const points = [before.position, ...after.walked.slice(before.walked.length - 1)];
+  // Where the day starts on a bend or at the very start, that point is in both lists; keep it once.
+  return points.filter((p, i) => i === 0 || p[0] !== points[i - 1]?.[0] || p[1] !== points[i - 1]?.[1]);
+}

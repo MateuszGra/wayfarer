@@ -2,9 +2,8 @@
 import { computed, ref } from 'vue';
 import { trophyProgress } from '@shared/achievements/trophies';
 import { dayOutcome, summarize } from '@shared/steps/history';
-import { BaseDialog, BaseTabs } from '@/design-system';
-import { usePlan } from '@/shared/composables/usePlan';
-import { useStepHistory } from '@/shared/composables/useStepHistory';
+import { BaseButton, BaseDialog, BaseTabs } from '@/design-system';
+import { useJourney } from '@/shared/composables/useJourney';
 import { t } from '@/shared/i18n';
 import AchievementDay from '../../molecules/AchievementDay/AchievementDay.vue';
 import AchievementStats from '../../molecules/AchievementStats/AchievementStats.vue';
@@ -16,12 +15,15 @@ export interface Props {
 
 defineOptions({ name: 'AchievementsDialog' });
 defineProps<Props>();
-const emit = defineEmits<{ 'update:open': [open: boolean]; back: [] }>();
+const emit = defineEmits<{ 'update:open': [open: boolean]; back: []; 'correct-steps': [] }>();
 
-const { history } = useStepHistory();
+const journey = useJourney();
+const history = computed(() => journey.journey.value?.today.history ?? []);
 // Each day is judged against the current goal until the goal history is stored on the server.
-const { dailySteps } = usePlan();
+const dailySteps = computed(() => journey.journey.value?.journey.dailySteps ?? 0);
 const summary = computed(() => summarize(history.value, dailySteps.value));
+// Yesterday's steps can be corrected until midnight, from here.
+const enteredToday = computed(() => journey.journey.value?.today.stepsEntered ?? null);
 const newestFirst = computed(() => [...history.value].reverse());
 const trophies = computed(() => trophyProgress(summary.value.totalSteps));
 const wonCount = computed(() => trophies.value.filter((trophy) => trophy.won).length);
@@ -53,6 +55,12 @@ const tabs = [
       <BaseTabs v-model="tab" :tabs="tabs" :label="t('achievements.tabs')">
         <template #journal>
           <AchievementStats :summary="summary" />
+          <p v-if="enteredToday !== null" class="achievements__correct">
+            {{ t('achievements.yesterdaySteps', { steps: enteredToday.toLocaleString('pl-PL') }) }}
+            <BaseButton variant="link" data-testid="correct-steps" @click="emit('correct-steps')">
+              {{ t('achievements.correctSteps') }}
+            </BaseButton>
+          </p>
           <ul class="achievements__days" :aria-label="t('achievements.list')">
             <AchievementDay
               v-for="entry in newestFirst"
@@ -85,6 +93,16 @@ const tabs = [
   gap: var(--space-4);
   min-height: 0;
   flex: 1;
+}
+.achievements__correct {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
 }
 .achievements__count {
   margin: 0;

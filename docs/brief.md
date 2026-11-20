@@ -72,10 +72,36 @@ The traveller walks on **yesterday's** steps. This gives the game a calm daily r
 1. **First sync imports yesterday.** Right after the account is created and a step source is connected, the first sync fetches **yesterday's** steps. They become the budget for the very first day, so the traveller sets off on the day the player joins instead of waiting until tomorrow. Older history is not imported: the journey starts now.
 2. **Sync after midnight.** From then on, shortly after midnight (player's local time) the server fetches the previous day's steps from the connected tracker and stores them as today's step budget.
 3. **The walk starts at 06:00.** If the budget is above zero, the traveller packs up and sets off at 06:00.
-4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **10,000 steps = walking until 20:00**. Fewer steps mean an earlier stop. The walk never goes past sunset; extra steps beyond the cap make the traveller cover more distance in the same time.
+4. **Steps set how long the walk lasts.** The budget is turned into walking time, not literally into seconds of animation. Reference point: **the player's daily goal = walking until 20:00**. Fewer steps mean an earlier stop. The walk never goes past sunset; extra steps beyond the cap make the traveller cover more distance in the same time.
 5. **Distance comes from steps.** The distance gained on the route is calculated from the steps (stride length); the walking time only spreads that distance across the day. When the walk ends the traveller has covered exactly the distance earned.
 6. **When the budget runs out during the day,** the traveller makes camp and rests until morning. The fire is lit only in the evening.
 7. **No steps means a rest day.** With a budget of zero the traveller stays at camp all day: no fire during the day, the fire is lit in the evening as usual. No penalty, no guilt; it is simply a day off.
+
+#### Until a tracker is connected: entering steps by hand
+
+The first version has no tracker yet, so the player enters the steps themselves, and the rules above
+apply to those numbers:
+
+- **The journey is planned once.** After signing in the player picks a route and a daily step goal on the
+  map. Both are saved to the account; afterwards the game opens straight into the scene. They can be
+  changed later, but only from a folded section of the settings, because the point is to finish the
+  journey that was chosen. A new goal applies at once; a new route starts from its beginning, while the
+  days and kilometres walked so far stay in the journal.
+- **Every day starts with "How many steps did you take yesterday?"** A window that can't be dismissed
+  asks for yesterday's steps (the word _yesterday_ stands out, so nobody enters today's steps in the
+  evening). The first answer starts day 1 on the road. Zero is a valid answer and means a rest day.
+- **The goal is a full day.** Steps equal to the player's daily goal let the traveller walk from 06:00
+  to 20:00; fewer steps end the walk earlier, more only quicken the pace.
+- **Late answers.** Steps entered during the day start the walk then (after a few seconds of getting up
+  and packing) and last as long as the steps allow, but never past 20:00: entered at 18:00, the walk
+  lasts until 20:00 at most. Steps entered after 20:00 count towards the distance, but the traveller
+  sleeps on.
+- **A missed day is a rest day.** If a whole day passes without yesterday's steps, that day counts as zero
+  and the next day asks about the day just gone.
+- **Corrections until midnight.** Yesterday's steps can be corrected the same day from the journal.
+- **Typos.** More than 30,000 steps asks for confirmation; more than 50,000 is refused.
+- **The server keeps the time.** "Today" and "yesterday" are decided on the server in the time zone
+  saved with the journey, so changing the phone's clock doesn't add a day.
 
 Open questions for these rules:
 
@@ -90,7 +116,7 @@ Lighting, sky, weather and ambient sound change across the day.
 The weather in the game mirrors the real weather **where the player is**, not on the route. If it rains outside the player's window, the traveller walks in the rain. It ties the game to the player's own day.
 
 - **Location:** an approximate region (city level) from the player's IP address. The lookup runs on our server against a local GeoLite2 database, so no IP address is sent to a third party.
-- **Weather data:** a free forecast API (Open-Meteo, no key needed). It is fetched per region and cached for about an hour, not per player.
+- **Weather data:** a free forecast API (Open-Meteo, no key needed). It is fetched per region and cached for half an hour, not per player.
 - **Mapping:** the current conditions map to the game's weather states: clear, overcast, rain, storm, snow, fog and wind. Temperature can tune details such as breath puffs in the cold.
 - **Fallbacks:**
   - Mobile networks and VPNs often geolocate far from the real place, so the player can set a city by hand in settings.

@@ -57,4 +57,16 @@ describe('RoutePlanner', () => {
 
     expect(wrapper.emitted('continue')).toHaveLength(1);
   });
+
+  it('offers no way back on the first plan', () => {
+    expect(planner().find('[data-testid="plan-back"]').exists()).toBe(false);
+  });
+
+  it('offers a way back when changing a planned journey', async () => {
+    const wrapper = planner({ changing: true });
+
+    await wrapper.get('[data-testid="plan-back"]').trigger('click');
+
+    expect(wrapper.emitted('back')).toEqual([[]]);
+  });
 });

@@ -3,7 +3,7 @@ import { Map as MapLibreMap, type GeoJSONSource, type LngLatBoundsLike, type Sty
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { RoutePoint } from '@shared/api/contracts';
-import { routeProgress } from '@shared/routes/progress';
+import { routeProgress, todaySegment } from '@shared/routes/progress';
 import { t } from '@/shared/i18n';
 
 export interface Props {
@@ -11,12 +11,14 @@ export interface Props {
   /** Route length and distance walked; with both, the walked part and the traveller's position are drawn. */
   lengthKm?: number;
   doneKm?: number;
+  /** The part of `doneKm` today's steps added; drawn apart from the rest of the walked route. */
+  todayKm?: number;
   /** Room the overlay panel takes on the right, so the route is framed in the free part of the map. */
   paddingRight?: number;
 }
 
 defineOptions({ name: 'RouteMap' });
-const props = withDefaults(defineProps<Props>(), { paddingRight: 0, lengthKm: 0, doneKm: 0 });
+const props = withDefaults(defineProps<Props>(), { paddingRight: 0, lengthKm: 0, doneKm: 0, todayKm: 0 });
 
 const container = ref<HTMLElement | null>(null);
 let map: MapLibreMap | null = null;
@@ -115,6 +117,14 @@ function addLayers(): void {
     paint: { 'line-color': token('--rust'), 'line-width': 4 },
     layout: round,
   });
+  // Today's stretch in sunlit gold over the rust of the days before.
+  map.addLayer({
+    id: 'route-today',
+    type: 'line',
+    source: 'route-today',
+    paint: { 'line-color': token('--sun'), 'line-width': 5 },
+    layout: round,
+  });
   map.addLayer({
     id: 'route-points',
     type: 'circle',
@@ -142,7 +152,13 @@ function showRoute(path: readonly RoutePoint[]): void {
   const end = path[path.length - 1] as RoutePoint;
   const progress = props.lengthKm > 0 ? routeProgress(path, props.lengthKm, props.doneKm) : null;
   setData('route-all', line(path));
-  setData('route-walked', line(progress?.walked ?? [start]));
+  const before =
+    props.lengthKm > 0 ? routeProgress(path, props.lengthKm, Math.max(0, props.doneKm - props.todayKm)) : null;
+  setData('route-walked', line(before?.walked ?? [start]));
+  setData(
+    'route-today',
+    line(props.lengthKm > 0 ? todaySegment(path, props.lengthKm, props.doneKm, props.todayKm) : [start]),
+  );
   setData('route-remaining', line(progress?.remaining ?? path));
   setData(
     'route-points',
@@ -196,7 +212,7 @@ onMounted(() => {
   });
 });
 watch(
-  () => [props.path, props.doneKm, props.lengthKm] as const,
+  () => [props.path, props.doneKm, props.todayKm, props.lengthKm] as const,
   ([path]) => {
     if (path && styleReady) showRoute(path);
   },

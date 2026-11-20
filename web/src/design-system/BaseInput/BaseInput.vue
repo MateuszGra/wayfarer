@@ -6,10 +6,18 @@ export interface Props {
   autocomplete?: string;
   invalid?: boolean;
   describedBy?: string | undefined;
+  /** Which on-screen keyboard a phone shows; `numeric` for counts such as steps. */
+  inputmode?: 'text' | 'numeric';
 }
 
 defineOptions({ name: 'BaseInput' });
-withDefaults(defineProps<Props>(), { type: 'text', autocomplete: 'off', invalid: false, describedBy: undefined });
+withDefaults(defineProps<Props>(), {
+  type: 'text',
+  autocomplete: 'off',
+  invalid: false,
+  describedBy: undefined,
+  inputmode: 'text',
+});
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 </script>
 
@@ -21,6 +29,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
     :type="type"
     :value="modelValue"
     :autocomplete="autocomplete"
+    :inputmode="inputmode"
     :aria-invalid="invalid"
     :aria-describedby="describedBy"
     @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"

@@ -8,6 +8,7 @@ export type {
   SceneBehaviour,
   SceneOptions,
   SceneSnapshot,
+  SceneWalk,
   WandererStatus,
 } from './prototype/prototypeScene.js';
 export { paletteAt, type Palette } from './palette';

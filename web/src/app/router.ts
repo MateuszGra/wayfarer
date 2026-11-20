@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteLocationRaw, type Router } from 'vue-router';
 import { useSession } from '@/shared/composables/useSession';
-import { signedInHome } from '@/shared/composables/usePlan';
+import { useJourney } from '@/shared/composables/useJourney';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -8,6 +8,12 @@ declare module 'vue-router' {
     requiresAuth?: boolean;
     /** Only for a signed-out visitor; a signed-in player goes on to the game. */
     guestOnly?: boolean;
+    /** Needs a planned journey; without one the player plans it first. */
+    requiresJourney?: boolean;
+    /** The journey planner: once a journey is planned, only reachable to change it (`?change`). */
+    planner?: boolean;
+    /** Meant to be seen in landscape: on a phone held upright it asks to be turned first. */
+    landscape?: boolean;
   }
 }
 
@@ -31,13 +37,13 @@ export function createAppRouter(history = createWebHistory()): Router {
       {
         path: '/start',
         name: 'start',
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, planner: true },
         component: () => import('@/features/onboarding/views/StartView.vue'),
       },
       {
         path: '/scene',
         name: 'scene',
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresJourney: true, landscape: true },
         component: () => import('@/features/scene/views/SceneView.vue'),
       },
       { path: '/:pathMatch(.*)*', redirect: '/login' },
@@ -49,7 +55,12 @@ export function createAppRouter(history = createWebHistory()): Router {
     const account = await useSession().ensure();
     // The address asked for is kept, so after signing in the player lands where they meant to go.
     if (to.meta.requiresAuth && !account) return { path: '/login', query: { redirect: to.fullPath } };
-    if (to.meta.guestOnly && account) return signedInHome();
+    if (to.meta.guestOnly && account) return '/scene';
+    if (!account) return true;
+    // The game is about the journey: without one the player plans it, and a planned one is kept.
+    const journey = await useJourney().ensure();
+    if (to.meta.requiresJourney && !journey) return '/start';
+    if (to.meta.planner && journey && !('change' in to.query)) return '/scene';
     return true;
   });
 

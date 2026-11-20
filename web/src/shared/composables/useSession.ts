@@ -1,6 +1,7 @@
 import { readonly, ref } from 'vue';
 import type { AccountDto } from '@shared/api/contracts';
 import { fetchCurrentAccount, logout } from '@/shared/api/auth';
+import { forgetJourney } from './useJourney';
 
 // One session per tab, shared by the router guard and every screen.
 const account = ref<AccountDto | null>(null);
@@ -21,6 +22,7 @@ export function useSession() {
     return account.value;
   };
   const signedIn = (next: AccountDto): void => {
+    forgetJourney();
     account.value = next;
     checked = Promise.resolve(next);
   };
@@ -28,6 +30,7 @@ export function useSession() {
     try {
       await logout();
     } finally {
+      forgetJourney();
       account.value = null;
       checked = Promise.resolve(null);
     }

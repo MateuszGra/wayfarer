@@ -14,6 +14,11 @@ export const ERROR_CODES = {
   passwordTooLong: 'password_too_long',
   passwordUnchanged: 'password_unchanged',
   passwordBreached: 'password_breached',
+  journeyNotFound: 'journey_not_found',
+  journeyExists: 'journey_exists',
+  unknownRoute: 'unknown_route',
+  invalidSteps: 'invalid_steps',
+  weatherUnavailable: 'weather_unavailable',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

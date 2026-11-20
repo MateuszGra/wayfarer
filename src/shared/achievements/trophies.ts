@@ -2,8 +2,10 @@
 export const TROPHIES = [
   { id: 'aezakmi', steps: 20_000 },
   { id: 'dragonborn', steps: 70_000 },
-  { id: 'postalVote', steps: 70_000 },
   { id: 'kremowka', steps: 213_700 },
+  // A "Sasin" is the jokey unit of 70 million zloty spent on the postal election that never happened;
+  // the small one here is a hundredth of it, in steps.
+  { id: 'postalVote', steps: 700_000 },
   { id: 'ringBearer', steps: 3_800_000 },
   { id: 'forrest', steps: 6_500_000 },
   { id: 'twardowski', steps: 500_000_000 },

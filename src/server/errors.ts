@@ -1,5 +1,7 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { AuthError } from '../modules/auth/index.js';
+import { JourneyError } from '../modules/journey/index.js';
+import { WeatherError } from '../modules/weather/index.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from '../shared/api/errorCodes.js';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
@@ -17,6 +19,11 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   password_too_long: 400,
   password_unchanged: 400,
   password_breached: 400,
+  journey_not_found: 404,
+  journey_exists: 409,
+  unknown_route: 400,
+  invalid_steps: 400,
+  weather_unavailable: 503,
 };
 
 export class ApiError extends Error {
@@ -37,9 +44,15 @@ export function errorBody(code: ErrorCode, message: string): ApiErrorBody {
 }
 
 export function registerErrorHandling(app: FastifyInstance): void {
-  app.setErrorHandler((error: FastifyError | ApiError | AuthError, request, reply) => {
+  app.setErrorHandler((error: FastifyError | ApiError | AuthError | JourneyError | WeatherError, request, reply) => {
     if (error instanceof ApiError) {
       return reply.status(error.statusCode).send(errorBody(error.code, error.message));
+    }
+    if (error instanceof WeatherError) {
+      return reply.status(STATUS_BY_CODE[error.code]).send(errorBody(error.code, error.message));
+    }
+    if (error instanceof JourneyError) {
+      return reply.status(STATUS_BY_CODE[error.code]).send(errorBody(error.code, error.message));
     }
     if (error instanceof AuthError) {
       return reply.status(STATUS_BY_CODE[error.code]).send(errorBody(error.code, error.message));

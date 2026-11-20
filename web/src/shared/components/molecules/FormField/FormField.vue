@@ -11,10 +11,17 @@ export interface Props {
   error?: string | null;
   /** A rule shown under the field before anything goes wrong, e.g. the minimum password length. */
   hint?: string | null;
+  inputmode?: 'text' | 'numeric';
 }
 
 defineOptions({ name: 'FormField' });
-const props = withDefaults(defineProps<Props>(), { type: 'text', autocomplete: 'off', error: null, hint: null });
+const props = withDefaults(defineProps<Props>(), {
+  type: 'text',
+  autocomplete: 'off',
+  error: null,
+  hint: null,
+  inputmode: 'text',
+});
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 const describedBy = computed(
   () =>
@@ -31,6 +38,7 @@ const describedBy = computed(
       :model-value="modelValue"
       :type="type"
       :autocomplete="autocomplete"
+      :inputmode="inputmode"
       :invalid="error !== null"
       :described-by="describedBy"
       @update:model-value="emit('update:modelValue', $event)"

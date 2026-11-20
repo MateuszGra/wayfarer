@@ -7,17 +7,21 @@ import StatLine from '../../molecules/StatLine/StatLine.vue';
 export interface Props {
   routeId: 'baltic-santiago';
   doneKm: number;
+  /** What today's steps added; shown on its own so the player sees what yesterday earned. */
+  todayKm?: number;
   totalKm: number;
   day: number;
   status: WandererStatus;
 }
 
 defineOptions({ name: 'SceneHud' });
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { todayKm: 0 });
 
-const distance = computed(() =>
-  t('scene.distance', { done: props.doneKm.toFixed(1).replace('.', ','), total: props.totalKm }),
-);
+const km = (value: number): string => value.toFixed(1).replace('.', ',');
+const distance = computed(() => {
+  const line = t('scene.distance', { done: km(props.doneKm), total: props.totalKm });
+  return props.todayKm > 0 ? `${line} · ${t('scene.distanceToday', { today: km(props.todayKm) })}` : line;
+});
 const details = computed(() => `${t('scene.day', { day: props.day })} · ${t(`scene.status.${props.status}`)}`);
 const progress = computed(() => `${Math.min(100, (props.doneKm / props.totalKm) * 100).toFixed(2)}%`);
 </script>

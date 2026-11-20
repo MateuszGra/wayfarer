@@ -131,11 +131,9 @@ To stop everything, run `docker compose down`. Your data stays in the `db-data` 
 | `/start`           | Choosing the route and the daily step goal on the map, with the journey length worked out live                                                                                |
 | `/scene`           | The game. The ☰ button (or Escape) opens the menu: Map, Achievements and Settings open as windows over the game, each with a back arrow to the menu; sign-out is always last |
 
-Until the auth API and step sync exist, signing in leads straight on, and progress and step history are demo data.
-
 ## Developer tools
 
-In development builds the game shows a developer panel on the right (it slides away to a tab): time of day, a faster clock, the beard by days on the road, the biome and a new variant. URL parameters, in development or with `?dev`:
+In development builds the game shows a developer panel on the right (it slides away to a tab): time of day, a faster clock, the beard by days on the road, the biome and a new variant, and the weather (the API reading, or any sky, precipitation, wind, storm and frost by hand). Each section folds away. URL parameters, in development or with `?dev`:
 
 | Parameter                                     | Effect                                                                         |
 | --------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -171,6 +169,35 @@ The `auth` module (`src/modules/auth`) owns accounts and sessions. `/start` and 
 - **Guessing:** five wrong passwords in a row lock an account for 15 minutes, and each client address gets 30 attempts per 15 minutes. Addresses are counted in memory only, never stored.
 - New routes that need a player use the `requireSession` preHandler and read the player from `request.auth`.
 - **Local development:** with `DEV_LOGIN=true` in `.env`, the password `localhost` signs in with any address and creates the account if needed. The server refuses to start with it when `NODE_ENV=production`, with Secure cookies or with `TRUST_PROXY=true`.
+
+## The journey
+
+The `journey` module (`src/modules/journey`) keeps each player's route, daily goal, time zone and the steps
+they entered day by day. The rules for days, the daily walk and distance are pure functions in
+`src/shared/journey` and `src/shared/steps/dailyWalk.ts`, used by both the server and the game.
+
+| Endpoint                 | What it does                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `POST /api/journey`      | Plans the journey (201); `journey_exists` (409) once there is one                      |
+| `GET /api/journey`       | The plan and today: day on the road, yesterday's steps, today's walk, distance, days   |
+| `PUT /api/journey`       | Changes the route or the goal (from the settings)                                      |
+| `PUT /api/journey/steps` | Records yesterday's steps, or corrects them the same day; `invalid_steps` above 50,000 |
+
+`/scene` needs a planned journey; without one the router sends the player to `/start`, which is closed once a journey exists (except `/start?change` from the settings).
+
+## Weather
+
+The `weather` module (`src/modules/weather`) gives the current weather of the player's region from Open-Meteo (no key). Only the region's coordinates, rounded to about a kilometre, leave the server. Each region is fetched at most once every 30 minutes and kept in memory; when Open-Meteo is down, the last known weather stays. Until the region comes from the IP address, every player gets Słupsk.
+
+| Endpoint           | What it does                                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/weather` | The region, the scene weather (sky, precipitation, storm, wind, frost), °C and km/h; `weather_unavailable` (503) before the first reading |
+
+The rules that turn Open-Meteo's weather codes, wind and temperature into the scene's layers are in `src/shared/weather/weather.ts`. The game asks again every 30 minutes and when it comes back to the foreground. In the developer panel, the Weather section shows the API reading and sets any combination by hand.
+
+## Installing the game
+
+`web/public/manifest.webmanifest` makes the game installable: it opens full screen in landscape at `/scene`. The icons are `icon.svg` with PNG copies at 192 and 512 px, a maskable 512 px one for Android and `apple-touch-icon.png` for iOS; regenerate the PNGs from the SVG whenever it changes. There is no service worker yet, so the game needs the network.
 
 ## Deploying to MyDevil
 

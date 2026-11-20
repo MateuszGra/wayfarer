@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sql, type Kysely } from 'kysely';
+import type { Kysely } from 'kysely';
 import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '../../../db/database';
@@ -30,8 +30,9 @@ describe.skipIf(!url)('SQL auth repositories', () => {
     }).migrateToLatest();
     if (error) throw error;
   });
+  // Other integration tests use the same database at the same time, so only this test's rows are removed.
   beforeEach(async () => {
-    await sql`truncate accounts cascade`.execute(db);
+    await db.deleteFrom('accounts').where('id', 'in', [ID_A, ID_B]).execute();
   });
   afterAll(async () => {
     await db.destroy();
@@ -89,7 +90,7 @@ describe.skipIf(!url)('SQL auth repositories', () => {
     await accounts.add(anAccount());
     await sessions.add(startSession('s1' as SessionTokenHash, ID_A, NOW));
 
-    await sql`delete from accounts`.execute(db);
+    await db.deleteFrom('accounts').where('id', '=', ID_A).execute();
 
     expect(await sessions.find('s1' as SessionTokenHash)).toBeNull();
   });

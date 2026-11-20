@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { distanceKm, walkingWindow } from './dailyWalk.js';
+import { distanceKm, walkedShare, walkingWindow } from './dailyWalk.js';
 
 describe('walkingWindow', () => {
   it('returns a rest day when there were no steps', () => {
@@ -20,8 +20,62 @@ describe('walkingWindow', () => {
     expect(window?.endHour).toBeCloseTo(endHour, 4);
   });
 
+  it.each([
+    { steps: 4_000, goal: 8_000, endHour: 13 },
+    { steps: 8_000, goal: 8_000, endHour: 20 },
+    { steps: 12_000, goal: 8_000, endHour: 20 },
+  ])('walks until $endHour with $steps steps towards a goal of $goal', ({ steps, goal, endHour }) => {
+    expect(walkingWindow(steps, goal)?.endHour).toBe(endHour);
+  });
+
+  it('starts the walk when the steps were entered later in the day, cut short at 20:00', () => {
+    expect(walkingWindow(10_000, 10_000, 18)).toEqual({ startHour: 18, endHour: 20 });
+  });
+
+  it('walks a short day in full when its steps come in after the time it would have ended', () => {
+    expect(walkingWindow(2_000, 10_000, 14)).toEqual({ startHour: 14, endHour: 16.8 });
+  });
+
+  it('keeps the 06:00 start for steps entered before it', () => {
+    expect(walkingWindow(10_000, 10_000, 5.5)).toEqual({ startHour: 6, endHour: 20 });
+  });
+
+  it('still walks steps entered just before 20:00, until 20:00', () => {
+    expect(walkingWindow(5_000, 10_000, 19.5)).toEqual({ startHour: 19.5, endHour: 20 });
+  });
+
+  it('has nothing left to walk when the steps were entered exactly at 20:00', () => {
+    expect(walkingWindow(5_000, 10_000, 20)).toBeNull();
+  });
+
+  it('has nothing left to walk when the steps were entered at night', () => {
+    expect(walkingWindow(10_000, 10_000, 21)).toBeNull();
+  });
+
+  it.each([0, -1, 2.5])('throws when the goal is %s', (goal) => {
+    expect(() => walkingWindow(1_000, goal)).toThrow(RangeError);
+  });
+
   it.each([-1, 1.5, Number.NaN])('throws when the step count is %s', (steps) => {
     expect(() => walkingWindow(steps)).toThrow(RangeError);
+  });
+});
+
+describe('walkedShare', () => {
+  const window = { startHour: 6, endHour: 20 };
+
+  it.each([
+    { hour: 5, share: 0 },
+    { hour: 6, share: 0 },
+    { hour: 13, share: 0.5 },
+    { hour: 20, share: 1 },
+    { hour: 23, share: 1 },
+  ])('has walked $share of the day at $hour', ({ hour, share }) => {
+    expect(walkedShare(window, hour)).toBe(share);
+  });
+
+  it('counts the whole day as walked when there was nothing to walk on screen', () => {
+    expect(walkedShare(null, 8)).toBe(1);
   });
 });
 

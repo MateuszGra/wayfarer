@@ -1,3 +1,5 @@
+import type { Weather } from '@shared/weather/weather';
+
 /** Height band of a mountain biome; biomes without levels always report `mid`. */
 export type ElevationLevel = 'low' | 'mid' | 'high';
 
@@ -21,7 +23,9 @@ export type BehaviourId =
   | 'birdSparrow'
   | 'shootingStar'
   | 'ship'
-  | 'fishingBoat';
+  | 'fishingBoat'
+  | 'angler'
+  | 'bigfoot';
 
 export type BehaviourGroup = 'wanderer' | 'cat' | 'bird' | 'world';
 
@@ -42,6 +46,13 @@ export interface SceneSnapshot {
   readonly behaviours: readonly SceneBehaviour[];
 }
 
+/** Today's walk in local hours; `leadHours` of getting up and packing come before `startHour`. */
+export interface SceneWalk {
+  readonly startHour: number;
+  readonly endHour: number;
+  readonly leadHours?: number;
+}
+
 export interface SceneOptions {
   readonly hour?: number;
   readonly biome?: string;
@@ -58,6 +69,10 @@ export interface SceneOptions {
   readonly hideWanderer?: boolean;
   /** Beard length from 0 (clean-shaven) to 1 (full). */
   readonly beard?: number;
+  /** The weather layers to draw; left out, a clear sky with a light breeze. */
+  readonly weather?: Weather;
+  /** Today's walk, or null for a day at camp; left out, the prototype's demo day (07:12–19:18). */
+  readonly walk?: SceneWalk | null;
   /** Called about five times a second; never every frame. */
   readonly onSnapshot?: (snapshot: SceneSnapshot) => void;
 }
@@ -68,6 +83,9 @@ export interface Scene {
   setAuto(on: boolean): void;
   setBeard(length: number): void;
   setDayLength(seconds: number): void;
+  /** Today's walk, or null for a day at camp. */
+  setWalk(walk: SceneWalk | null): void;
+  setWeather(weather: Weather): void;
   setBiome(id: string): void;
   /** The levels a biome offers: low, mid and high for mountain biomes, only mid for the rest. */
   levelsOf(id: string): readonly ElevationLevel[];

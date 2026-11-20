@@ -8,10 +8,12 @@ export interface Props {
   lengthKm: number;
   doneKm: number;
   dailySteps: number;
+  /** What today's steps added, in km; 0 hides the line. */
+  todayKm?: number;
 }
 
 defineOptions({ name: 'JourneyProgress' });
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { todayKm: 0 });
 
 const km = (value: number): string => value.toLocaleString('pl-PL', { maximumFractionDigits: 0 });
 const leftKm = computed(() => Math.max(0, props.lengthKm - props.doneKm));
@@ -36,12 +38,21 @@ const atGoal = computed(() =>
       <div class="journey-progress__fill" :style="{ width: `${percent}%` }" />
     </div>
     <p class="journey-progress__main" data-testid="progress-summary">{{ summary }}</p>
+    <p v-if="todayKm > 0" class="journey-progress__today" data-testid="progress-today">
+      {{ t('map.today', { km: todayKm.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) }) }}
+    </p>
     <p class="journey-progress__line" data-testid="progress-left">{{ t('map.left', { km: km(leftKm) }) }}</p>
     <p v-if="atGoal" class="journey-progress__line" data-testid="progress-at-goal">{{ atGoal }}</p>
   </section>
 </template>
 
 <style scoped>
+.journey-progress__today {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--rust);
+}
 .journey-progress__title {
   margin: 0 0 var(--space-2);
   font-family: var(--font-display);
