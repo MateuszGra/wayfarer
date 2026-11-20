@@ -6,4 +6,5 @@ export { default as BaseIconButton } from './BaseIconButton/BaseIconButton.vue';
 export { default as BaseInput } from './BaseInput/BaseInput.vue';
 export { default as BasePanel } from './BasePanel/BasePanel.vue';
 export { default as BaseSlider } from './BaseSlider/BaseSlider.vue';
+export { default as BaseTabs } from './BaseTabs/BaseTabs.vue';
 export { default as WorldEmblem } from './WorldEmblem/WorldEmblem.vue';

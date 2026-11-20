@@ -29,6 +29,10 @@
   --mist-deep: #6e7f8c;
   --pine: #3e5a4a;
   --sun: #e2a24e;
+  /* Trophy art only: chocolate, pastry cream and a rooster's red comb, which nothing else in the palette covers. */
+  --cocoa: #5b3a2c;
+  --cream: #f6ebc4;
+  --comb: #d8392b;
   --shadow-panel: 0 18px 50px rgba(10, 8, 20, 0.45);
   --text-sm: 13px;
   --text-md: 15px;

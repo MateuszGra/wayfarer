@@ -211,6 +211,12 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - Occasional shooting stars.
 - Cabin windows light up at night.
 
+## 9a. Trophies
+
+- Collectible trophies live in the Achievements window, on their own tab next to the journal of days. Each is won once the total steps reach its threshold (`src/shared/achievements/trophies.ts`); names and descriptions are playful nods to games, films and Polish pop culture.
+- Each icon is a round plate, flat like the rest of the world: a few shapes, the design-system palette (plus `--cocoa`, `--cream` and `--comb` for trophy art), no gradients or outlines beyond a thin ink line where a shape needs one. Original drawings only, never a copy of a logo or a film still.
+- A trophy not yet won is shown as a faded grey silhouette with a progress bar, so the player can see what is still to come; a won one gets its colours back and a gold rim.
+
 ## 10. Don'ts
 
 - No recreation of existing characters or their signature looks. The wanderer may share the spirit of the classic free, solitary wanderer, but never these traits:
