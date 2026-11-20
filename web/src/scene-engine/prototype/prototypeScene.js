@@ -929,11 +929,25 @@ export async function startPrototypeScene(host, options = {}) {
         const w0 = lerp(wb, wt, f), w1 = lerp(wb, wt, f + 0.14);
         L.lhWhite.poly([sx - w0 / 2, y - th * f, sx + w0 / 2, y - th * f, sx + w1 / 2, y - th * (f + 0.14), sx - w1 / 2, y - th * (f + 0.14)]).fill(0xffffff);
       }
-      L.lhWhite.rect(sx - wt * 0.8, y - th - th * 0.03, wt * 1.6, th * 0.03).fill(0xffffff);
-      const lh = th * 0.12;
-      L.win.rect(sx - wt * 0.38, y - th - lh, wt * 0.76, lh * 0.85).fill(0xffffff);
-      L.roofs.poly([sx - wt * 0.62, y - th - lh, sx, y - th - lh * 1.8, sx + wt * 0.62, y - th - lh]).fill(0xffffff);
-      L.lights.push({ u, lampDy: th + lh * 0.55 });
+      // The head of a lighthouse, not a gable: a gallery deck wider than the tower with a railing round it,
+      // the glazed lantern room with dark glazing bars, and a round metal dome with a small ball on top.
+      const top = y - th, lh = th * 0.12, line = Math.max(1, wt * 0.07);
+      const deckH = Math.max(1.5, th * 0.022), railH = lh * 0.42;
+      L.roofs.rect(sx - wt * 0.85, top - deckH, wt * 1.7, deckH).fill(0xffffff);
+      L.roofs.rect(sx - wt * 0.82, top - deckH - railH, wt * 1.64, line).fill(0xffffff);
+      for (const f of [-0.8, -0.4, 0.4, 0.8]) L.roofs.rect(sx + wt * f - line / 2, top - deckH - railH, line, railH).fill(0xffffff);
+      const lw = wt * 0.34, roomH = lh * 0.95, roomTop = top - deckH - roomH;
+      L.win.rect(sx - lw, roomTop, lw * 2, roomH).fill(0xffffff);
+      for (const f of [-1, 0, 1]) L.roofs.rect(sx + lw * f - line / 2, roomTop, line, roomH).fill(0xffffff);
+      const dome = [];
+      for (let i = 0; i <= 12; i++) {
+        const a = Math.PI * (i / 12);
+        dome.push(sx - Math.cos(a) * lw * 1.2, roomTop - Math.sin(a) * lh * 0.5);
+      }
+      L.roofs.poly(dome).fill(0xffffff);
+      L.roofs.rect(sx - line / 2, roomTop - lh * 0.75, line, lh * 0.3).fill(0xffffff);
+      L.roofs.circle(sx, roomTop - lh * 0.78, line * 0.9).fill(0xffffff);
+      L.lights.push({ u, lampDy: th + deckH + roomH * 0.5 });
     });
   }
   function rebuildLayer(L, uOff) {
@@ -2462,7 +2476,7 @@ export async function startPrototypeScene(host, options = {}) {
     const amb = mix(mul(0xffffff, P.light, clamp(P.bright * 1.05, 0.16, 1.1)), P.haze, 0.08);
     const charTint = mix(amb, 0xffb987, fireK * dark * 0.8);
 
-    // Every minute or so a pebble lies on the path ahead. As it comes within reach he draws his leg back
+    // Now and then a pebble lies on the path ahead. As it comes within reach he draws his leg back
     // and kicks it hard and straight: it flies low and far ahead, bounces twice, rolls and stops. Each
     // pebble is good for one to three kicks, drawn when it appears: while kicks are left, he kicks it again
     // when he catches up with it, and after the last one he walks past it. Distances, heights and speeds are in his units (850 to the screen height);
@@ -2470,8 +2484,14 @@ export async function startPrototypeScene(host, options = {}) {
     pebbleG.clear();
     let kick = 0, kickBack = 0;
     const PEBBLE_G = 900, PEBBLE_KICK = { vx: 520, vy: 150 };
+    const PEBBLE_EVERY_S = 60, PEBBLE_FIRST_S = 30, PEBBLE_CHANCE = 0.55;
     const pebbleWaiting = pebbles.some((pb) => pb.age < 0);
-    if (walking && !pebbleWaiting && (mod(t, 60) < dt * 1.5 || forcedAge('pebble') < dt * 1.5)) {
+    // About every other minute, at a moment drawn per minute, never in the first half minute of the walk:
+    // like the other habits it comes when it comes, not the moment he sets off.
+    const pebbleMinute = Math.floor(t / PEBBLE_EVERY_S);
+    const pebbleAt = pebbleMinute * PEBBLE_EVERY_S + PEBBLE_FIRST_S + hash(pebbleMinute, 911) * (PEBBLE_EVERY_S - PEBBLE_FIRST_S);
+    const pebbleDue = hash(pebbleMinute, 912) < PEBBLE_CHANCE && t >= pebbleAt && t - dt < pebbleAt;
+    if (walking && !pebbleWaiting && (pebbleDue || forcedAge('pebble') < dt * 1.5)) {
       pebbles.push({ u: gOff + (tx + 150 * unit) / S, h: 0, vx: 0, vy: 0, age: -1, kicksLeft: 1 + Math.floor(Math.random() * 3) });
     }
     for (const pb of pebbles) {

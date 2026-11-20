@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { trophyProgress } from '@shared/achievements/trophies';
-import { dayOutcome, summarize } from '@shared/steps/history';
+import { dayOutcome, goalStreak, summarize } from '@shared/steps/history';
 import { BaseButton, BaseDialog, BaseTabs } from '@/design-system';
 import { useJourney } from '@/shared/composables/useJourney';
 import { t } from '@/shared/i18n';
@@ -25,7 +25,9 @@ const summary = computed(() => summarize(history.value, dailySteps.value));
 // Yesterday's steps can be corrected until midnight, from here.
 const enteredToday = computed(() => journey.journey.value?.today.stepsEntered ?? null);
 const newestFirst = computed(() => [...history.value].reverse());
-const trophies = computed(() => trophyProgress(summary.value.totalSteps));
+const trophies = computed(() =>
+  trophyProgress({ totalSteps: summary.value.totalSteps, streak: goalStreak(history.value, dailySteps.value) }),
+);
 const wonCount = computed(() => trophies.value.filter((trophy) => trophy.won).length);
 
 type Tab = 'journal' | 'trophies';

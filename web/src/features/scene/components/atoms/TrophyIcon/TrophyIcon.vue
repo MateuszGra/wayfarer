@@ -27,6 +27,8 @@ const CANDY_CUPS: readonly (readonly [number, number])[] = [
   [36, 39],
 ];
 const SUGAR = [18, 23, 28, 33, 38, 43, 47];
+// Ten days ticked off on a calendar page, two weeks' rows of five: [x, y] of each box.
+const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, y] as const));
 </script>
 
 <template>
@@ -54,6 +56,24 @@ const SUGAR = [18, 23, 28, 33, 38, 43, 47];
       <polygon points="28.5,9 32,6 35.5,9" fill="var(--ink)" />
       <path d="M40 22 L44.5 16.5 L46.5 19.5 L49.5 14 L51.5 20.5 L47.5 21 L46 24 Z" fill="var(--ink)" />
       <path d="M5 44 L59 44 A30 30 0 0 1 5 44 Z" fill="var(--pine)" />
+    </template>
+
+    <template v-else-if="id === 'tenOutOfTen'">
+      <circle cx="32" cy="32" r="30" fill="var(--rust)" />
+      <rect x="11" y="15" width="42" height="34" rx="3" fill="var(--paper)" />
+      <rect x="11" y="15" width="42" height="7" rx="3" fill="var(--ink)" />
+      <rect x="18" y="12" width="3" height="7" rx="1.5" fill="var(--paper-line)" />
+      <rect x="43" y="12" width="3" height="7" rx="1.5" fill="var(--paper-line)" />
+      <path
+        v-for="([x, y], i) in TICKED_DAYS"
+        :key="i"
+        :d="`M${x - 2.6} ${y + 0.4}l2 2.2 3.6-4.6`"
+        fill="none"
+        stroke="var(--pine)"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
     </template>
 
     <template v-else-if="id === 'postalVote'">

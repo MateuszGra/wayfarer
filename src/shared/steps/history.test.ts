@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayOutcome, summarize, type DaySteps } from './history.js';
+import { dayOutcome, goalStreak, summarize, type DaySteps } from './history.js';
 
 describe('dayOutcome', () => {
   it.each([
@@ -26,5 +26,30 @@ describe('summarize', () => {
 
   it('is empty before the first day', () => {
     expect(summarize([], 10_000)).toEqual({ days: 0, goalsReached: 0, totalSteps: 0, totalKm: 0 });
+  });
+});
+
+describe('goalStreak', () => {
+  const days = (...steps: number[]): DaySteps[] =>
+    steps.map((value, i) => ({ day: i + 1, date: `2026-11-${String(i + 1).padStart(2, '0')}`, steps: value }));
+
+  it('has no streak without days', () => {
+    expect(goalStreak([], 10_000)).toEqual({ current: 0, best: 0 });
+  });
+
+  it('counts the days in a row up to the latest one', () => {
+    expect(goalStreak(days(10_000, 12_000, 10_000), 10_000)).toEqual({ current: 3, best: 3 });
+  });
+
+  it('ends a run on a day one step short of the goal', () => {
+    expect(goalStreak(days(10_000, 10_000, 9_999), 10_000)).toEqual({ current: 0, best: 2 });
+  });
+
+  it('ends a run on a rest day', () => {
+    expect(goalStreak(days(10_000, 0, 10_000), 10_000)).toEqual({ current: 1, best: 1 });
+  });
+
+  it('keeps the longest run after it is broken', () => {
+    expect(goalStreak(days(10_000, 10_000, 10_000, 0, 10_000), 10_000)).toEqual({ current: 1, best: 3 });
   });
 });

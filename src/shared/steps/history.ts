@@ -32,3 +32,24 @@ export function summarize(history: readonly DaySteps[], goal: number): HistorySu
     totalKm: distanceKm(totalSteps),
   };
 }
+
+export interface GoalStreak {
+  /** Days in a row ending with the latest day on record on which the goal was reached. */
+  readonly current: number;
+  /** The longest such run so far. */
+  readonly best: number;
+}
+
+/**
+ * Runs of days on which the goal was reached. A run means days in a row, so a rest day ends it as a missed
+ * goal does; the latest day still waiting for its steps doesn't, as it isn't on record yet.
+ */
+export function goalStreak(history: readonly DaySteps[], goal: number): GoalStreak {
+  let current = 0;
+  let best = 0;
+  for (const day of history) {
+    current = dayOutcome(day.steps, goal) === 'reached' ? current + 1 : 0;
+    best = Math.max(best, current);
+  }
+  return { current, best };
+}

@@ -38,7 +38,11 @@ const steps = (value: number): string => value.toLocaleString('pl-PL');
           <div class="trophy-card__fill" :style="{ width: `${percent}%` }" />
         </div>
         <p class="trophy-card__progress">
-          {{ t('trophy.progress', { done: steps(trophy.done), goal: steps(trophy.goal) }) }}
+          {{
+            trophy.measure === 'streak'
+              ? t('trophy.streakProgress', { done: trophy.done, goal: trophy.goal })
+              : t('trophy.progress', { done: steps(trophy.done), goal: steps(trophy.goal) })
+          }}
         </p>
       </template>
     </div>

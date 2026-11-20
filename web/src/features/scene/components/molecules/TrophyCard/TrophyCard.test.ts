@@ -4,7 +4,9 @@ import TrophyCard from './TrophyCard.vue';
 
 describe('TrophyCard', () => {
   it('names a won trophy and says it is won', () => {
-    const wrapper = mount(TrophyCard, { props: { trophy: { id: 'aezakmi', goal: 20_000, done: 20_000, won: true } } });
+    const wrapper = mount(TrophyCard, {
+      props: { trophy: { id: 'aezakmi', measure: 'steps', goal: 20_000, done: 20_000, won: true } },
+    });
 
     expect(wrapper.get('h4').text()).toBe('AEZAKMI');
     expect(wrapper.text()).toContain('Zdobyty!');
@@ -13,7 +15,7 @@ describe('TrophyCard', () => {
 
   it('shows how far a trophy still to win is, in steps', () => {
     const wrapper = mount(TrophyCard, {
-      props: { trophy: { id: 'kremowka', goal: 213_700, done: 103_922, won: false } },
+      props: { trophy: { id: 'kremowka', measure: 'steps', goal: 213_700, done: 103_922, won: false } },
     });
 
     // Polish number format separates thousands with a no-break space.
@@ -24,9 +26,18 @@ describe('TrophyCard', () => {
 
   it('fills the bar by the share of the goal walked', () => {
     const wrapper = mount(TrophyCard, {
-      props: { trophy: { id: 'dragonborn', goal: 70_000, done: 35_000, won: false } },
+      props: { trophy: { id: 'dragonborn', measure: 'steps', goal: 70_000, done: 35_000, won: false } },
     });
 
     expect(wrapper.get('.trophy-card__fill').attributes('style')).toBe('width: 50%;');
+  });
+
+  it('shows a streak trophy still to win in days in a row', () => {
+    const wrapper = mount(TrophyCard, {
+      props: { trophy: { id: 'tenOutOfTen', measure: 'streak', goal: 10, done: 4, won: false } },
+    });
+
+    expect(wrapper.get('h4').text()).toBe('Jesteś 10 na 10');
+    expect(wrapper.text()).toContain('4 z 10 dni z rzędu');
   });
 });

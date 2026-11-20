@@ -64,7 +64,15 @@ describe('AchievementsDialog', () => {
 
     await showTrophies();
 
-    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 2 z 7');
+    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 2 z 8');
+  });
+
+  it('counts the days in a row with the goal reached towards the ten-out-of-ten trophy', async () => {
+    await openAchievements();
+
+    await showTrophies();
+
+    expect(query('[data-testid="trophy-tenOutOfTen"]')?.textContent).toContain('2 z 10 dni z rzędu');
   });
 
   it('marks a trophy whose goal equals the steps walked as won', async () => {
