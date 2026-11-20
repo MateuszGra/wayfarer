@@ -33,9 +33,14 @@ describe('scrypt hasher', () => {
     expect(await hasher.verify('camino2026', 'plain-text' as PasswordHash)).toBe(false);
   });
 
-  it('rejects a stored hash asking for a cost above 2^20 instead of computing it', async () => {
+  // Without the bounds these throw, or hang allocating hundreds of gigabytes, instead of answering false.
+  it.each([
+    { cost: 'N of 2^40', params: 'ln=40,r=8,p=1' },
+    { cost: 'a block size of 100,000', params: 'ln=15,r=100000,p=1' },
+    { cost: 'parallelism of 2^30', params: 'ln=15,r=8,p=1073741824' },
+  ])('rejects a stored hash asking for $cost instead of computing it', async ({ params }) => {
     const forged =
-      '$scrypt$ln=30,r=8,p=1$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g' as PasswordHash;
+      `$scrypt$${params}$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g` as PasswordHash;
 
     expect(await hasher.verify('camino2026', forged)).toBe(false);
   });

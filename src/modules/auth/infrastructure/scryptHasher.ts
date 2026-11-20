@@ -10,8 +10,10 @@ export const SCRYPT_PARAMS = { logN: 15, r: 8, p: 3 } as const;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 // The largest cost a stored hash may ask for: a forged or corrupted string must not make verification
-// allocate gigabytes.
+// allocate gigabytes or run for minutes. Memory grows with N·r and time with N·r·p.
 const MAX_LOG_N = 20;
+const MAX_R = 32;
+const MAX_P = 16;
 
 type Params = { readonly logN: number; readonly r: number; readonly p: number };
 interface Parsed extends Params {
@@ -32,11 +34,14 @@ function parse(hash: string): Parsed | null {
   if (!match) return null;
   const [, ln, r, p, salt, key] = match;
   const logN = Number(ln);
-  if (logN < 1 || logN > MAX_LOG_N || Number(r) < 1 || Number(p) < 1) return null;
+  const blockSize = Number(r);
+  const lanes = Number(p);
+  const inRange = (value: number, max: number): boolean => value >= 1 && value <= max;
+  if (!inRange(logN, MAX_LOG_N) || !inRange(blockSize, MAX_R) || !inRange(lanes, MAX_P)) return null;
   return {
     logN,
-    r: Number(r),
-    p: Number(p),
+    r: blockSize,
+    p: lanes,
     salt: Buffer.from(salt ?? '', 'base64'),
     key: Buffer.from(key ?? '', 'base64'),
   };
