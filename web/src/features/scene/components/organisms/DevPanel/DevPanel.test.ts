@@ -172,4 +172,18 @@ describe('DevPanel', () => {
 
     expect(wrapper.emitted('follow-api-weather')).toEqual([[]]);
   });
+
+  it("swaps today's walk for a whole day on the road", async () => {
+    const wrapper = panel();
+
+    await wrapper.get('[data-testid="dev-walk-fullDay"]').trigger('click');
+
+    expect(wrapper.emitted('update:walkMode')).toEqual([['fullDay']]);
+  });
+
+  it('marks the walk the scene shows', () => {
+    const wrapper = panel({ walkMode: 'camp' });
+
+    expect(wrapper.get('[data-testid="dev-walk-camp"]').classes()).toContain('base-button--primary');
+  });
 });

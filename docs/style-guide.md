@@ -20,6 +20,7 @@ Reference implementation: the game's scene engine, `web/src/scene-engine/` (Pixi
 - All sizes are relative to screen height `H`:
   - landscape: fractions of `H` (`base`, `amp`, `wave`),
   - characters and camp props: units of `H / 850` (the wanderer is about 110 units tall).
+- On a phone held upright `H` is not the screen's height but a stage 850 by 520 units fitted to its width, so the wanderer, the cat, the camp and the path ahead all stay in view. The spare height becomes sky above the stage (about 60 %) and ground below it. A few seconds after the game opens upright, a small badge under the status line suggests turning the phone, once per page load.
 - Deterministic variety: every random choice comes from a seeded hash, so the same seed always produces the same scene. A "new variant" means a new seed.
 - A film-grain overlay (about 7 % opacity, `overlay` blend) and a soft vignette sit on top of the whole scene to hide gradient banding and give a printed feel.
 

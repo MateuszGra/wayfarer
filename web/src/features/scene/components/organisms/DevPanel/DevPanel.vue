@@ -7,6 +7,8 @@ import type { Precipitation, Sky, Weather, Wind } from '@shared/weather/weather'
 import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
+export type DevWalkMode = 'steps' | 'fullDay' | 'camp';
+
 export interface Props {
   hour: number;
   playing: boolean;
@@ -27,10 +29,12 @@ export interface Props {
   weather: Weather;
   /** Whether the scene follows the API or a weather set by hand here. */
   weatherFromApi: boolean;
+  /** Which walk the scene shows: today's from the steps, a whole day on the road, or a day at camp. */
+  walkMode?: DevWalkMode;
 }
 
 defineOptions({ name: 'DevPanel' });
-const props = withDefaults(defineProps<Props>(), { behaviours: () => [], apiWeather: null });
+const props = withDefaults(defineProps<Props>(), { behaviours: () => [], apiWeather: null, walkMode: 'steps' });
 const emit = defineEmits<{
   'update:hour': [hour: number];
   'update:collapsed': [collapsed: boolean];
@@ -44,6 +48,7 @@ const emit = defineEmits<{
   trigger: [id: BehaviourId];
   'update:weather': [weather: Weather];
   'follow-api-weather': [];
+  'update:walkMode': [mode: DevWalkMode];
 }>();
 
 const clock = computed(() => {
@@ -66,6 +71,7 @@ const timeOpen = ref(true);
 const beardOpen = ref(true);
 const placeOpen = ref(true);
 const behavioursOpen = ref(false);
+const WALK_MODES: readonly DevWalkMode[] = ['steps', 'fullDay', 'camp'];
 const weatherOpen = ref(false);
 const SKIES: readonly Sky[] = ['clear', 'partly', 'overcast', 'fog'];
 const FALLS: readonly Precipitation[] = ['none', 'drizzle', 'rain', 'heavyRain', 'snow', 'heavySnow'];
@@ -138,6 +144,19 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
         <BaseButton size="sm" data-testid="dev-day-length" @click="emit('cycle-day-length')">
           {{ t('dev.dayLength', { minutes: dayLengthMinutes }) }}
         </BaseButton>
+        <div class="dev-panel__row" role="group" :aria-label="t('dev.walk')">
+          <span class="dev-panel__label">{{ t('dev.walk') }}</span>
+          <BaseButton
+            v-for="mode in WALK_MODES"
+            :key="mode"
+            size="sm"
+            :variant="walkMode === mode ? 'primary' : 'ghost'"
+            :data-testid="`dev-walk-${mode}`"
+            @click="emit('update:walkMode', mode)"
+          >
+            {{ t(`dev.walk.${mode}`) }}
+          </BaseButton>
+        </div>
       </BaseCollapsible>
 
       <BaseCollapsible v-model:open="beardOpen" :title="beardLabel" data-testid="dev-beard-section">

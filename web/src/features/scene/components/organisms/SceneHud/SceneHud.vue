@@ -33,6 +33,8 @@ const progress = computed(() => `${Math.min(100, (props.doneKm / props.totalKm) 
     <div class="scene-hud__bar" aria-hidden="true"><div class="scene-hud__fill" :style="{ width: progress }" /></div>
     <StatLine :text="distance" data-testid="hud-distance" />
     <StatLine :text="details" data-testid="hud-details" />
+    <!-- A passing hint that belongs under the status, such as the suggestion to turn the phone. -->
+    <slot />
   </header>
 </template>
 

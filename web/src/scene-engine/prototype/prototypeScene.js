@@ -243,6 +243,11 @@ export async function startPrototypeScene(host, options = {}) {
   const grainLayer = addOverlay('opacity:0.07;mix-blend-mode:overlay');
 
   let W = 0, H = 0, S = 1, MARGIN = 0, unit = 1;
+  // On a phone held upright the scene is drawn as a landscape stage that fits the screen's width, with
+  // extra sky above it and extra ground below it (see layout()). ABOVE and BELOW are those bands, in px.
+  let ABOVE = 0, BELOW = 0;
+  // The screen size the layout was made for; H is the stage's height, which on an upright phone is less.
+  let laidOutW = 0, laidOutH = 0;
   // Ground scroll speed in screen-heights per second; ~25 km per in-game day of walking.
   const WALK_U_PER_S = 0.045;
   const KM_PER_U = 9;
@@ -367,6 +372,8 @@ export async function startPrototypeScene(host, options = {}) {
   app.stage.addChild(skyGroup, landscape, veilC, actors, front, precipG, flash);
 
   const sky = new Sprite(skyTex); skyGroup.addChild(sky);
+  // The sky above the stage on an upright phone: the zenith colour, continued upwards.
+  const skyAbove = new Sprite(Texture.WHITE); skyGroup.addChild(skyAbove);
   const milky = addSprite(skyGroup, glowTex, { add: true, tint: 0xc4ccff });
   const starsC = new Container(); skyGroup.addChild(starsC);
   const shootG = new Graphics(); skyGroup.addChild(shootG);
@@ -388,7 +395,7 @@ export async function startPrototypeScene(host, options = {}) {
   function buildStars() {
     starsC.removeChildren().forEach(s => s.destroy());
     stars = [];
-    const n = Math.min(420, Math.round(W * H / 3600));
+    const n = Math.min(420, Math.round(W * (H + ABOVE) / 3600));
     for (let i = 0; i < n; i++) {
       const s = addSprite(starsC, dotTex);
       let x, y;
@@ -396,7 +403,7 @@ export async function startPrototypeScene(host, options = {}) {
         // Concentrate some stars along the Milky Way band.
         const t = Math.random();
         x = t * W; y = H * 0.12 + t * H * 0.32 + (Math.random() - 0.5) * H * 0.12;
-      } else { x = Math.random() * W; y = Math.random() * H * 0.62; }
+      } else { x = Math.random() * W; y = Math.random() * (H * 0.62 + ABOVE) - ABOVE; }
       s.position.set(x, y);
       s.width = s.height = Math.pow(Math.random(), 3) * 3.2 + 1.2;
       stars.push({ s, base: 0.35 + Math.random() * 0.65, f: 0.5 + Math.random() * 2.5, ph: Math.random() * 6.28 });
@@ -610,7 +617,7 @@ export async function startPrototypeScene(host, options = {}) {
     const valleys = [argmax(0, peaks[0])];
     for (let k = 0; k < peaks.length - 1; k++) valleys.push(argmax(peaks[k], peaks[k + 1]));
     valleys.push(argmax(peaks[peaks.length - 1], xs.length - 1));
-    const bottom = H + 20, baseY = L.base * H;
+    const bottom = H + BELOW + 20, baseY = L.base * H;
     for (let k = 0; k < peaks.length; k++) {
       const p = peaks[k], vl = valleys[k], vr = valleys[k + 1];
       const px = xs[p], py = ys[p];
@@ -731,7 +738,7 @@ export async function startPrototypeScene(host, options = {}) {
         const wave = (noise1((xs[i] / S + uOff) * 2.2 + b * 7, L.seed + 25) - 0.5) * thick * 0.5;
         pts.push(xs[i], ys[i] + top + (b === 0 ? 0.5 : wave));
       }
-      const bottom = b === bands - 1 ? H + 20 : null;
+      const bottom = b === bands - 1 ? H + BELOW + 20 : null;
       for (let i = xs.length - 1; i >= 0; i--) {
         const wave = (noise1((xs[i] / S + uOff) * 2.2 + (b + 1) * 7, L.seed + 25) - 0.5) * thick * 0.5;
         pts.push(xs[i], bottom ?? ys[i] + top + thick + wave);
@@ -957,9 +964,9 @@ export async function startPrototypeScene(host, options = {}) {
     const xs = [], ys = [];
     for (let x = -step * 2; x <= x1; x += step) { xs.push(x); ys.push(yAt(L, x, uOff)); }
     for (const g of L.graphics) g.clear();
-    const pts = [xs[0], H + 20];
+    const pts = [xs[0], H + BELOW + 20];
     for (let i = 0; i < xs.length; i++) pts.push(xs[i], ys[i]);
-    pts.push(xs[xs.length - 1], H + 20);
+    pts.push(xs[xs.length - 1], H + BELOW + 20);
     L.g.poly(pts).fill(0xffffff);
     const side = L.faces ? drawFaces(L, xs, ys) : null;
     if (L.snow) drawSnow(L, xs, ys, uOff, side);
@@ -1104,7 +1111,7 @@ export async function startPrototypeScene(host, options = {}) {
   const OVERLAY_TRACE = 0.18;
   function drawOverlayWindow() {
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(W)); c.height = Math.max(1, Math.round(H));
+    c.width = Math.max(1, Math.round(W)); c.height = Math.max(1, Math.round(H + BELOW));
     const x = c.getContext('2d');
     x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
     const tx = W * (W > H ? 0.44 : 0.6);
@@ -1121,7 +1128,7 @@ export async function startPrototypeScene(host, options = {}) {
     const old = env.overlayWindow.texture;
     env.overlayWindow.texture = Texture.from(c);
     if (old !== Texture.WHITE) old.destroy(true);
-    env.overlayWindow.width = W; env.overlayWindow.height = H;
+    env.overlayWindow.width = W; env.overlayWindow.height = H + BELOW;
   }
 
   function layoutEnvironment() {
@@ -2020,10 +2027,21 @@ export async function startPrototypeScene(host, options = {}) {
   }
 
   // ---------- layout ----------
+  // An upright phone shows the stage in this proportion (850 by 520 units): wide enough for the wanderer,
+  // the cat, the camp and the path ahead where pebbles lie, which a full-height stage cut down to the
+  // phone's narrow width left out. Most of the spare height becomes sky, the rest ground below him.
+  const UPRIGHT_STAGE = 850 / 520;
+  const UPRIGHT_SKY_SHARE = 0.6;
   function layout() {
-    W = app.screen.width; H = app.screen.height; S = H; MARGIN = W * 0.6;
+    const screenW = app.screen.width, screenH = app.screen.height;
+    laidOutW = screenW; laidOutH = screenH;
+    W = screenW; H = screenH > screenW ? Math.min(screenH, Math.round(screenW * UPRIGHT_STAGE)) : screenH;
+    ABOVE = Math.round((screenH - H) * UPRIGHT_SKY_SHARE); BELOW = screenH - H - ABOVE;
+    app.stage.y = ABOVE;
+    S = H; MARGIN = W * 0.6;
     unit = H / 850;
     sky.width = W; sky.height = H;
+    skyAbove.visible = ABOVE > 0; skyAbove.position.set(0, -ABOVE - 1); skyAbove.width = W; skyAbove.height = ABOVE + 2;
     milky.position.set(W * 0.5, H * 0.3); milky.width = Math.hypot(W, H) * 1.1; milky.height = H * 0.22; milky.rotation = Math.atan2(H * 0.32, W);
     buildStars();
     for (const c of [trav, fireC, campC]) c.scale.set(unit);
@@ -2066,7 +2084,8 @@ export async function startPrototypeScene(host, options = {}) {
     const slant = (snow ? 0.15 : 0.12) * windK;
     for (let i = 0; i < count; i++) {
       const speed = H * (snow ? 0.06 + hash(i, 902) * 0.06 : 0.9 + hash(i, 902) * 0.5);
-      const y = mod(hash(i, 901) * (H + 60) + t * speed, H + 60) - 30;
+      const span = ABOVE + H + BELOW + 60;
+      const y = mod(hash(i, 901) * span + t * speed, span) - 30 - ABOVE;
       const x = mod(hash(i, 900) * W + y * slant + (snow ? Math.sin(t * 0.8 + i) * H * 0.01 : 0), W);
       if (snow) {
         precipG.circle(x, y, (1 + hash(i, 903) * 1.6) * (H / 850)).fill({ color: light, alpha: 0.85 });
@@ -2154,7 +2173,7 @@ export async function startPrototypeScene(host, options = {}) {
   let stretchStartT = null;
 
   function frame(tk) {
-    if (app.screen.width !== W || app.screen.height !== H) layout();
+    if (app.screen.width !== laidOutW || app.screen.height !== laidOutH) layout();
     const dt = Math.min(0.05, tk.deltaMS / 1000);
     state.t += dt;
     const t = state.t;
@@ -2209,6 +2228,7 @@ export async function startPrototypeScene(host, options = {}) {
     const P = weatherPalette(paletteAt(h));
     const def = env.def;
     if (Math.abs(h - lastSkyHour) > 0.004) { paintSky(P); lastSkyHour = h; }
+    skyAbove.tint = P.top;
 
     // Sky.
     starsC.visible = P.stars > 0.01;
@@ -2742,7 +2762,7 @@ export async function startPrototypeScene(host, options = {}) {
     drawPrecipitation(t, P, windK);
     const bolt = lightning(t);
     flash.visible = bolt > 0.01;
-    if (flash.visible) { flash.width = W; flash.height = H; flash.tint = 0xdfe6ff; flash.alpha = bolt * 0.32; }
+    if (flash.visible) { flash.position.set(0, -ABOVE); flash.width = W; flash.height = ABOVE + H + BELOW; flash.tint = 0xdfe6ff; flash.alpha = bolt * 0.32; }
     flowerG.tint = charTint;
 
     if (state.hideWanderer) {

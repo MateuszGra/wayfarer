@@ -12,8 +12,6 @@ declare module 'vue-router' {
     requiresJourney?: boolean;
     /** The journey planner: once a journey is planned, only reachable to change it (`?change`). */
     planner?: boolean;
-    /** Meant to be seen in landscape: on a phone held upright it asks to be turned first. */
-    landscape?: boolean;
   }
 }
 
@@ -43,7 +41,7 @@ export function createAppRouter(history = createWebHistory()): Router {
       {
         path: '/scene',
         name: 'scene',
-        meta: { requiresAuth: true, requiresJourney: true, landscape: true },
+        meta: { requiresAuth: true, requiresJourney: true },
         component: () => import('@/features/scene/views/SceneView.vue'),
       },
       { path: '/:pathMatch(.*)*', redirect: '/login' },

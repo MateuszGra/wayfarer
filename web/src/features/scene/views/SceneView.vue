@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { DEFAULT_DAYLIGHT } from '@shared/steps/dailyWalk';
+import { DEFAULT_DAYLIGHT, FULL_DAY_STEPS, walkingWindow } from '@shared/steps/dailyWalk';
 import type { Weather } from '@shared/weather/weather';
 import type { SceneSnapshot, SceneWalk } from '@/scene-engine';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
@@ -14,12 +14,12 @@ import { useWeather } from '@/shared/composables/useWeather';
 import { useStoredFlag } from '@/shared/composables/useStoredFlag';
 import { beardLength } from '@shared/wanderer/beard';
 import { t } from '@/shared/i18n';
-import DevPanel from '../components/organisms/DevPanel/DevPanel.vue';
+import DevPanel, { type DevWalkMode } from '../components/organisms/DevPanel/DevPanel.vue';
 import AchievementsDialog from '../components/organisms/AchievementsDialog/AchievementsDialog.vue';
 import MapDialog from '../components/organisms/MapDialog/MapDialog.vue';
-import RotateHint from '../components/organisms/RotateHint/RotateHint.vue';
 import SceneHud from '../components/organisms/SceneHud/SceneHud.vue';
 import SettingsDialog from '../components/organisms/SettingsDialog/SettingsDialog.vue';
+import RotateTip from '../components/organisms/RotateTip/RotateTip.vue';
 import YesterdayStepsDialog from '../components/organisms/YesterdayStepsDialog/YesterdayStepsDialog.vue';
 import { sceneHour } from '../composables/sceneClock';
 import { useClockHour } from '../composables/useClockHour';
@@ -83,8 +83,15 @@ const PACK_UP_HOURS = 12 / 3600;
 const daylight = computed(() => today.value?.daylight ?? DEFAULT_DAYLIGHT);
 const toScene = (hour: number): number => sceneHour(hour, daylight.value);
 const sceneNow = computed(() => toScene(clockHour.value));
+// In the developer panel the walk can be swapped for a whole day on the road or a day at camp, to see
+// any hour of either; it changes only what the scene shows, never the journey.
+const devWalkMode = ref<DevWalkMode>('steps');
 const sceneWalk = computed<SceneWalk | null>(() => {
-  const walk = today.value?.walk;
+  if (devWalkMode.value === 'camp') return null;
+  const walk =
+    devWalkMode.value === 'fullDay'
+      ? walkingWindow(FULL_DAY_STEPS, FULL_DAY_STEPS, 0, daylight.value)
+      : today.value?.walk;
   if (!walk) return null;
   return walk.startHour > daylight.value.sunriseHour
     ? {
@@ -156,7 +163,6 @@ const cycleDayLength = (): void => {
 <template>
   <main class="scene-view">
     <div ref="host" class="scene-view__canvas" role="img" :aria-label="t('scene.canvasLabel')" />
-    <RotateHint />
     <SceneHud
       v-if="snapshot && today"
       route-id="baltic-santiago"
@@ -165,7 +171,9 @@ const cycleDayLength = (): void => {
       :total-km="routeLengthKm"
       :day="today.day"
       :status="snapshot.status"
-    />
+    >
+      <RotateTip />
+    </SceneHud>
     <GameMenu
       :open="menu.overlay.value === 'menu'"
       :entries="menu.entries"
@@ -213,6 +221,8 @@ const cycleDayLength = (): void => {
       :api-weather="apiWeather"
       :weather="sceneWeather"
       :weather-from-api="handWeather === null"
+      :walk-mode="devWalkMode"
+      @update:walk-mode="(mode) => (devWalkMode = mode)"
       @update:weather="(next) => (handWeather = next)"
       @follow-api-weather="handWeather = null"
       @select-level="(level) => scene?.setLevel(level)"
