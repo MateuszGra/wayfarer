@@ -70,7 +70,7 @@ Rules:
 - Mountains have two faces per peak, split by a crease running from the summit. Each tree, cabin and roof is split into a left and a right half.
 - The side facing the sun or moon is lifted toward the light colour; the far side is darkened **multiplicatively** with a cool tone (`mix(0x6670a8, haze, 0.3)`). Never mix toward a fixed colour; that turns dark near trees grey.
 - Contrast is strongest at low sun and minimal at night.
-- Rock gullies are thin strokes inside the mountain faces. Snow follows the same faces and is bluish on the shaded side and pink-orange at sunset.
+- Rock faces split along spurs that bend away from each summit, and two mountains meet along a winding valley seam; no face edge ever drops plumb. Couloirs are half see-through tapered wedges, pointed at both ends, cut down from notches under the ridge and drifting downhill, never thin strokes. Snow follows the same faces and is bluish on the shaded side and pink-orange at sunset.
 
 ### Lake
 
@@ -214,6 +214,7 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 
 ## 9. Ambient life
 
+- On a mountain lake an angler sometimes fishes from a rowing boat at anchor, by day only. He stays ashore in snow or a storm; rain, drizzle, wind and fog don't put him off.
 - Grass tufts sway with a slowly changing wind. They are drawn **behind** the wanderer, never over him.
 - Flowers in the grass depend on the biome.
 - Morning mist bands drift through the valleys.

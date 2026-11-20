@@ -618,44 +618,72 @@ export async function startPrototypeScene(host, options = {}) {
     for (let k = 0; k < peaks.length - 1; k++) valleys.push(argmax(peaks[k], peaks[k + 1]));
     valleys.push(argmax(peaks[peaks.length - 1], xs.length - 1));
     const bottom = H + BELOW + 20, baseY = L.base * H;
+    // Where two mountains meet, the seam runs down the valley floor as a winding line, shared by the face
+    // on either side, instead of dropping plumb from the col.
+    const seams = valleys.map((v) => {
+      const pts = [], top = ys[v], drift = leaning(hash(v + Math.round(xs[v]), L.seed + 94), 0.12, 0.3);
+      for (let j = 1; j <= 12; j++) {
+        const t = j / 12, y = top + (bottom - top) * t;
+        const wobble = (noise1(j * 0.8 + xs[v] * 0.013, L.seed + 96) - 0.5) * H * 0.025 * Math.min(1, t * 3);
+        pts.push(xs[v] + drift * (y - top) + wobble, y);
+      }
+      return pts;
+    });
+    // A slope from a hash, never near zero, so no line ever drops straight down: magnitude min..max, either way.
+    function leaning(h, min, max) { return (h < 0.5 ? -1 : 1) * (min + (max - min) * Math.abs(h - 0.5) * 2); }
+    const reversed = (pts) => { const out = []; for (let j = pts.length - 2; j >= 0; j -= 2) out.push(pts[j], pts[j + 1]); return out; };
     for (let k = 0; k < peaks.length; k++) {
       const p = peaks[k], vl = valleys[k], vr = valleys[k + 1];
       const px = xs[p], py = ys[p];
-      const lean = (hash(Math.round(px * 7), L.seed + 91) - 0.5) * 1.4;
+      // The crease between the lit and the shaded face runs down a spur from the summit: steep at first,
+      // then bending away as the spur flattens towards the foot, so a face never reads as a flat panel
+      // cut by a plumb line.
+      const lean = leaning(hash(Math.round(px * 7), L.seed + 91), 0.2, 0.6);
+      const bend = leaning(hash(Math.round(px * 7), L.seed + 92), 0.3, 0.8);
+      const foot = Math.max(1, baseY - py);
       const crease = [];
-      const m = 12;
+      const m = 16;
       for (let j = 1; j <= m; j++) {
-        const t = j / m, y = py + (bottom - py) * t;
-        crease.push(px + lean * (y - py) * 0.5 + (noise1(j * 0.9 + px * 0.01, L.seed + 93) - 0.5) * H * 0.014 * Math.min(1, t * 4), y);
+        const t = j / m, y = py + (bottom - py) * t, down = Math.min(1, (y - py) / foot);
+        const wobble = (noise1(j * 0.9 + px * 0.01, L.seed + 93) - 0.5) * H * 0.02 * Math.min(1, t * 4);
+        crease.push(px + lean * (y - py) * 0.45 + bend * down * down * foot * 0.5 + wobble, y);
       }
       const left = [];
       for (let i = vl; i <= p; i++) left.push(xs[i], ys[i]);
-      left.push(...crease, xs[vl], bottom);
+      left.push(...crease, ...reversed(seams[k]));
       L.shL.poly(left).fill(0xffffff);
       const right = [px, py];
       for (let i = p + 1; i <= vr; i++) right.push(xs[i], ys[i]);
-      right.push(xs[vr], bottom);
-      for (let j = crease.length - 2; j >= 0; j -= 2) right.push(crease[j], crease[j + 1]);
+      right.push(...seams[k + 1]);
+      right.push(...reversed(crease));
       L.shR.poly(right).fill(0xffffff);
       for (let i = p + 1; i <= vr; i++) side[i] = 1;
 
+      // Couloirs: one to three shaded chutes per face, cut down from notches in the ridge. Each is a filled
+      // sliver that drifts downhill away from the summit and meanders a little, so it reads as a groove in
+      // the rock rather than a crack drawn on it.
       for (const [a, b, sd] of [[vl, p, -1], [p, vr, 1]]) {
-        const count = 2 + Math.floor(hash(p * 3 + sd, L.seed + 95) * 3);
+        const count = 1 + Math.floor(hash(p * 3 + sd, L.seed + 95) * 2.6);
         for (let g = 0; g < count; g++) {
-          const i = Math.round(lerp(a, b, 0.2 + 0.6 * hash(p * 11 + g * 5 + sd, L.seed + 97)));
-          let x = xs[i], y = ys[i] + 1;
-          const len = (baseY - y) * (0.25 + 0.4 * hash(i, L.seed + 99));
-          if (len < 4) continue;
-          L.gully.moveTo(x, y);
-          for (let s = 1; s <= 5; s++) {
-            y += len / 5;
-            x += sd * len * 0.05 + (hash(i * 7 + s, L.seed + 101) - 0.5) * len * 0.12;
-            L.gully.lineTo(x, y);
+          const i = Math.round(lerp(a, b, sd < 0 ? 0.25 + 0.55 * hash(p * 11 + g * 5 + sd, L.seed + 97) : 0.2 + 0.55 * hash(p * 11 + g * 5 + sd, L.seed + 97)));
+          const x0 = xs[i], y0 = ys[i] + H * 0.006;
+          const len = (baseY - y0) * (0.35 + 0.45 * hash(i, L.seed + 99));
+          if (len < 6) continue;
+          const w0 = Math.max(1.5, len * (0.045 + 0.035 * hash(i, L.seed + 103)));
+          const near = [], far = [];
+          const n = 10;
+          for (let s = 0; s <= n; s++) {
+            const q = s / n, y = y0 + len * q;
+            const x = x0 + sd * len * 0.14 * q * q + (noise1(q * 2.5 + i * 0.37, L.seed + 101) - 0.5) * len * 0.1 * q;
+            // Pointed at both ends: it opens just under the ridge, is widest in its upper third and runs out.
+            const half = w0 * Math.min(1, q * 4) * Math.pow(1 - q, 1.3) * (0.85 + 0.3 * noise1(q * 4 + i, L.seed + 105));
+            near.push([x - half, y]); far.push([x + half, y]);
           }
+          // Half see-through, so a couloir darkens the lit face and the shaded one alike.
+          L.gully.poly([...near.flat(), ...far.reverse().flat()]).fill({ color: 0xffffff, alpha: 0.24 });
         }
       }
     }
-    L.gully.stroke({ width: Math.max(1, H * 0.0014), color: 0xffffff, cap: 'round', join: 'round' });
     return side;
   }
   function drawSnow(L, xs, ys, uOff, side) {
@@ -1161,12 +1189,15 @@ export async function startPrototypeScene(host, options = {}) {
   // seconds a crossing takes, so the pace is the same on every screen width. The animation clock restarts
   // with every page load, so the first slot always brings a vessel, `start` seconds in: otherwise a
   // player could open the game several times and never see the sea in use.
+  // How far the weather lets fair-weather boats out, eased so a change of weather fades them in or out.
+  let fairK = 1;
   const SHIPS = {
     cargo: { id: 'ship', slot: 150, cross: 110, chance: 0.7, start: 40, y: 0.005, len: 0.17, depth: 0.92, seed: 611 },
     // A rowing boat at anchor while its angler fishes: it fades in at a spot on the lake and stays there for
     // the visit (`cross` seconds), so as the wanderer walks on it slides past with the lake like the rest
     // of the landscape and leaves the screen. Only out in daylight.
-    angler: { id: 'angler', slot: 130, cross: 120, chance: 0.6, start: 20, y: 0.032, len: 0.05, depth: 0.55, seed: 614, daytime: true, anchored: true },
+    // He stays ashore in snow or a storm; rain and wind don't put him off.
+    angler: { id: 'angler', slot: 130, cross: 120, chance: 0.6, start: 20, y: 0.032, len: 0.05, depth: 0.55, seed: 614, daytime: true, anchored: true, fairWeather: true },
     cutter: { id: 'fishingBoat', slot: 70, cross: 45, chance: 0.65, start: 4, y: 0.045, len: 0.1, depth: 0.72, seed: 612 },
   };
   // How fast the lake surface moves past as the wanderer walks: between the far shore (0.07) and the near
@@ -2306,7 +2337,7 @@ export async function startPrototypeScene(host, options = {}) {
       const col = colorAt(L.color, L.depth);
       L.g.tint = col;
       if (L.shL) { L.shL.tint = sideTint(col, -sk); L.shR.tint = sideTint(col, sk); }
-      if (L.faces) L.gully.tint = mix(col, shadowCol, 0.2 + shadeAmt * 0.35);
+      if (L.faces) L.gully.tint = mix(col, shadowCol, 0.75);
       if (L.sgL) {
         const sc = mix(mul(0xf4f8ff, P.light, Math.max(P.bright, 0.45) * 1.05), P.haze, clamp(L.depth * 0.3));
         L.sgL.tint = sideTint(sc, -sk * 1.3); L.sgR.tint = sideTint(sc, sk * 1.3);
@@ -2389,13 +2420,15 @@ export async function startPrototypeScene(host, options = {}) {
     }
 
     if (env.ships) {
+      const foul = state.weather.storm || state.weather.precipitation === 'snow' || state.weather.precipitation === 'heavySnow';
+      fairK += ((foul ? 0 : 1) - fairK) * Math.min(1, dt * 0.8);
       for (const kind of Object.keys(env.ships)) {
         const sh = SHIPS[kind], g = env.ships[kind];
         const pass = shipPass(kind, t, forcedAge(sh.id));
         // Daylight-only vessels slip away as the light goes rather than vanishing.
-        g.alpha = sh.daytime ? 1 - smooth(0.3, 0.45, dark) : 1;
+        g.alpha = (sh.daytime ? 1 - smooth(0.3, 0.45, dark) : 1) * (sh.fairWeather ? fairK : 1);
         g.visible = !!pass && g.alpha > 0.01;
-        if (!g.visible) { if (!sh.daytime || dark < 0.3) available.add(sh.id); continue; }
+        if (!g.visible) { if ((!sh.daytime || dark < 0.3) && (!sh.fairWeather || fairK > 0.5)) available.add(sh.id); continue; }
         const len = sh.len * H, sc = len / 100;
         let x = lerp(-len, W + len, pass.dir > 0 ? pass.k : 1 - pass.k);
         if (sh.anchored) {
