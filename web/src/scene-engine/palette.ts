@@ -1,4 +1,4 @@
-// Time-of-day palette ported from prototypes/scene-demo; see docs/style-guide.md, "Time of day".
+// Time-of-day palette ported from the scene prototype; see docs/style-guide.md, "Time of day".
 export interface Palette {
   readonly top: number;
   readonly horizon: number;

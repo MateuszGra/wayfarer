@@ -11,7 +11,7 @@ Wayfarer is a slow, cozy walking game: a wanderer crosses real regions at the pa
 | --- | ------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ | ----------------- |
 | 1   | Polish coast              | **Baltic coast** (done)                                | open sea, beach, coastal pines, lighthouse                   | water             |
 | 2   | Pomerania, Kashubia       | Lake district                                          | lakes in forests, hills, wooden cabins                       | water + forest    |
-| 3   | Kuyavia, Greater Poland   | Polish fields                                          | plains, rapeseed and grain, tree-lined roads, brick churches | fields            |
+| 3   | Kuyavia, Greater Poland   | **Polish fields** (done)                               | plains, rapeseed and grain, tree-lined roads, brick churches | fields            |
 | 4   | Lower Silesia             | Sudetes foothills                                      | soft hills, castles on rocks                                 | hills             |
 | 5   | Saxony, Thuringia         | German forests and villages                            | broadleaf forests, half-timbered houses                      | forest            |
 | 6   | Franconia, Hesse          | River valleys                                          | river, stone bridges, vineyards on slopes                    | water + vineyards |
@@ -27,7 +27,7 @@ Wayfarer is a slow, cozy walking game: a wanderer crosses real regions at the pa
 | 16  | Galicia                   | Green Galicia                                          | mist, moss, eucalyptus, stone granaries, rain                | forest            |
 | ★   | Santiago                  | Special scene                                          | the cathedral at the end of the road                         | special           |
 
-Already built in the demo: Baltic coast, Mountains and lake, Beech forest, Meseta.
+Already built in the demo: Baltic coast, Polish fields, Mountains and lake, Beech forest, Meseta.
 
 Suggested build order: the Polish stretch first (Baltic, lake district, fields), because every player spends their first weeks there. Then transitions between biomes. Then the later biomes, in route order, ahead of the players.
 
@@ -62,6 +62,16 @@ Before showing a biome, check it against the real place.
 - **Order of planes:** what is farther is higher and hazier. Water sits behind the shore. Nothing in front may hide the wanderer.
 - **Light only from visible sources.** A sun or moon hidden by terrain lights nothing (no reflection, rim light or rays).
 - **Check every time of day** (midday, sunset, night) and portrait as well as landscape before calling a biome done.
+
+## Elevation levels
+
+Mountain biomes (Mountains and lake, Beech forest, and later the Pyrenees, Montes de León and the volcanic uplands) come in three heights: low, mid and high. A level reshapes the same biome instead of copying it:
+
+- **Low (foothills):** gentler relief, no snow, denser forest, more cabins.
+- **Mid:** the biome as defined.
+- **High:** steeper relief and more snow. Towards the tree line the forest thins out, the trees get shorter and conifers take over, and there are fewer cabins.
+
+Coast and plains biomes have a single level. A route segment says the biome and its level for each stretch, taken from the real elevation.
 
 ## Transitions
 

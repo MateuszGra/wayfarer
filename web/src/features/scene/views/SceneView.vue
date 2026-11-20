@@ -29,9 +29,7 @@ const menu = useGameMenu(startOverlay);
 const host = ref<HTMLElement | null>(null);
 const clockHour = useClockHour();
 const snapshot = ref<SceneSnapshot | null>(null);
-// `?hour=13.5` in dev mode starts at that hour instead of following the clock.
-const startHour = devMode && query.has('hour') ? Number(query.get('hour')) : null;
-const followClock = ref(startHour === null);
+const followClock = ref(true);
 const dayLengthIndex = ref(0);
 const devPanelCollapsed = useStoredFlag('wayfarer.devPanelCollapsed');
 // The beard follows the days on the road; the developer slider picks another day until the page reloads.
@@ -40,7 +38,7 @@ const beardDay = computed(() => beardDayOverride.value ?? snapshot.value?.day ??
 const beard = computed(() => beardLength(beardDay.value));
 
 const scene = useSceneHost(host, () => ({
-  hour: startHour ?? clockHour.value,
+  hour: clockHour.value,
   biome: 'baltic',
   auto: false,
   dayLengthSeconds: DAY_LENGTHS_MINUTES[0] * 60,
@@ -49,6 +47,8 @@ const scene = useSceneHost(host, () => ({
   onSnapshot: (next) => (snapshot.value = next),
 }));
 const biomeIds = computed(() => scene.value?.biomeIds ?? []);
+const levels = computed(() => (scene.value && snapshot.value ? scene.value.levelsOf(snapshot.value.biome) : []));
+const behaviours = computed(() => snapshot.value?.behaviours ?? []);
 watch([scene, beard], ([created, length]) => created?.setBeard(length));
 watch(clockHour, (hour) => {
   if (followClock.value) scene.value?.setHour(hour);
@@ -106,8 +106,12 @@ const cycleDayLength = (): void => {
       :day-length-minutes="DAY_LENGTHS_MINUTES[dayLengthIndex] ?? 2"
       :biome="snapshot.biome"
       :biome-ids="biomeIds"
+      :level="snapshot.level"
+      :levels="levels"
       :beard-day="beardDay"
       :collapsed="devPanelCollapsed"
+      :behaviours="behaviours"
+      @select-level="(level) => scene?.setLevel(level)"
       @update:collapsed="devPanelCollapsed = $event"
       @update:beard-day="beardDayOverride = $event"
       @update:hour="setHour"
@@ -116,6 +120,7 @@ const cycleDayLength = (): void => {
       @cycle-day-length="cycleDayLength"
       @select-biome="(id) => scene?.setBiome(id)"
       @reseed="scene?.reseed()"
+      @trigger="(id) => scene?.trigger(id)"
     />
   </main>
 </template>

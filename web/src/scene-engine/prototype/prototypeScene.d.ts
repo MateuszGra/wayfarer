@@ -1,4 +1,34 @@
+/** Height band of a mountain biome; biomes without levels always report `mid`. */
+export type ElevationLevel = 'low' | 'mid' | 'high';
+
 export type WandererStatus = 'walking' | 'pitchingCamp' | 'sleeping' | 'packingUp' | 'resting';
+
+export type BehaviourId =
+  | 'pipe'
+  | 'grass'
+  | 'view'
+  | 'drink'
+  | 'strap'
+  | 'hat'
+  | 'pebble'
+  | 'catRide'
+  | 'catDown'
+  | 'catWash'
+  | 'birdStarling'
+  | 'birdRobin'
+  | 'birdTit'
+  | 'birdChaffinch'
+  | 'birdSparrow'
+  | 'shootingStar'
+  | 'ship'
+  | 'fishingBoat';
+
+export type BehaviourGroup = 'wanderer' | 'cat' | 'bird' | 'world';
+
+export interface SceneBehaviour {
+  readonly id: BehaviourId;
+  readonly group: BehaviourGroup;
+}
 
 export interface SceneSnapshot {
   readonly hour: number;
@@ -6,12 +36,16 @@ export interface SceneSnapshot {
   readonly km: number;
   readonly status: WandererStatus;
   readonly biome: string;
+  readonly level: ElevationLevel;
   readonly auto: boolean;
+  /** Behaviours that can be started at this moment, given the biome, the hour and what is happening. */
+  readonly behaviours: readonly SceneBehaviour[];
 }
 
 export interface SceneOptions {
   readonly hour?: number;
   readonly biome?: string;
+  readonly level?: ElevationLevel;
   readonly seed?: number;
   /** When true the scene's own clock runs; one in-game day lasts `dayLengthSeconds`. */
   readonly auto?: boolean;
@@ -35,7 +69,12 @@ export interface Scene {
   setBeard(length: number): void;
   setDayLength(seconds: number): void;
   setBiome(id: string): void;
+  /** The levels a biome offers: low, mid and high for mountain biomes, only mid for the rest. */
+  levelsOf(id: string): readonly ElevationLevel[];
+  setLevel(level: ElevationLevel): void;
   reseed(): void;
+  /** Starts a behaviour now instead of waiting for its loop. */
+  trigger(id: BehaviourId): void;
   destroy(): void;
 }
 

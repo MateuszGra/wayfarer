@@ -116,4 +116,4 @@ We use our own small **Wayfarer design system**, built on **Reka UI**: unstyled,
 ## Refactoring
 
 - **No behaviour change unless asked:** extract first, then simplify. Keep public props, emits and the engine API stable, and adjust tests right after each step.
-- **The prototype:** `prototypes/scene-demo/index.html` is the visual reference. It gets ported into `scene-engine/` module by module, not rewritten in one go.
+- **The prototype bridge:** `scene-engine/prototype/prototypeScene.js` holds the whole scene in one file. It gets split into typed `scene-engine/` modules one at a time, not rewritten in one go.

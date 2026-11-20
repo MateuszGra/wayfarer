@@ -11,6 +11,8 @@ const panel = (props: Partial<InstanceType<typeof DevPanel>['$props']> = {}) =>
       biome: 'baltic',
       biomeIds: ['baltic', 'meseta'],
       beardDay: 12,
+      level: 'mid',
+      levels: ['low', 'mid', 'high'],
       collapsed: false,
       ...props,
     },
@@ -57,6 +59,23 @@ describe('DevPanel', () => {
     expect(wrapper.emitted('update:collapsed')).toEqual([[true]]);
   });
 
+  it('offers the height levels of a mountain biome and emits the chosen one', async () => {
+    const wrapper = panel();
+
+    await wrapper.get('[data-testid="dev-level-high"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="dev-level-low"]').text()).toBe('Niska');
+    expect(wrapper.emitted('select-level')).toEqual([['high']]);
+  });
+
+  it('hides the height switch for a biome with a single level', () => {
+    expect(
+      panel({ levels: ['mid'] })
+        .find('[data-testid="dev-level-mid"]')
+        .exists(),
+    ).toBe(false);
+  });
+
   it('offers to stop time while it is running', () => {
     expect(panel({ playing: true }).get('[data-testid="dev-play"]').text()).toBe('Zatrzymaj czas');
   });
@@ -68,5 +87,40 @@ describe('DevPanel', () => {
 
     expect(wrapper.get('[data-testid="dev-biome-baltic"]').text()).toBe('Bałtyk');
     expect(wrapper.emitted('select-biome')).toEqual([['meseta']]);
+  });
+
+  it('lists the biome behaviours by group once the behaviours section is opened', async () => {
+    const wrapper = panel({
+      behaviours: [
+        { id: 'drink', group: 'wanderer' },
+        { id: 'catWash', group: 'cat' },
+        { id: 'birdRobin', group: 'bird' },
+      ],
+    });
+
+    await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
+
+    expect(wrapper.text()).toContain('Wędrowiec');
+    expect(wrapper.text()).toContain('Pije z bukłaka');
+    expect(wrapper.text()).toContain('Myje łapkę');
+    expect(wrapper.text()).toContain('Ptak przylatuje');
+    expect(wrapper.text()).toContain('Rudzik');
+  });
+
+  it('emits the behaviour to start when its button is pressed', async () => {
+    const wrapper = panel({ behaviours: [{ id: 'catRide', group: 'cat' }] });
+    await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
+
+    await wrapper.get('[data-testid="dev-behaviour-catRide"]').trigger('click');
+
+    expect(wrapper.emitted('trigger')).toEqual([['catRide']]);
+  });
+
+  it('says nothing can be started when no behaviour is available at the moment', async () => {
+    const wrapper = panel({ behaviours: [] });
+
+    await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
+
+    expect(wrapper.get('[data-testid="dev-behaviours-none"]').text()).toBe('W tej chwili nic nie da się wywołać.');
   });
 });

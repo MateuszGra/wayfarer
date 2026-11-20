@@ -2,7 +2,7 @@
 
 The single source of truth for how the game looks and moves. Every new scene, biome, character variant or prop must follow it, so the game always looks like one world.
 
-Reference implementation: `prototypes/scene-demo/index.html` (PixiJS, everything drawn from code, no bitmap art).
+Reference implementation: the game's scene engine, `web/src/scene-engine/` (PixiJS, everything drawn from code, no bitmap art). Review it at `/scene` with the developer panel.
 
 ## 1. Principles
 
@@ -82,12 +82,15 @@ Flat-bottomed cumulus built from overlapping circles in three tones: shaded unde
 
 A biome is data: a list of layers with `base`, `amp`, `wave`, `oct`, `speed` (parallax factor), `color`, plus optional `snow`, `faces`, `trees`, `cabins`, `village`, `rows`, `path`, `grass`, `flowers`, a lake level and mist positions.
 
-| Biome                      | Far                                                        | Middle                                                                                                                                   | Near and ground                                | Accents                                                    |
-| -------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| Baltic coast (route start) | Open sea to a clean flat horizon. No islands, no headlands | Wide pale beach with wet sand, surf foam, wooden groynes and fishing boats; behind it a green coastal belt with pines and one lighthouse | Big coastal pines on grassy ground, sandy path | White gulls; the lighthouse beam at night                  |
-| Mountains and lake         | Sharp snowy ridges with faces and gullies                  | Lake, pine hills, wooden cabins                                                                                                          | Tall pines, rocky angular path                 | Alpine flowers (white, yellow, violet)                     |
-| Beech forest               | Soft blue ridge                                            | Layered round-crowned forests, cabins                                                                                                    | Big beeches, forest floor                      | White and yellow flowers, strong morning mist and sun rays |
-| Meseta                     | Low flat ridge                                             | Stone village with church tower, fields with furrows in patches                                                                          | Golden grass, dusty path                       | Red poppies                                                |
+| Biome                      | Far                                                                          | Middle                                                                                                                                                                                                                    | Near and ground                                                                   | Accents                                                                                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baltic coast (route start) | Open sea to a clean flat horizon. No islands, no headlands                   | Wide pale beach with wet sand, surf foam, wooden groynes and fishing boats; behind it a green coastal belt with pines and one lighthouse                                                                                  | Big coastal pines on grassy ground, sandy path                                    | White gulls; the lighthouse beam at night; now and then a container ship on the horizon or a fishing cutter nearer in, with navigation lights after dark |
+| Mountains and lake         | Sharp snowy ridges with faces and gullies                                    | Lake, pine hills, wooden cabins                                                                                                                                                                                           | Tall pines, rocky angular path                                                    | Alpine flowers (white, yellow, violet)                                                                                                                   |
+| Beech forest               | Soft blue ridge                                                              | Layered round-crowned forests, cabins                                                                                                                                                                                     | Big beeches, forest floor                                                         | White and yellow flowers, strong morning mist and sun rays                                                                                               |
+| Polish fields              | Uneven band of forest with gaps; far villages with church towers in the haze | Soft bands of rapeseed, grain, stubble and meadow following the land; white villages with red roofs around a brick church, farmsteads with a brick barn, hay bales, a tractor now and then, a small hunting stand far off | Occasional short rows of poplars, storks feeding in the meadow, a roadside shrine | Cornflowers, poppies, chamomile                                                                                                                          |
+| Meseta                     | Low flat ridge                                                               | Stone village with church tower, fields with furrows in patches                                                                                                                                                           | Golden grass, dusty path                                                          | Red poppies                                                                                                                                              |
+
+Mountain biomes come in three elevation levels. **Low** is foothills: gentle relief, no snow, dense forest (in the beech forest it is the mid level without the grey mountains on the horizon). **Mid** is the biome as defined. **High** has steeper relief, and the forest thins out towards the tree line, with shorter trees and more conifers. Coast and plains biomes have one level. Snow lies only above a fixed snow line per biome, so it caps only the highest peaks and lower ridges stay bare.
 
 Buildings:
 
@@ -96,6 +99,11 @@ Buildings:
 - Lighthouse: a tapered red tower `#B04A3A` with two white bands, a gallery and a lamp room. It stands on the green belt and is clearly taller than the trees around it.
   - There is one per long stretch of coast, never two side by side.
   - At night the lamp turns full circle. Side-on, the beam swings left and right. It is a cone: narrow at the lamp, widening outward, then running almost parallel and fading with distance. When it turns toward the viewer it shrinks to a point and the lamp flares, briefly dazzling the scene.
+- Polish fields:
+  - Fields are horizontal bands that follow the line of the land, as on the Meseta, never vertical blocks.
+  - Poplars stand in short rows now and then, never as an endless avenue. There are no telegraph poles.
+  - Storks stand in the meadow at a size that fits the trees: white body, black wing feathers and tail, red legs and beak. Some feed with the neck bent down. Never on a pole.
+  - A hunting stand (ambona) appears only small, on the farthest field plane. There are no windmills.
 - Meseta village: light stone `#D1BC95` with terracotta roofs `#A9573A`.
 - Windows are dark by day and glow warm `#FFC46B` at night.
 
@@ -109,7 +117,7 @@ A lanky, bearded, slightly mysterious wanderer. Upright and young in posture, ne
 - **Cape:** long, dark, down to mid-shin, with an upturned collar. No lining showing, no patches. The front edge follows the near leg; the back edge flutters in the wind.
 - **Hat:** a western hat in profile.
   - The crown is low and tapered, slightly pinched at the front, with a smooth rounded top (no crease), and has a leather band.
-  - The whole hat is traced from a side-view photo of a cowboy hat (`HAT_OUTLINE` in the scene engine): the far side of the brim rises beside the crown towards the back and the front, the near side turns up to meet the crown at the band, and the tips stay low. Change it by re-tracing a reference photo, not by drawing it by hand.
+  - The whole hat is traced from a side-view photo of a cowboy hat (`HAT_OUTLINE` in the scene engine): the far side of the brim rises beside the crown towards the back and the front, the near side turns up to meet the crown at the band, and the tips stay low. Change it by re-tracing a reference photo, not by drawing it by hand. It is worn a little cheekily: pulled down towards the eyes and tipped slightly forward.
   - No feather, no sprig.
 - **Face:** a plain skin-tone head with no drawn nose, ear or other features, and a dark-brown beard. He sets off clean-shaven; the beard grows with every day on the road: first stubble drawn as a scatter of dots along the jaw that fills in over the first week or so, then a beard shape that lengthens until it is full after 60 days, after which it stops growing. Never a moustache. No blush and no visible eyes; the brim shades them.
 - **Backpack:** a soft, lumpy canvas sack seen from the side.
@@ -147,7 +155,7 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
   - Backpack: it bounces slightly, a moment after the body.
   - Pauses: now and then (about every 80 seconds) he stops for a few seconds and raises his head to take in the view, then walks on.
   - Pipe on the road: some stretches he walks with the pipe in his teeth; a thin wisp rises from the bowl.
-  - Little gestures, each rare and at a fixed moment of its loop: he drinks from a leather waterskin (twice as often around midday and on the Meseta, never while smoking), tugs his backpack straps with both hands, straightens his hat, and kicks a pebble lying on the path so it skips ahead and comes to rest.
+  - Little gestures, each rare and at a fixed moment of its loop: he drinks from a leather waterskin (twice as often around midday and on the Meseta; a pipe or a grass stalk leaves his mouth for the sip and goes back after), tugs his backpack straps with both hands, straightens his hat, and kicks a pebble lying on the path: he draws his leg back and kicks it hard and straight, it flies low and far ahead, bounces, rolls and stops, and he walks past it later.
   - On meadows and the Meseta some stretches he walks with a stalk of grass between his lips (never at the same time as the pipe).
 - **Morning:** at 06:36 he gets up and stretches once, for a few seconds, with both arms over his head and his head tipped back in a yawn. The stump is packed away with the tent. Until about 07:00 he packs up, bent forward with his hands busy low in front of him; then he stands ready and sets off at 07:12.
 - **Camp:**
@@ -176,11 +184,21 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
   - Around it: sparks, slow smoke drifting with the wind, and a warm ground glow that also tints the wanderer and the props.
 - **Lantern:** a small lantern on the ground, lit after dark.
 
-## 8. The starling
+## 8. The visiting bird
 
-- A small, dark, glossy starling with pale speckles, a yellow beak and an eye glint.
-- Over a 46-second cycle it flies in from beyond the left edge, perches on the sleeping mat and hops now and then, then flies off past the right edge, speeding up as it goes. It never appears or disappears while on screen.
-- At camp it perches on the tent pole. After dark it roosts there and stays all night.
+- A small songbird. Every species has the same shape and size and differs only in colour: starling (dark, speckled, yellow beak), robin (orange breast), great tit (black head, white cheek, yellow breast), chaffinch (blue-grey head, rosy breast) and house sparrow (brown with a grey crown).
+- A visit is one of the rarer events: only about one 46-second cycle in six brings a bird, and each visit picks its own species.
+- During a visit it flies in from beyond the left edge, perches on the sleeping mat and hops now and then, then flies off past the right edge, speeding up as it goes. It never appears or disappears while on screen.
+- At camp it perches on the tent pole, but only in the evening light or at dawn. Birds don't come at night.
+
+## 8a. The cat
+
+- The wanderer's companion: a big, fluffy black tomcat with large yellow eyes (slit pupils, a glint, a blink now and then), whiskers and a thick tail that tapers to a narrow tip, never a knob. It reaches above the wanderer's knee.
+- On the road it walks a little **behind** him with a cat's diagonal gait, a steady back and the tail raised with a soft hook. Now and then it sits down to wash a paw, licking it in quick strokes with the paw raised over its face, falls behind, then trots to catch up.
+- On some stretches it leaps onto the backpack and lies there like a loaf, tail hanging down. While it rides, no bird lands on the backpack.
+- It turns its head and eyes to the bird whenever one is near.
+- In the evening it curls up on the far side of the fire, facing it, tail round its nose; its eyes catch the firelight, blink every few seconds and close when it dozes. When he turns in, it walks to the tent and sleeps inside with him, never alone outside. At dawn it comes out with him, sits by the fire (it does not sleep there in the morning) and does its own stretch, the cat's bow, together with his.
+- Camp, sitting and sleeping each switch at a set hour, but the fade between them lasts about a second and a half of animation time, never game minutes, so at the real speed of the day nobody is left half transparent.
 
 ## 9. Ambient life
 

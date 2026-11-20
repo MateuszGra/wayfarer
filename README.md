@@ -4,7 +4,7 @@ A slow, cozy walking game powered by the player's real-world steps. A lone wande
 
 - What the game is and its rules: [docs/brief.md](docs/brief.md)
 - How it looks and moves: [docs/style-guide.md](docs/style-guide.md)
-- Visual reference (open in a browser): [prototypes/scene-demo/index.html](prototypes/scene-demo/index.html)
+- Visual reference: the scene itself at `/scene` (dev build or `?dev`), with the developer panel to set the hour, biome and behaviours
 
 ## Stack
 
@@ -27,7 +27,6 @@ The whole thing is **one modular monolith**: one repository and one Node process
 ├── app.js                     Passenger entry point on MyDevil (loads dist/server/main.js)
 ├── docker-compose.yml         local PostgreSQL for development
 ├── docs/                      brief and style guide
-├── prototypes/scene-demo/     single-file visual prototype of the scene
 ├── src/                       server and shared logic (TypeScript, compiled to dist/)
 │   ├── server/                Fastify bootstrap, error handling, health check
 │   ├── db/                    database connection, schema types, migrations
@@ -141,7 +140,6 @@ In development builds the game shows a developer panel on the right (it slides a
 | Parameter                        | Effect                                                                         |
 | -------------------------------- | ------------------------------------------------------------------------------ |
 | `?dev`                           | Shows the developer tools in a production build                                |
-| `?hour=12`                       | Starts at that hour instead of following the clock                             |
 | `?t=56`                          | Jumps the animation loops (pipe, stops on the road, lighthouse) to that second |
 | `?menu`, `?map`, `?achievements` | Starts with that window open                                                   |
 

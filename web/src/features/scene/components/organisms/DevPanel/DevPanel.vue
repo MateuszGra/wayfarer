@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { BaseButton, BasePanel } from '@/design-system';
+import { computed, ref } from 'vue';
+import { BaseButton, BaseCollapsible, BasePanel } from '@/design-system';
 import { FULL_BEARD_DAYS } from '@shared/wanderer/beard';
+import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
 export interface Props {
@@ -10,13 +11,18 @@ export interface Props {
   dayLengthMinutes: number;
   biome: string;
   biomeIds: readonly string[];
+  level: ElevationLevel;
+  /** Height levels the current biome offers; the switch is hidden when there is only one. */
+  levels: readonly ElevationLevel[];
   /** Day on the road the beard is shown for; it is full from FULL_BEARD_DAYS on. */
   beardDay: number;
   collapsed: boolean;
+  /** Behaviours that can be started right now. */
+  behaviours?: readonly SceneBehaviour[];
 }
 
 defineOptions({ name: 'DevPanel' });
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { behaviours: () => [] });
 const emit = defineEmits<{
   'update:hour': [hour: number];
   'update:collapsed': [collapsed: boolean];
@@ -25,7 +31,9 @@ const emit = defineEmits<{
   now: [];
   'cycle-day-length': [];
   'select-biome': [id: string];
+  'select-level': [level: ElevationLevel];
   reseed: [];
+  trigger: [id: BehaviourId];
 }>();
 
 const clock = computed(() => {
@@ -37,6 +45,13 @@ const biomeLabel = (id: string): string => t(`biome.${id}` as TranslationKey);
 const beardLabel = computed(() =>
   t(props.beardDay >= FULL_BEARD_DAYS ? 'dev.beardFull' : 'dev.beard', { days: tn('unit.days', props.beardDay) }),
 );
+const GROUPS: readonly BehaviourGroup[] = ['wanderer', 'cat', 'bird', 'world'];
+const behaviourGroups = computed(() =>
+  GROUPS.map((group) => ({ group, items: props.behaviours.filter((b) => b.group === group) })).filter(
+    (g) => g.items.length > 0,
+  ),
+);
+const behavioursOpen = ref(false);
 const sliderValue = (event: Event): number => Number((event.target as HTMLInputElement).value);
 </script>
 
@@ -124,8 +139,47 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
             {{ biomeLabel(id) }}
           </BaseButton>
         </div>
+        <div v-if="levels.length > 1" class="dev-panel__row" role="group" :aria-label="t('dev.level')">
+          <span class="dev-panel__label">{{ t('dev.level') }}</span>
+          <BaseButton
+            v-for="option in levels"
+            :key="option"
+            size="sm"
+            :variant="option === level ? 'primary' : 'ghost'"
+            :data-testid="`dev-level-${option}`"
+            @click="emit('select-level', option)"
+          >
+            {{ t(`level.${option}`) }}
+          </BaseButton>
+        </div>
         <BaseButton size="sm" data-testid="dev-reseed" @click="emit('reseed')">{{ t('dev.reseed') }}</BaseButton>
       </section>
+
+      <BaseCollapsible v-model:open="behavioursOpen" :title="t('dev.behaviours')" data-testid="dev-behaviours">
+        <div
+          v-for="{ group, items } in behaviourGroups"
+          :key="group"
+          class="dev-panel__group"
+          role="group"
+          :aria-label="t(`behaviourGroup.${group}`)"
+        >
+          <p class="dev-panel__label">{{ t(`behaviourGroup.${group}`) }}</p>
+          <div class="dev-panel__row">
+            <BaseButton
+              v-for="item in items"
+              :key="item.id"
+              size="sm"
+              :data-testid="`dev-behaviour-${item.id}`"
+              @click="emit('trigger', item.id)"
+            >
+              {{ t(`behaviour.${item.id}`) }}
+            </BaseButton>
+          </div>
+        </div>
+        <p v-if="behaviourGroups.length === 0" class="dev-panel__hint" data-testid="dev-behaviours-none">
+          {{ t('dev.behavioursNone') }}
+        </p>
+      </BaseCollapsible>
     </BasePanel>
   </aside>
 </template>
@@ -161,6 +215,9 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
 .dev-panel__body {
   display: grid;
   gap: var(--space-4);
+  /* With the behaviours open the panel is taller than a phone screen, so it scrolls on its own. */
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
 }
 .dev-panel__title {
   margin: 0;
@@ -178,6 +235,11 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
   font-size: var(--text-sm);
   color: var(--fg-dim);
   font-variant-numeric: tabular-nums;
+}
+.dev-panel__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fg-dim);
 }
 .dev-panel__slider {
   width: 100%;
