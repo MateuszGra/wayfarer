@@ -11,6 +11,7 @@ import { useRoutes } from '@/shared/composables/useRoutes';
 import { useSceneHost } from '@/shared/composables/useSceneHost';
 import { useSplash } from '@/shared/composables/useSplash';
 import { useWeather } from '@/shared/composables/useWeather';
+import { useWorldEvents } from '@/shared/composables/useWorldEvents';
 import { useStoredFlag } from '@/shared/composables/useStoredFlag';
 import { beardLength } from '@shared/wanderer/beard';
 import { t } from '@/shared/i18n';
@@ -20,8 +21,12 @@ import MapDialog from '../components/organisms/MapDialog/MapDialog.vue';
 import SceneHud from '../components/organisms/SceneHud/SceneHud.vue';
 import SettingsDialog from '../components/organisms/SettingsDialog/SettingsDialog.vue';
 import RotateTip from '../components/organisms/RotateTip/RotateTip.vue';
+import TrophyToast from '../components/organisms/TrophyToast/TrophyToast.vue';
 import YesterdayStepsDialog from '../components/organisms/YesterdayStepsDialog/YesterdayStepsDialog.vue';
+import { loadDevSettings, saveDevSettings } from '../composables/devSettings';
 import { sceneHour } from '../composables/sceneClock';
+import { useTrophies } from '../composables/useTrophies';
+import { useTrophyAnnouncements } from '../composables/useTrophyAnnouncements';
 import { useClockHour } from '../composables/useClockHour';
 
 defineOptions({ name: 'SceneView' });
@@ -40,9 +45,13 @@ const host = ref<HTMLElement | null>(null);
 const clockHour = useClockHour(undefined, 1000);
 const splash = useSplash();
 const journey = useJourney();
+const worldEvents = useWorldEvents();
+void worldEvents.ensure();
 // The scene shows the weather where the player is; in the developer panel it can be set by hand.
 const { weather: apiWeather } = useWeather();
-const handWeather = ref<Weather | null>(null);
+// In development the panel's last settings come back after a reload (see devSettings.ts).
+const devSaved = devMode ? loadDevSettings() : null;
+const handWeather = ref<Weather | null>(devSaved?.weather ?? null);
 const CALM_CLEAR: Weather = { sky: 'clear', precipitation: 'none', storm: false, wind: 'breeze', frost: false };
 const sceneWeather = computed<Weather>(() => handWeather.value ?? apiWeather.value?.weather ?? CALM_CLEAR);
 const today = computed(() => journey.journey.value?.today ?? null);
@@ -70,6 +79,22 @@ const saveSteps = async (steps: number): Promise<void> => {
   }
 };
 const menu = useGameMenu(startOverlay, () => stepsOpen.value);
+// A trophy won while playing is celebrated once the splash and the steps window are out of the way.
+const trophies = useTrophies();
+const announcements = useTrophyAnnouncements(trophies.all, trophies.ready);
+// Tapping the celebration opens the achievements on the trophies.
+const achievementsTab = ref<'journal' | 'trophies'>('journal');
+const openTrophies = (): void => {
+  announcements.dismiss();
+  achievementsTab.value = 'trophies';
+  menu.show('achievements')(true);
+};
+// Opened any other way (the menu), the window starts on the journal again.
+const onAchievementsOpen = (open: boolean): void => {
+  if (!open) achievementsTab.value = 'journal';
+  menu.show('achievements')(open);
+};
+const announced = computed(() => (splash.playing.value || stepsOpen.value ? null : announcements.current.value));
 const correctSteps = (): void => {
   menu.show('achievements')(false);
   correcting.value = today.value?.stepsEntered ?? null;
@@ -85,7 +110,7 @@ const toScene = (hour: number): number => sceneHour(hour, daylight.value);
 const sceneNow = computed(() => toScene(clockHour.value));
 // In the developer panel the walk can be swapped for a whole day on the road or a day at camp, to see
 // any hour of either; it changes only what the scene shows, never the journey.
-const devWalkMode = ref<DevWalkMode>('steps');
+const devWalkMode = ref<DevWalkMode>(devSaved?.walkMode ?? 'steps');
 const sceneWalk = computed<SceneWalk | null>(() => {
   if (devWalkMode.value === 'camp') return null;
   const walk =
@@ -112,23 +137,30 @@ const onVisible = (): void => {
 onMounted(() => document.addEventListener('visibilitychange', onVisible));
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible));
 const snapshot = ref<SceneSnapshot | null>(null);
-const followClock = ref(true);
-const dayLengthIndex = ref(0);
+const handHour = ref<number | null>(devSaved?.hour ?? null);
+const followClock = ref(handHour.value === null);
+const dayLengthIndex = ref(devSaved?.dayLengthIndex ?? 0);
 const devPanelCollapsed = useStoredFlag('wayfarer.devPanelCollapsed');
 // The beard follows the days on the road; the developer slider picks another day until the page reloads.
-const beardDayOverride = ref<number | null>(null);
+const beardDayOverride = ref<number | null>(devSaved?.beardDay ?? null);
 const beardDay = computed(() => beardDayOverride.value ?? today.value?.day ?? 1);
 const beard = computed(() => beardLength(beardDay.value));
 
 const scene = useSceneHost(host, () => ({
-  hour: sceneNow.value,
-  biome: 'baltic',
+  hour: handHour.value ?? sceneNow.value,
+  biome: devSaved?.biome ?? 'baltic',
+  ...(devSaved?.level ? { level: devSaved.level } : {}),
   auto: false,
-  dayLengthSeconds: DAY_LENGTHS_MINUTES[0] * 60,
+  dayLengthSeconds: (DAY_LENGTHS_MINUTES[dayLengthIndex.value] ?? 2) * 60,
   walk: sceneWalk.value,
   // `?t=12` in dev mode jumps the animation loops (pipe, bird, lighthouse) to that second.
   animationTime: devMode ? Number(query.get('t') ?? 0) : 0,
   onSnapshot: (next) => (snapshot.value = next),
+  // A moment the player witnessed earns its trophy; one started from the developer panel only in the local
+  // development build, never in a deployed game opened with `?dev`.
+  onWorldEvent: ({ id, forced }) => {
+    if (!forced || import.meta.env.DEV) void worldEvents.record(id);
+  },
 }));
 const biomeIds = computed(() => scene.value?.biomeIds ?? []);
 const levels = computed(() => (scene.value && snapshot.value ? scene.value.levelsOf(snapshot.value.biome) : []));
@@ -136,12 +168,27 @@ const behaviours = computed(() => snapshot.value?.behaviours ?? []);
 watch([scene, beard], ([created, length]) => created?.setBeard(length));
 watch([scene, sceneWalk], ([created, walk]) => created?.setWalk(walk));
 watch([scene, sceneWeather], ([created, weather]) => created?.setWeather(weather));
+if (devSaved) {
+  watch(
+    () => ({
+      hour: handHour.value,
+      biome: snapshot.value?.biome ?? devSaved.biome,
+      level: snapshot.value?.level ?? devSaved.level,
+      beardDay: beardDayOverride.value,
+      weather: handWeather.value,
+      walkMode: devWalkMode.value,
+      dayLengthIndex: dayLengthIndex.value,
+    }),
+    (settings) => saveDevSettings(settings),
+  );
+}
 watch(sceneNow, (hour) => {
   if (followClock.value) scene.value?.setHour(hour);
 });
 
 const setHour = (hour: number): void => {
   followClock.value = false;
+  handHour.value = hour;
   scene.value?.setAuto(false);
   scene.value?.setHour(hour);
 };
@@ -151,6 +198,7 @@ const togglePlay = (): void => {
 };
 const backToNow = (): void => {
   followClock.value = true;
+  handHour.value = null;
   scene.value?.setAuto(false);
   scene.value?.setHour(sceneNow.value);
 };
@@ -185,10 +233,12 @@ const cycleDayLength = (): void => {
     <MapDialog :open="menu.overlay.value === 'map'" @update:open="menu.show('map')($event)" @back="menu.back" />
     <AchievementsDialog
       :open="menu.overlay.value === 'achievements'"
-      @update:open="menu.show('achievements')($event)"
+      :start-tab="achievementsTab"
+      @update:open="onAchievementsOpen"
       @back="menu.back"
       @correct-steps="correctSteps"
     />
+    <TrophyToast :trophy="announced" @done="announcements.dismiss" @open="openTrophies" />
     <YesterdayStepsDialog
       v-if="today && journey.journey.value"
       :open="stepsOpen"

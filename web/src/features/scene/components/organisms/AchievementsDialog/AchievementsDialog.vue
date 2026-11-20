@@ -1,37 +1,39 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { trophyProgress } from '@shared/achievements/trophies';
-import { dayOutcome, goalStreak, summarize } from '@shared/steps/history';
+import { computed, ref, watch } from 'vue';
+import { dayOutcome } from '@shared/steps/history';
 import { BaseButton, BaseDialog, BaseTabs } from '@/design-system';
 import { useJourney } from '@/shared/composables/useJourney';
 import { t } from '@/shared/i18n';
 import AchievementDay from '../../molecules/AchievementDay/AchievementDay.vue';
 import AchievementStats from '../../molecules/AchievementStats/AchievementStats.vue';
 import TrophyCard from '../../molecules/TrophyCard/TrophyCard.vue';
+import { useTrophies } from '../../../composables/useTrophies';
 
 export interface Props {
   open: boolean;
+  /** The tab shown each time the window opens: the journal, or the trophies (after a trophy is won). */
+  startTab?: 'journal' | 'trophies';
 }
 
 defineOptions({ name: 'AchievementsDialog' });
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { startTab: 'journal' });
 const emit = defineEmits<{ 'update:open': [open: boolean]; back: []; 'correct-steps': [] }>();
 
 const journey = useJourney();
-const history = computed(() => journey.journey.value?.today.history ?? []);
-// Each day is judged against the current goal until the goal history is stored on the server.
-const dailySteps = computed(() => journey.journey.value?.journey.dailySteps ?? 0);
-const summary = computed(() => summarize(history.value, dailySteps.value));
+const { history, dailySteps, summary, road: trophies, world: worldTrophies, all: allTrophies } = useTrophies();
 // Yesterday's steps can be corrected until midnight, from here.
 const enteredToday = computed(() => journey.journey.value?.today.stepsEntered ?? null);
 const newestFirst = computed(() => [...history.value].reverse());
-const trophies = computed(() =>
-  trophyProgress({ totalSteps: summary.value.totalSteps, streak: goalStreak(history.value, dailySteps.value) }),
-);
-const wonCount = computed(() => trophies.value.filter((trophy) => trophy.won).length);
+const wonCount = computed(() => allTrophies.value.filter((trophy) => trophy.won).length);
 
 type Tab = 'journal' | 'trophies';
-const tab = ref<Tab>('journal');
+const tab = ref<Tab>(props.startTab);
+watch(
+  () => props.open,
+  (open) => {
+    if (open) tab.value = props.startTab;
+  },
+);
 // Line icons for the tabs: an open book for the journal, a cup for the trophies.
 const BOOK_ICON = 'M3 4.5C5.5 3.5 8 3.8 10 5c2-1.2 4.5-1.5 7-.5v11c-2.5-1-5-.7-7 .5-2-1.2-4.5-1.5-7-.5ZM10 5v11';
 const CUP_ICON =
@@ -77,11 +79,17 @@ const tabs = [
         </template>
         <template #trophies>
           <p class="achievements__count" data-testid="trophies-count">
-            {{ t('trophies.count', { won: wonCount, all: trophies.length }) }}
+            {{ t('trophies.count', { won: wonCount, all: allTrophies.length }) }}
           </p>
-          <ul class="achievements__trophies" :aria-label="t('trophies.list')">
-            <TrophyCard v-for="trophy in trophies" :key="trophy.id" :trophy="trophy" />
-          </ul>
+          <div class="achievements__trophies">
+            <ul class="achievements__trophy-list" :aria-label="t('trophies.list')">
+              <TrophyCard v-for="trophy in trophies" :key="trophy.id" :trophy="trophy" />
+            </ul>
+            <h3 class="achievements__section">{{ t('trophies.world') }}</h3>
+            <ul class="achievements__trophy-list" :aria-label="t('trophies.world')" data-testid="world-trophies">
+              <TrophyCard v-for="trophy in worldTrophies" :key="trophy.id" :trophy="trophy" />
+            </ul>
+          </div>
         </template>
       </BaseTabs>
     </div>
@@ -113,16 +121,28 @@ const tabs = [
   text-align: center;
 }
 .achievements__trophies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.achievements__trophy-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: var(--space-3);
   align-content: start;
-  flex: 1;
-  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow-y: auto;
+}
+.achievements__section {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--ink);
 }
 .achievements__days {
   flex: 1;

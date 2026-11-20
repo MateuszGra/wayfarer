@@ -1,3 +1,4 @@
+import type { WorldEventId } from '../achievements/worldEvents.js';
 import type { Weather } from '../weather/weather.js';
 
 export interface HealthResponse {
@@ -90,4 +91,9 @@ export interface WeatherResponse {
   readonly windKmh: number;
   /** When Open-Meteo measured it, ISO 8601. */
   readonly observedAt: string;
+}
+
+export interface WorldEventsResponse {
+  /** The moments in the world this player has seen, with when they first saw each, ISO 8601. */
+  readonly seen: readonly { readonly id: WorldEventId; readonly seenAt: string }[];
 }

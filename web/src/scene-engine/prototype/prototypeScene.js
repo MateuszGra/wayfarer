@@ -148,6 +148,31 @@ export async function startPrototypeScene(host, options = {}) {
       ],
       overlay: { kind: 'overlay', depth: 0, speed: 1.6, wave: 0.35, oct: 3, angular: true, color: 0x14171a },
     },
+    lakes: {
+      // Pomerania's lake district: a long lake between low wooded shores, no mountains anywhere. The woods
+      // are mixed, broadleaves with pines among them, and the far shores lie mirrored in the water.
+      vessels: ['angler', 'sailboat', 'swans'],
+      name: 'Pojezierze', sprig: 0xe9dca8, snowLine: 1, lake: 0.64, clouds: 5, rays: 0.8, mist: 1.3, fireflies: 0.8, mistAfter: [1, 3],
+      layers: [
+        { kind: 'hill', depth: 0.9, base: 0.6, amp: 0.07, wave: 0.45, oct: 3, speed: 0.012, color: 0x6f8e86, fog: 0.45, reflect: true,
+          trees: { type: 'round', spacing: 0.005, h: [0.008, 0.013], density: 0.95, mix: 0.4 } },
+        { kind: 'hill', depth: 0.75, base: 0.625, amp: 0.05, wave: 0.35, oct: 3, speed: 0.03, color: 0x4f7360, fog: 0.38, reflect: true,
+          trees: { type: 'round', spacing: 0.0065, h: [0.012, 0.02], density: 0.9, mix: 0.35, birch: 0.35, groves: 0.25 },
+          cabins: { spacing: 1.6, chance: 0.5, size: 0.007, wall: 0x8a5c3a, roof: 0xa04a32 } },
+        'lake',
+        // The near shore is low and its trees stand in clumps, so the lake shows between them.
+        { kind: 'hill', depth: 0.42, base: 0.86, amp: 0.04, wave: 0.3, oct: 3, speed: 0.25, color: 0x3a5d42, fog: 0.28,
+          trees: { type: 'round', spacing: 0.013, h: [0.03, 0.055], density: 0.45, mix: 0.35, birch: 0.45, groves: 0.6 },
+          cabins: { spacing: 1.5, chance: 0.6, size: 0.012, wall: 0x8a5c3a, roof: 0x4e3526 } },
+        { kind: 'hill', depth: 0.2, base: 0.925, amp: 0.035, wave: 0.25, oct: 3, speed: 0.55, color: 0x274630, fog: 0.15,
+          trees: { type: 'round', spacing: 0.03, h: [0.09, 0.16], density: 0.4, mix: 0.3, birch: 0.5, groves: 0.4 } },
+        { kind: 'ground', depth: 0.06, base: 0.955, amp: 0.025, wave: 0.2, oct: 3, speed: 1, color: 0x2d3424, path: 0x6f604a,
+          grass: { spacing: 0.005, h: [0.01, 0.026], density: 0.75, light: 0.3 },
+          flowers: { colors: [0xf4f0e6, 0xf3cf4a, 0xa98be0], density: 0.12 } },
+      ],
+      // No rocks by the lake: the near shore grows bushes and reeds instead.
+      overlay: { kind: 'overlay', depth: 0, speed: 1.6, wave: 0.3, oct: 3, color: 0x121812, reeds: true, rise: 0.4 },
+    },
     forest: {
       // Low beech forest is the mid one without the grey mountains on the horizon.
       levels: { low: { relief: 1, treeDensity: 1, cabins: 1, dropRidges: true } },
@@ -156,7 +181,7 @@ export async function startPrototypeScene(host, options = {}) {
         { kind: 'ridge', depth: 1, base: 0.6, amp: 0.17, wave: 0.5, oct: 4, speed: 0.01, color: 0x93a7ad, faces: true, fog: 0.5, rim: true },
         { kind: 'hill', depth: 0.8, base: 0.66, amp: 0.12, wave: 0.36, oct: 4, speed: 0.035, color: 0x6f8c70, fog: 0.45,
           trees: { type: 'round', spacing: 0.006, h: [0.012, 0.02], density: 0.95 } },
-        // Rarely, far off on this wooded ridge, something big and hairy walks between the beeches.
+        // Rarely, on this wooded ridge, something big steps out between the beeches and is gone again.
         { kind: 'hill', depth: 0.6, base: 0.74, amp: 0.1, wave: 0.3, oct: 3, speed: 0.1, color: 0x4f7653, fog: 0.4, bigfoot: true,
           trees: { type: 'round', spacing: 0.009, h: [0.025, 0.045], density: 0.95, mix: 0.15 },
           cabins: { spacing: 1.3, chance: 0.6, size: 0.009, wall: 0x8a5c3a, roof: 0x4e3526 } },
@@ -455,7 +480,7 @@ export async function startPrototypeScene(host, options = {}) {
   }
   function yAt(L, sx, uOff) {
     const u = sx / S + uOff;
-    if (L.kind === 'overlay') return H + 6 - Math.max(0, heightAt(L, u) - 0.58) * H * 0.3;
+    if (L.kind === 'overlay') return H + 6 - Math.max(0, heightAt(L, u) - 0.58) * H * 0.3 * (L.rise ?? 1);
     return (L.base - L.amp * heightAt(L, u)) * H;
   }
   const layerOffset = L => state.offsetU * L.speed + L.shift;
@@ -493,6 +518,23 @@ export async function startPrototypeScene(host, options = {}) {
     const blobs = [[x, y - h * 0.64, cr], [x - cr * 0.62, y - h * 0.5, cr * 0.72], [x + cr * 0.64, y - h * 0.53, cr * 0.68], [x + cr * 0.3 * (r - 0.5), y - h * 0.82, cr * 0.66]];
     for (const [cx, cy, rr] of blobs) halfDisk(gl, cx, cy, rr, -1, n);
     for (const [cx, cy, rr] of blobs) halfDisk(gr, cx, cy, rr, 1, n);
+  }
+  // Birch: a slender white trunk with dark marks, visible high up, under a narrow, airy crown of small
+  // clumps. The trunk and marks go to their own graphics so they stay white and black in any light.
+  function birchHalves(gl, gr, bark, marks, x, y, h, r) {
+    const tw = Math.max(1, h * 0.035), lean = (r - 0.5) * h * 0.08;
+    // The trunk ends inside the crown, so it never shows through the leaves.
+    bark.poly([x - tw / 2, y + 2, x + tw / 2, y + 2, x + lean * 0.45 + tw * 0.35, y - h * 0.45, x + lean * 0.45 - tw * 0.35, y - h * 0.45]).fill(0xffffff);
+    for (let i = 0; i < 3; i++) {
+      const f = 0.1 + i * 0.11 + hash(i, Math.round(x * 7)) * 0.04, mx = x + lean * f;
+      marks.rect(mx - tw * 0.5, y - h * f, tw * (0.5 + 0.5 * hash(i + 4, Math.round(x * 7))), Math.max(0.8, tw * 0.35)).fill(0xffffff);
+    }
+    const cr = h * 0.13, n = 6;
+    const blobs = [[0.95, 0], [0.82, -0.7], [0.8, 0.7], [0.66, -0.9], [0.64, 0.8], [0.52, -0.4], [0.5, 0.5]];
+    for (const [f, o] of blobs) {
+      const cx = x + lean * f + o * cr, cy = y - h * f, rr = cr * (0.75 + 0.35 * hash(Math.round(f * 100), Math.round(x * 3)));
+      halfDisk(gl, cx, cy, rr, -1, n); halfDisk(gr, cx, cy, rr, 1, n);
+    }
   }
   // Coastal pine: a conifer like a spruce but looser. The lower third of the trunk is bare,
   // the tiers are uneven and set high, and the whole tree leans a little away from the sea wind.
@@ -542,6 +584,7 @@ export async function startPrototypeScene(host, options = {}) {
       if (T.type === 'poplar') poplarHalves(L.tL, L.tR, sx, y, h);
       else if (T.type === 'coastpine') coastPineHalves(L.tL, L.tR, sx, y, h, hash(k, L.seed + 67));
       else if (isPine) pineHalves(L.tL, L.tR, sx, y, h * (T.type === 'round' ? 1.25 : 1));
+      else if (T.birch && hash(k, L.seed + 57) < T.birch) birchHalves(L.tL, L.tR, L.bark, L.barkMarks, sx, y, h * 1.15, hash(k, L.seed + 67));
       else roundHalves(L.tL, L.tR, sx, y, h, hash(k, L.seed + 67));
     }
   }
@@ -985,6 +1028,60 @@ export async function startPrototypeScene(host, options = {}) {
       L.lights.push({ u, lampDy: th + deckH + roomH * 0.5 });
     });
   }
+  // Lakeside foreground: where the near ground rises into view it is a bush, a cluster of round leafy
+  // masses, with a bed of reeds at its feet, the tallest stems topped by bulrush heads. All one dark
+  // silhouette like the rest of the foreground; every choice comes from the ground position, so the
+  // same stretch of shore always grows the same way.
+  function drawShoreGrowth(L, xs, ys, uOff) {
+    const g = L.g, floor = H + 6;
+    for (let i = 2; i < xs.length - 2; i++) {
+      const rise = floor - ys[i];
+      if (rise < H * 0.01) continue;
+      const u = xs[i] / S + uOff, k = Math.floor(u * 900);
+      // The bush crowns the highest part of each rise.
+      if (ys[i] <= ys[i - 1] && ys[i] <= ys[i + 1]) {
+        const r = rise * 0.4;
+        for (let b = 0; b < 5; b++) {
+          const ox = (hash(k + b, L.seed + 61) - 0.5) * r * 2.2, oy = hash(k + b, L.seed + 62) * r * 0.6;
+          g.circle(xs[i] + ox, ys[i] - r * 0.35 + oy, r * (0.5 + 0.35 * hash(k + b, L.seed + 63))).fill(0xffffff);
+        }
+      }
+      // Reeds: a few stems here and there along the rise, leaning a little, taller where the ground is higher.
+      // Sparse: a clump on roughly every third step, of one to three stems.
+      if (i % 2 || hash(k, L.seed + 64) > 0.6) continue;
+      const stems = 1 + Math.floor(hash(k, L.seed + 65) * 2);
+      for (let r = 0; r < stems; r++) {
+        const x = xs[i] + (hash(k * 5 + r, L.seed + 66) - 0.5) * (xs[1] - xs[0]) * 2;
+        const tall = (rise * 1.2 + H * 0.04) * (0.6 + 0.6 * hash(k * 5 + r, L.seed + 67));
+        const lean = (hash(k * 5 + r, L.seed + 68) - 0.5) * tall * 0.25;
+        const top = [x + lean, ys[i] - tall];
+        g.moveTo(x, ys[i] + 2).quadraticCurveTo(x + lean * 0.2, ys[i] - tall * 0.5, top[0], top[1])
+          .stroke({ width: Math.max(1, H * 0.0022), color: 0xffffff, cap: 'round' });
+        // Every stem carries its bulrush head just below the tip, the thin spike above it; bare stems read
+        // as sticks, the leaves alone already give the clump its body.
+        g.ellipse(x + lean * 0.9, ys[i] - tall * 0.86, H * 0.0035, H * 0.012).fill(0xffffff);
+      }
+      // Between the stems, long flat leaves: narrow blades that rise from the base and arch outwards,
+      // lower than the stems, some bending right over.
+      const leaves = 2 + Math.floor(hash(k, L.seed + 70) * 3);
+      for (let f = 0; f < leaves; f++) {
+        const h0 = hash(k * 7 + f, L.seed + 71), h1 = hash(k * 7 + f, L.seed + 72);
+        const x = xs[i] + (h0 - 0.5) * (xs[1] - xs[0]) * 2.4;
+        const len = (rise * 0.9 + H * 0.03) * (0.5 + 0.5 * h1);
+        const side = h0 < 0.5 ? -1 : 1, arch = side * len * (0.15 + 0.35 * hash(k * 7 + f, L.seed + 73));
+        const base = Math.max(1.2, H * 0.0035), left = [], right = [];
+        for (let q = 0; q <= 8; q++) {
+          const t = q / 8;
+          // Up and out along a curve that leans further the higher it goes, tapering to a point.
+          const cx = x + arch * t * t, cy = ys[i] + 2 - len * t * (1 - 0.25 * t * Math.abs(arch) / len);
+          const w = base * (1 - t);
+          left.push(cx - w, cy); right.unshift(cx + w, cy);
+        }
+        g.poly([...left, ...right]).fill(0xffffff);
+      }
+    }
+  }
+
   function rebuildLayer(L, uOff) {
     L.u0 = uOff;
     const step = Math.max(3, W / 300);
@@ -1009,6 +1106,7 @@ export async function startPrototypeScene(host, options = {}) {
     if (L.farms) drawFarms(L, uOff, x1);
     if (L.tractors) drawTractors(L, uOff, x1);
     if (L.shrines) drawShrines(L, uOff, x1);
+    if (L.reeds) drawShoreGrowth(L, xs, ys, uOff);
     if (L.beach) drawBeach(L, xs, ys, uOff, x1);
     if (L.tufts) drawTufts(L, uOff, x1);
     if (L.lighthouse) drawLighthouses(L, uOff, x1);
@@ -1048,6 +1146,7 @@ export async function startPrototypeScene(host, options = {}) {
     if (L.patchwork) { L.patches = L.patchwork.colors.map(() => add()); L.bales = add(); L.balesShade = add(); }
     if (L.rows) L.rowG = add();
     if (L.trees || L.cabins || L.village || L.tufts) { L.tL = add(); L.tR = add(); }
+    if (L.trees?.birch) { L.bark = add(); L.barkMarks = add(); }
     if (L.beach) L.wet = add();
     if (L.lighthouse) { L.lhRed = add(); L.lhWhite = add(); }
     if (L.cabins || L.village || L.boats || L.lighthouse || L.fence || L.farms) { L.walls = add(); L.planks = add(); L.church = add(); L.roofs = add(); L.win = add(); }
@@ -1199,6 +1298,10 @@ export async function startPrototypeScene(host, options = {}) {
     // He stays ashore in snow or a storm; rain and wind don't put him off.
     angler: { id: 'angler', slot: 130, cross: 120, chance: 0.6, start: 20, y: 0.032, len: 0.05, depth: 0.55, seed: 614, daytime: true, anchored: true, fairWeather: true },
     cutter: { id: 'fishingBoat', slot: 70, cross: 45, chance: 0.65, start: 4, y: 0.045, len: 0.1, depth: 0.72, seed: 612 },
+    // Lake district: a dinghy crossing under sail (only with some wind) and a pair of swans gliding by,
+    // in the same scale as the angler's boat (`len` is that of the lane, not of the craft).
+    sailboat: { id: 'sailboat', slot: 150, cross: 130, chance: 0.6, start: 70, y: 0.02, len: 0.05, depth: 0.6, seed: 618, daytime: true, windy: true },
+    swans: { id: 'swans', slot: 110, cross: 170, chance: 0.6, start: 35, y: 0.05, len: 0.05, depth: 0.5, seed: 619, daytime: true },
   };
   // How fast the lake surface moves past as the wanderer walks: between the far shore (0.07) and the near
   // wooded bank (0.25), as far away as a boat on it looks.
@@ -1267,6 +1370,49 @@ export async function startPrototypeScene(host, options = {}) {
   // Now and then a fish bites: over five seconds of a 28-second cast the rod dips, rises bent, the fish
   // comes up wriggling on the line and is swung into the boat; then he casts again.
   const CATCH = { cast: 28, length: 5, chance: 0.5, seed: 617 };
+  // The angler's rowing boat: in vessel units (100 to the length of the lane, waterline at 0), the hull 60
+  // long, about 4.5 m. `at` places a point of it in the drawing.
+  function rowboat(g, col, at) {
+    const P = (pts) => pts.flatMap(([x, y]) => at(x, y));
+    g.poly(P([[-30, -8], [30, -8], [24, 0], [-24, 0]])).fill(col(0x7a5236));
+    g.poly(P([[-30, -9], [30, -9], [30, -7], [-30, -7]])).fill(col(0x5a3a25));
+    g.poly(P([[-4, -9], [4, -9], [4, -7.5], [-4, -7.5]])).fill(col(0x4a3020));
+  }
+  // A small sailing dinghy (an Omega, about 6 m, mast about 8 m) in the same units: white sails heeled a
+  // little by the wind, which also sets how far the boom swings out.
+  function drawSailboat(g, col, t, windK) {
+    g.clear();
+    const heel = Math.min(0.12, 0.04 * windK) + Math.sin(t * 0.9) * 0.01;
+    const R = (x, y) => [x * Math.cos(heel) - y * Math.sin(heel), x * Math.sin(heel) + y * Math.cos(heel)];
+    const P = (pts) => pts.flatMap(([x, y]) => R(x, y));
+    g.poly(P([[-41, -9], [41, -10], [34, 0], [-36, 0]])).fill(col(0xf1ede4));
+    g.poly(P([[-41, -9], [41, -10], [41, -8], [-41, -7]])).fill(col(0x3c5f8a));
+    g.poly(P([[-2, -10], [0, -115], [1.6, -115], [0.4, -10]])).fill(col(0x8a8378));
+    // Mainsail between mast and boom, jib in front of the mast.
+    g.poly(P([[0, -112], [-2, -16], [-36, -14]])).fill(col(0xfbf8f0));
+    g.poly(P([[2, -104], [3, -15], [34, -12]])).fill(col(0xece7dc));
+    g.poly(P([[-2, -16], [-36, -14], [-36, -12.5], [-2, -14.5]])).fill(col(0x8a8378));
+    // Two crew in the cockpit, leaning out a little.
+    g.circle(...R(-18, -16), 3.2).fill(col(0xd8b08c));
+    g.circle(...R(-26, -15), 3).fill(col(0xd8b08c));
+    g.poly(P([[-22, -13], [-14, -13], [-15, -9], [-21, -9]])).fill(col(0xb8452f));
+  }
+  // A pair of mute swans gliding, in the same units (one about 1.3 m long): white bodies, necks in the
+  // gentle S they hold on the water, orange bills. The second follows a length behind.
+  function drawSwans(g, col, t) {
+    g.clear();
+    for (const [dx, s, ph] of [[0, 1, 0], [-26, 0.94, 1.7]]) {
+      const bob = Math.sin(t * 0.8 + ph) * 0.4, X = (x) => dx + x * s, Y = (y) => y * s + bob;
+      g.ellipse(X(0), Y(-3), 9 * s, 3.6 * s).fill(col(0xf6f3ec));
+      g.poly([X(-9), Y(-3), X(-14), Y(-6.5), X(-6), Y(-5)]).fill(col(0xece7de));
+      g.moveTo(X(6), Y(-4)).bezierCurveTo(X(11), Y(-6), X(5), Y(-13), X(8.5), Y(-17)).stroke({ width: 2.2 * s, color: col(0xf6f3ec), cap: 'round' });
+      g.circle(X(9.3), Y(-17.4), 1.7 * s).fill(col(0xf6f3ec));
+      g.poly([X(10.4), Y(-18), X(13.4), Y(-16.8), X(10.6), Y(-16.4)]).fill(col(0xe07a2c));
+      g.circle(X(9.6), Y(-18), 0.45 * s).fill(col(0x1d1b1a));
+      // A faint wake behind each.
+      g.moveTo(X(-10), Y(0.4)).lineTo(X(-22), Y(1.2)).stroke({ width: 0.8, color: 0xffffff, alpha: 0.35 });
+    }
+  }
   function drawAngler(g, col, t) {
     g.clear();
     const cast = Math.floor(t / CATCH.cast), c = mod(t, CATCH.cast);
@@ -1289,8 +1435,7 @@ export async function startPrototypeScene(host, options = {}) {
       const k = mod(t * (splash ? 1.2 : 0.35) + i * 0.5, 1);
       g.ellipse(water[0], 0.5, 4 + k * 16, 1 + k * 3).stroke({ width: 1, color: 0xffffff, alpha: (splash ? 0.7 : 0.45) * (1 - k) });
     }
-    g.poly([-30, -8, 30, -8, 24, 0, -24, 0]).fill(col(0x7a5236));
-    g.rect(-30, -9, 60, 2).fill(col(0x5a3a25));
+    rowboat(g, col, (x, y) => [x, y]);
     // The angler sits in the stern, rod held up and out over the water.
     g.roundRect(-14, -25, 12, 17, 4).fill(col(0x3f5a4a));
     g.circle(-8, -29, 4.2).fill(col(0xd8b08c));
@@ -1311,52 +1456,63 @@ export async function startPrototypeScene(host, options = {}) {
 
   // Bigfoot: a rare, distant walker on a wooded ridge of the beech forest, drawn in its own units
   // (ground at 0, about 40 tall, facing +x) and hazed like the ridge it walks on.
-  const BIGFOOT = { slot: 600, cross: 70, chance: 0.3, start: 240, seed: 615, height: 0.04 };
-  // It always walks from right to left, facing left.
+  // Shorter than the beeches on its ridge (they stand 0.025 to 0.045 of the screen there). Every ten minutes
+  // there is a chance it steps out somewhere in view, walks left for 5 to 10 seconds and is gone behind a
+  // tree again; it moves with the ridge as the wanderer walks.
+  const BIGFOOT = { slot: 600, chance: 0.3, start: 240, seed: 615, height: 0.022, walk: [5, 10], speedU: 0.015 };
+  // 0 outside [a, d], 1 inside [b, c], easing in and out between.
+  const window4 = (x, a, b, c, d) => smooth(a, b, x) * (1 - smooth(c, d, x));
+  const FORCED_BIGFOOT_S = 8;
   function bigfootPass(t, forcedAgeS) {
-    if (forcedAgeS < BIGFOOT.cross) return { k: forcedAgeS / BIGFOOT.cross, dir: -1 };
-    const slot = Math.floor((t - BIGFOOT.start) / BIGFOOT.slot), k = (t - BIGFOOT.start - slot * BIGFOOT.slot) / BIGFOOT.cross;
-    if (slot < 0 || k >= 1 || hash(slot, BIGFOOT.seed) > BIGFOOT.chance) return null;
-    if (t - forcedAgeS + BIGFOOT.cross > BIGFOOT.start + slot * BIGFOOT.slot) return null;
-    return { k, dir: -1 };
+    if (forcedAgeS < FORCED_BIGFOOT_S) return { visit: -1 - Math.floor(t - forcedAgeS), age: forcedAgeS, length: FORCED_BIGFOOT_S, forced: true };
+    const slot = Math.floor((t - BIGFOOT.start) / BIGFOOT.slot);
+    if (slot < 0 || hash(slot, BIGFOOT.seed) > BIGFOOT.chance) return null;
+    const length = lerp(BIGFOOT.walk[0], BIGFOOT.walk[1], hash(slot, BIGFOOT.seed + 1));
+    const age = t - BIGFOOT.start - slot * BIGFOOT.slot;
+    return age < length ? { visit: slot, age, length, forced: false } : null;
   }
+  // Where on its ridge the current sighting began, in the ridge's own units, and whether it was reported.
+  let bigfootAt = null;
+
+  // Only ever a grey shape in the half-light of dawn or dusk, never seen clearly: a heavy forward-leaning
+  // body, a small head, long arms, all one flat colour like the shadows around it.
   function drawBigfoot(g, color, phase) {
     g.clear();
     // A foot is lifted while it swings forward and planted while it moves back under the body; the other
     // way round it would glide backwards, a moonwalk.
     const swing = Math.sin(phase), lift = Math.max(0, -Math.cos(phase)), lift2 = Math.max(0, Math.cos(phase));
-    const darkHair = mul(color, 0xffffff, 0.7), lightHair = mix(color, 0xc89a70, 0.3);
-    // The solid shape first: thick legs and arms, a heavy forward-leaning body, a small head.
     const limb = (x1, y1, x2, y2, w) => g.moveTo(x1, y1).lineTo(x2, y2).stroke({ width: w, color, cap: 'round' });
-    const legA = [-1, -18, -1 - swing * 7, -1 - lift * 2], legB = [1, -18, 1 + swing * 7, -1 - lift2 * 2];
-    const armA = [3, -32, 4 + swing * 6, -16], armB = [0, -32, -2 - swing * 6, -16];
-    limb(...legA, 6.5); limb(...legB, 6.5);
+    limb(-1, -18, -1 - swing * 7, -1 - lift * 2, 6.5);
+    limb(1, -18, 1 + swing * 7, -1 - lift2 * 2, 6.5);
     g.ellipse(2, -27, 8.5, 11.5).fill(color);
     g.circle(6.5, -38.5, 5).fill(color);
-    limb(...armA, 4.6); limb(...armB, 4.6);
+    limb(3, -32, 4 + swing * 6, -16, 4.6);
+    limb(0, -32, -2 - swing * 6, -16, 4.6);
+  }
 
-    // Then the hair: short strands hanging down over every part in two shades, the outer ones reaching
-    // past the outline so the edge is shaggy, all swaying a little with the stride.
-    const strand = (x, y, len, lean, shade) =>
-      g.moveTo(x, y).quadraticCurveTo(x + lean * 0.4, y + len * 0.55, x + lean, y + len).stroke({ width: 0.75, color: shade, cap: 'round' });
-    const sway = swing * 0.6;
-    const coat = (cx, cy, rx, ry, count, seed) => {
-      for (let k = 0; k < count; k++) {
-        const a = hash(k, seed) * Math.PI * 2, r = Math.sqrt(hash(k, seed + 1)) * 1.05;
-        const x = cx + Math.cos(a) * rx * r, y = cy + Math.sin(a) * ry * r;
-        strand(x, y - 1.5, 2.6 + hash(k, seed + 2) * 2.4, ((x - cx) / rx) * 1.2 + sway, k % 3 === 0 ? lightHair : darkHair);
-      }
-    };
-    const limbCoat = ([x1, y1, x2, y2], w, count, seed) => {
-      for (let k = 0; k < count; k++) {
-        const q = hash(k, seed), side = (hash(k, seed + 1) - 0.5) * w;
-        strand(lerp(x1, x2, q) + side, lerp(y1, y2, q) - 1, 2.2 + hash(k, seed + 2) * 2, side * 0.3 + sway, k % 3 === 0 ? lightHair : darkHair);
-      }
-    };
-    limbCoat(legA, 7, 26, 701); limbCoat(legB, 7, 26, 711);
-    coat(2, -27, 8.5, 11.5, 90, 721);
-    coat(6.5, -38.5, 5, 5, 28, 731);
-    limbCoat(armA, 5, 22, 741); limbCoat(armB, 5, 22, 751);
+  // ---------- backpack ----------
+  // A wanderer's pack: a soft, lumpy canvas sack cinched at the top, with a pocket, a metal buckle and a
+  // sleeping bag rolled into a scroll and strapped across the top (seen end-on, a spiral). The same pack
+  // is drawn on his back and standing at the camp; `at` maps its own units (as worn) to the drawing.
+  function drawPack(g, at) {
+    const sm = pts => { const f = []; for (const p of smoothLoop(pts, 5)) f.push(...at(p[0], p[1])); return f; };
+    const ln = (a, b, wd, col) => { const A = at(...a), B = at(...b); g.moveTo(A[0], A[1]).lineTo(B[0], B[1]).stroke({ width: wd, color: col, cap: 'round' }); };
+    g.poly(sm([[-9, -37], [-13.5, -38.5], [-18.5, -36], [-20.6, -31], [-20, -26.5], [-23.2, -21], [-24.2, -14], [-22, -8.4], [-16, -6.2], [-10.5, -6.8], [-8.4, -9]])).fill(TC.pack);
+    g.poly(sm([[-18.5, -36], [-20.6, -31], [-20, -26.5], [-23.2, -21], [-24.2, -14], [-22, -8.4], [-19.4, -7.4], [-20.6, -13], [-19.8, -20], [-17.8, -26], [-18, -31.5]])).fill(TC.packDark);
+    g.poly(sm([[-21.8, -20], [-15.6, -20.6], [-14.6, -13.4], [-16.6, -9.6], [-21.4, -9.8], [-22.8, -14]])).fill(TC.packFlap);
+    ln([-21.4, -16.2], [-15.2, -16.6], 1, TC.packDark);
+    for (const [x, y] of [[-11, -37.6], [-14, -39.2], [-17, -37.8]]) g.poly(sm([[x - 1.6, y + 1.4], [x, y - 1.6], [x + 1.6, y + 1.4]])).fill(TC.packFlap);
+    ln([-10, -36.4], [-18.4, -35.4], 1.1, TC.strap);
+    const buckle = at(-23.4, -24.5);
+    g.circle(buckle[0], buckle[1], 2.3).fill(0x9aa0a6);
+    ln([-23.4, -26.6], [-21.6, -28.4], 0.9, 0x9aa0a6);
+    const rc = at(-15, -43.5), rr = 6.6;
+    for (const x of [-20.2, -9.8]) ln([x, -43.5], [x + (x < -15 ? -0.6 : 0.6), -36.4], 1.6, TC.strap);
+    g.circle(rc[0], rc[1], rr).fill(TC.roll);
+    g.moveTo(rc[0], rc[1]);
+    for (let k = 1; k <= 26; k++) { const a = k * 0.62, r = rr * 0.92 * k / 26; g.lineTo(rc[0] + Math.cos(a) * r, rc[1] + Math.sin(a) * r); }
+    g.stroke({ width: 1.1, color: TC.rollDark });
+    g.circle(rc[0], rc[1], rr).stroke({ width: 0.9, color: TC.rollDark });
   }
 
   // ---------- traveller ----------
@@ -1474,29 +1630,11 @@ export async function startPrototypeScene(host, options = {}) {
     if (o.pack) {
       // A wanderer's pack: a soft, lumpy canvas sack cinched at the top, with a sleeping bag
       // rolled into a scroll and strapped across the top so it reads as a separate item.
-      const sm = pts => { const f = []; for (const p of smoothLoop(pts, 5)) f.push(...P_(p[0], p[1])); return f; };
       const bob = o.packBob || 0;
-      const B = (x, y) => [x, y + bob];
-      const ln = (a, b, wd, col) => { const A = P_(...B(...a)), Bb = P_(...B(...b)); g.moveTo(A[0], A[1]).lineTo(Bb[0], Bb[1]).stroke({ width: wd, color: col, cap: 'round' }); };
-      g.poly(sm([B(-9, -37), B(-13.5, -38.5), B(-18.5, -36), B(-20.6, -31), B(-20, -26.5), B(-23.2, -21), B(-24.2, -14), B(-22, -8.4), B(-16, -6.2), B(-10.5, -6.8), B(-8.4, -9)])).fill(TC.pack);
-      g.poly(sm([B(-18.5, -36), B(-20.6, -31), B(-20, -26.5), B(-23.2, -21), B(-24.2, -14), B(-22, -8.4), B(-19.4, -7.4), B(-20.6, -13), B(-19.8, -20), B(-17.8, -26), B(-18, -31.5)])).fill(TC.packDark);
-      g.poly(sm([B(-21.8, -20), B(-15.6, -20.6), B(-14.6, -13.4), B(-16.6, -9.6), B(-21.4, -9.8), B(-22.8, -14)])).fill(TC.packFlap);
-      ln([-21.4, -16.2], [-15.2, -16.6], 1, TC.packDark);
-      for (const [x, y] of [[-11, -37.6], [-14, -39.2], [-17, -37.8]]) g.poly(sm([B(x - 1.6, y + 1.4), B(x, y - 1.6), B(x + 1.6, y + 1.4)])).fill(TC.packFlap);
-      ln([-10, -36.4], [-18.4, -35.4], 1.1, TC.strap);
-      g.circle(...P_(...B(-23.4, -24.5)), 2.3).fill(0x9aa0a6);
-      ln([-23.4, -26.6], [-21.6, -28.4], 0.9, 0x9aa0a6);
-
-      // The rolled sleeping bag lies across the top, so in this side view we see its end: a spiral.
-      const rc = P_(...B(-15, -43.5)), rr = 6.6;
-      for (const x of [-20.2, -9.8]) ln([x, -43.5], [x + (x < -15 ? -0.6 : 0.6), -36.4], 1.6, TC.strap);
-      g.circle(rc[0], rc[1], rr).fill(TC.roll);
-      g.moveTo(rc[0], rc[1]);
-      for (let k = 1; k <= 26; k++) { const a = k * 0.62, r = rr * 0.92 * k / 26; g.lineTo(rc[0] + Math.cos(a) * r, rc[1] + Math.sin(a) * r); }
-      g.stroke({ width: 1.1, color: TC.rollDark });
-      g.circle(rc[0], rc[1], rr).stroke({ width: 0.9, color: TC.rollDark });
-      ln([-15 - rr * 0.95, -43.5], [-15 + rr * 0.95, -43.5], 0.0001, TC.strap);
-      ln([-6, -35], [8, -17], 2.4, TC.strap);
+      drawPack(g, (x, y) => P_(x, y + bob));
+      // The shoulder strap, only while he wears it.
+      const s0 = P_(-6, -35 + bob), s1 = P_(8, -17 + bob);
+      g.moveTo(s0[0], s0[1]).lineTo(s1[0], s1[1]).stroke({ width: 2.4, color: TC.strap, cap: 'round' });
       packTop = P_(-15, -50 + bob);
     }
 
@@ -1900,11 +2038,12 @@ export async function startPrototypeScene(host, options = {}) {
     .rect(-12, -18, 2, 14).fill(0x57391f).rect(2, -16, 2, 12).fill(0x57391f)
     .ellipse(-2, -22, 16, 3.5).fill(0xa98559)
     .ellipse(-2, -22, 9, 2).stroke({ width: 1, color: 0x7a5a3d })
-    .poly([-46, 0, -44, -30, -30, -31, -28, 0]).fill(TC.pack)
-    .poly([-46, 0, -44, -30, -40, -30.4, -41, 0]).fill(TC.packDark)
-    .poly([-45, -30, -29, -31, -29.5, -24, -44.5, -23.5]).fill(TC.packFlap)
-    .roundRect(-48, -37, 22, 7, 3.5).fill(TC.roll)
     .rect(-60, -10, 8, 10).fill(0x3c3631).rect(-59, -13, 6, 3).fill(0x3c3631));
+  // The pack he walks with, set down upright beside the stump: the worn shape, shifted so it stands on
+  // the ground left of the stump.
+  const campPack = new Graphics();
+  drawPack(campPack, (x, y) => [x - 21, y + 6.2]);
+  campC.addChild(campPack);
   const lanternGlow = addSprite(actors, glowTex, { add: true, tint: 0xffc070 });
   const lanternFlame = new Graphics().roundRect(-58.5, -9, 5, 7, 1.5).fill(0xffffff);
   campC.addChild(lanternFlame);
@@ -2185,12 +2324,13 @@ export async function startPrototypeScene(host, options = {}) {
   // Behaviours a developer can trigger from the dev panel. Each normally runs on its own loop of the
   // animation clock; a trigger starts it now, and `forcedAge` gives the seconds since that trigger.
   const BEHAVIOURS = [
-    { id: 'pipe', group: 'wanderer' }, { id: 'grass', group: 'wanderer', biomes: ['meseta', 'forest', 'fields'] },
+    { id: 'pipe', group: 'wanderer' }, { id: 'grass', group: 'wanderer', biomes: ['meseta', 'forest', 'fields', 'lakes'] },
     { id: 'view', group: 'wanderer' }, { id: 'drink', group: 'wanderer' }, { id: 'strap', group: 'wanderer' },
     { id: 'hat', group: 'wanderer' }, { id: 'pebble', group: 'wanderer' },
     { id: 'catRide', group: 'cat' }, { id: 'catDown', group: 'cat' }, { id: 'catWash', group: 'cat' },
     ...BIRD_IDS.map((id) => ({ id, group: 'bird' })), { id: 'shootingStar', group: 'world' },
     { id: 'ship', group: 'world' }, { id: 'fishingBoat', group: 'world' }, { id: 'angler', group: 'world' },
+    { id: 'sailboat', group: 'world' }, { id: 'swans', group: 'world' },
     { id: 'bigfoot', group: 'world' },
   ];
   const forced = {};
@@ -2231,7 +2371,7 @@ export async function startPrototypeScene(host, options = {}) {
     const drink = walking ? Math.max(window(70, 33, 3.2), thirsty ? window(70, 8, 3.2) : 0, forcedWindow('drink', 3.2)) : 0;
     const strap = walking ? Math.max(window(64, 20, 2.4), forcedWindow('strap', 2.4)) : 0;
     const hatFix = walking ? Math.max(window(97, 40, 1.8), forcedWindow('hat', 1.8)) : 0;
-    const grassStalk = walking && !walkPipe && (state.biome === 'meseta' || state.biome === 'forest' || state.biome === 'fields') && ((mod(t, 50) > 22 && mod(t, 50) < 46) || grassForced);
+    const grassStalk = walking && !walkPipe && BEHAVIOURS.find((b) => b.id === 'grass').biomes.includes(state.biome) && ((mod(t, 50) > 22 && mod(t, 50) < 46) || grassForced);
     // Morning: while the camp is packed up he stands, and as he gets up he stretches once with a yawn.
     // The stretch lasts a few real seconds whatever the clock speed, so it's timed on the animation clock.
     const lead = walk ? leadOf(walk) : 0;
@@ -2349,6 +2489,7 @@ export async function startPrototypeScene(host, options = {}) {
       if (L.pathG) { const pc = colorAt(L.path, L.depth); L.pathG.tint = pc; L.gully.tint = mix(pc, col, 0.6); }
       if (L.rowG) L.rowG.tint = mix(col, mul(col, P.light, 1.3), 0.25);
       if (L.tL) { const tc = L.trees && L.trees.color ? colorAt(L.trees.color, L.depth) : mul(col, 0xffffff, 0.93); L.tL.tint = sideTint(tc, -sk); L.tR.tint = sideTint(tc, sk); }
+      if (L.bark) { L.bark.tint = sideTint(colorAt(0xe8e4da, L.depth), sk * 0.5); L.barkMarks.tint = colorAt(0x2e2a28, L.depth); }
       if (L.walls) {
         const B = L.cabins || L.village || L.boats || L.lighthouse || L.fence || { wall: 0xeee6d2, roof: 0xb24a30 };
         const wc = colorAt(B.wall, L.depth), rc = colorAt(B.roof, L.depth);
@@ -2421,14 +2562,18 @@ export async function startPrototypeScene(host, options = {}) {
 
     if (env.ships) {
       const foul = state.weather.storm || state.weather.precipitation === 'snow' || state.weather.precipitation === 'heavySnow';
+      const fairBefore = fairK;
       fairK += ((foul ? 0 : 1) - fairK) * Math.min(1, dt * 0.8);
+      // The moment the weather drives a fair-weather boat off the water while it is plainly in view.
+      const drivenOff = fairBefore >= 0.5 && fairK < 0.5;
       for (const kind of Object.keys(env.ships)) {
         const sh = SHIPS[kind], g = env.ships[kind];
         const pass = shipPass(kind, t, forcedAge(sh.id));
         // Daylight-only vessels slip away as the light goes rather than vanishing.
-        g.alpha = (sh.daytime ? 1 - smooth(0.3, 0.45, dark) : 1) * (sh.fairWeather ? fairK : 1);
+        const becalmed = sh.windy && state.weather.wind === 'calm';
+        g.alpha = (sh.daytime ? 1 - smooth(0.3, 0.45, dark) : 1) * (sh.fairWeather ? fairK : 1) * (becalmed ? 0 : 1);
         g.visible = !!pass && g.alpha > 0.01;
-        if (!g.visible) { if ((!sh.daytime || dark < 0.3) && (!sh.fairWeather || fairK > 0.5)) available.add(sh.id); continue; }
+        if (!g.visible) { if ((!sh.daytime || dark < 0.3) && (!sh.fairWeather || fairK > 0.5) && !becalmed) available.add(sh.id); continue; }
         const len = sh.len * H, sc = len / 100;
         let x = lerp(-len, W + len, pass.dir > 0 ? pass.k : 1 - pass.k);
         if (sh.anchored) {
@@ -2442,11 +2587,16 @@ export async function startPrototypeScene(host, options = {}) {
           x = (anchors[kind].u - state.offsetU * LAKE_SPEED) * S;
           g.alpha *= smooth(0, 0.05, pass.k) * (1 - smooth(0.95, 1, pass.k));
         }
+        if (sh.fairWeather && drivenOff && g.alpha / Math.max(fairK, 0.01) > 0.5) {
+          options.onWorldEvent?.({ id: 'anglerBeaten', forced: forcedAge(sh.id) < sh.cross });
+        }
         const col = (c) => colorAt(c, sh.depth);
         if (kind === 'cargo') drawCargoShip(g, col, nightK);
         else if (kind === 'angler') drawAngler(g, col, t);
+        else if (kind === 'sailboat') drawSailboat(g, col, t, WIND_STRENGTH[state.weather.wind]);
+        else if (kind === 'swans') drawSwans(g, col, t);
         else drawCutter(g, col, nightK, t);
-        const rock = kind === 'cargo' ? 0.15 : 1;
+        const rock = kind === 'cargo' ? 0.15 : kind === 'swans' ? 0.3 : 1;
         g.position.set(x, env.lakeY + sh.y * H + Math.sin(t * 1.3) * 0.6 * rock);
         g.scale.set(sc * pass.dir, sc);
         g.rotation = Math.sin(t * 1.1) * 0.03 * rock * pass.dir;
@@ -2455,14 +2605,30 @@ export async function startPrototypeScene(host, options = {}) {
 
     if (env.bigfoot) {
       const bf = env.bigfoot, pass = bigfootPass(t, forcedAge('bigfoot'));
-      bf.g.visible = !!pass && dark < 0.5;
-      if (!bf.g.visible && dark < 0.5) available.add('bigfoot');
+      // The grey hour around sunrise and around dusk; at any other time there is no Bigfoot at all.
+      const halfLight = Math.max(window4(h, 4.9, 5.3, 6.3, 6.8), window4(h, 19.6, 20, 20.9, 21.3));
+      bf.g.visible = !!pass && halfLight > 0.01;
+      if (!bf.g.visible && halfLight > 0.5) available.add('bigfoot');
       if (bf.g.visible) {
-        const x = lerp(-W * 0.05, W * 1.05, pass.dir > 0 ? pass.k : 1 - pass.k);
+        // It steps out somewhere in the middle of the view, drawn once per sighting.
+        if (bigfootAt?.visit !== pass.visit) {
+          const startX = W * (0.25 + 0.5 * hash(pass.visit, BIGFOOT.seed + 2));
+          bigfootAt = { visit: pass.visit, u: startX / S + layerOffset(bf.L), reported: false };
+        }
+        const x = (bigfootAt.u - pass.age * BIGFOOT.speedU - layerOffset(bf.L)) * S;
         const sc = (BIGFOOT.height * H) / 40;
-        drawBigfoot(bf.g, colorAt(0x3b2c22, bf.L.depth), t * 4.2);
+        // A shade lighter than the wood behind it, like a figure in the mist, not a hole in the trees.
+        drawBigfoot(bf.g, mix(0x7c7e88, P.haze, 0.45), t * 4.2);
+        // Out from behind one trunk and, a few seconds later, behind another.
+        const k = pass.age / pass.length;
+        bf.g.alpha = 0.85 * halfLight * smooth(0, 0.15, k) * (1 - smooth(0.8, 1, k));
+        // Once it has plainly been in view, the player has seen it.
+        if (!bigfootAt.reported && bf.g.alpha > 0.5) {
+          bigfootAt.reported = true;
+          options.onWorldEvent?.({ id: 'bigfootSeen', forced: pass.forced });
+        }
         bf.g.position.set(x, yAt(bf.L, x, layerOffset(bf.L)) + 1);
-        bf.g.scale.set(sc * pass.dir, sc);
+        bf.g.scale.set(-sc, sc);
       }
     }
 

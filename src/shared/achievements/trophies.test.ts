@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { trophyProgress, type TrophyInput } from './trophies';
+import { trophyProgress, worldTrophyProgress, type TrophyInput } from './trophies';
 
 const input = (totalSteps: number, current = 0, best = current): TrophyInput => ({
   totalSteps,
@@ -70,5 +70,14 @@ describe('the ten-out-of-ten trophy', () => {
 
   it('starts again from the run going on now after a longer run was broken short of ten', () => {
     expect(progressOf('tenOutOfTen', 0, 2, 8)).toMatchObject({ done: 2, won: false });
+  });
+});
+
+describe('worldTrophyProgress', () => {
+  it('wins the trophy of a moment once it has been seen', () => {
+    expect(worldTrophyProgress(['bigfootSeen'])).toEqual([
+      { id: 'anglerBeaten', measure: 'sighting', goal: 1, done: 0, won: false },
+      { id: 'bigfootSeen', measure: 'sighting', goal: 1, done: 1, won: true },
+    ]);
   });
 });

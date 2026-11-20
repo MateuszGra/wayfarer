@@ -76,6 +76,44 @@ const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, 
       />
     </template>
 
+    <template v-else-if="id === 'anglerBeaten'">
+      <!--
+        A pike, the angler's catch: long and lean with a flat duck-bill snout, an olive back, yellow-green
+        flanks in rows of pale bean-shaped spots, a cream belly and reddish fins set far back by the tail.
+      -->
+      <circle cx="32" cy="32" r="30" fill="var(--mist)" />
+      <path d="M41 28.2L46.5 22.5L49.5 30Z" fill="var(--rust)" />
+      <path d="M41 37.8L46.5 43.5L49.5 36Z" fill="var(--rust)" />
+      <path d="M22 37.4L25 41.5L28 37.6Z" fill="var(--rust)" />
+      <path d="M50 31L58.5 24.5L56 33L58.5 41.5L50 35Z" fill="var(--rust)" />
+      <path
+        d="M6 33.5Q10 29.5 19 28.5L40 27.8Q47 28.3 50.5 31.2L50.5 34.8Q47 37.7 40 38.2L19 37.5Q10 36.8 6 33.5Z"
+        fill="var(--pike-flank)"
+      />
+      <path d="M8 32.4Q11 29.6 19 28.5L40 27.8Q47 28.3 50.5 31.2L50.5 31.8Q35 30.2 8 32.4Z" fill="var(--pike-back)" />
+      <path d="M7.5 34.5Q10 36.6 19 37.5L40 38.2Q47 37.7 50.5 34.8L50.5 34.6Q32 36.2 7.5 34.5Z" fill="var(--cream)" />
+      <ellipse cx="24" cy="31.6" rx="1.7" ry="0.85" fill="var(--pike-spot)" />
+      <ellipse cx="29.5" cy="33.6" rx="1.7" ry="0.85" fill="var(--pike-spot)" />
+      <ellipse cx="34.5" cy="31.2" rx="1.6" ry="0.8" fill="var(--pike-spot)" />
+      <ellipse cx="39.5" cy="33.4" rx="1.5" ry="0.8" fill="var(--pike-spot)" />
+      <ellipse cx="44" cy="31.4" rx="1.3" ry="0.7" fill="var(--pike-spot)" />
+      <ellipse cx="25" cy="35.2" rx="1.3" ry="0.6" fill="var(--pike-spot)" />
+      <path d="M6.5 33.6L13 34" stroke="var(--pike-back)" stroke-width="0.9" stroke-linecap="round" />
+      <circle cx="16" cy="31.3" r="1.5" fill="var(--sun)" />
+      <circle cx="16.2" cy="31.3" r="0.8" fill="var(--ink)" />
+    </template>
+
+    <template v-else-if="id === 'bigfootSeen'">
+      <!-- One huge, bare footprint in the dusk. -->
+      <circle cx="32" cy="32" r="30" fill="var(--pine)" />
+      <ellipse cx="31" cy="39" rx="9" ry="14" fill="var(--paper)" transform="rotate(-8 31 39)" />
+      <circle cx="24" cy="21" r="3.6" fill="var(--paper)" />
+      <circle cx="30.5" cy="18" r="3.1" fill="var(--paper)" />
+      <circle cx="36.5" cy="18.5" r="2.7" fill="var(--paper)" />
+      <circle cx="41.5" cy="21" r="2.3" fill="var(--paper)" />
+      <circle cx="45" cy="25.5" r="2" fill="var(--paper)" />
+    </template>
+
     <template v-else-if="id === 'postalVote'">
       <circle cx="32" cy="32" r="30" fill="var(--pine)" />
       <!-- A ballot sticking out of the envelope, crossed. -->

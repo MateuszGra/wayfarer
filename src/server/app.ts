@@ -8,6 +8,7 @@ import {
   type AuthDependencies,
   type AuthHttpOptions,
 } from '../modules/auth/index.js';
+import { registerAchievementsHttp, type AchievementsDependencies } from '../modules/achievements/index.js';
 import { registerJourneyHttp, type JourneyDependencies } from '../modules/journey/index.js';
 import { registerRoutesHttp, type RouteCatalog } from '../modules/routes/index.js';
 import { registerWeatherHttp, type WeatherService } from '../modules/weather/index.js';
@@ -21,6 +22,7 @@ export interface AppDependencies {
   readonly auth: AuthDependencies;
   readonly authHttp: AuthHttpOptions;
   readonly journey: JourneyDependencies;
+  readonly achievements: AchievementsDependencies;
   readonly weather: WeatherService;
   /** Behind a reverse proxy (Passenger on MyDevil) the client address comes from X-Forwarded-For. */
   readonly trustProxy?: boolean;
@@ -39,6 +41,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   registerJourneyHttp(app, deps.journey, {
     signedIn: requireSession(deps.auth),
     // requireSession has run, so the player is on the request.
+    accountOf: (request) => request.auth?.account.id ?? '',
+  });
+  registerAchievementsHttp(app, deps.achievements, {
+    signedIn: requireSession(deps.auth),
     accountOf: (request) => request.auth?.account.id ?? '',
   });
   registerWeatherHttp(app, deps.weather, { signedIn: requireSession(deps.auth) });

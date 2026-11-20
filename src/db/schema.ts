@@ -42,10 +42,17 @@ export interface StepEntriesTable {
   updated_at: Generated<Date>;
 }
 
+export interface WorldSightingsTable {
+  account_id: string;
+  event: string;
+  seen_at: Generated<Date>;
+}
+
 export interface Database {
   players: PlayersTable;
   accounts: AccountsTable;
   sessions: SessionsTable;
   journeys: JourneysTable;
   step_entries: StepEntriesTable;
+  world_sightings: WorldSightingsTable;
 }

@@ -26,6 +26,7 @@ const steps = (value: number): string => value.toLocaleString('pl-PL');
       <h4 class="trophy-card__name">{{ name }}</h4>
       <p class="trophy-card__description">{{ description }}</p>
       <p v-if="trophy.won" class="trophy-card__won">{{ t('trophy.won') }}</p>
+      <p v-else-if="trophy.measure === 'sighting'" class="trophy-card__progress">{{ t('trophy.notSeen') }}</p>
       <template v-else>
         <div
           class="trophy-card__bar"

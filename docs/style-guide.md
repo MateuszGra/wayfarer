@@ -212,8 +212,16 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - Frost sits on the tips of the grass blades and as a thin white crust along the ground; nearby meadows go a little grey and no flowers bloom.
 - Lightning is a short double flash over the whole picture, and is left out with reduced motion.
 
+## 8c. Lake district (Pojezierze)
+
+- A long lake between low wooded shores, with no mountains anywhere; the far shores lie mirrored in the water.
+- The woods are mixed: round broadleaves, a third of pines, and birches with slender white trunks marked in black under narrow, airy crowns. A birch trunk ends inside its crown and never shows through the leaves.
+- The near foreground has no rocks: small bushes with reeds at their feet, every stem topped by a bulrush head, long arching leaves between the stems.
+- On the water, all in one scale (the angler's rowing boat about 4.5 m): a dinghy under white sails (about 6 m, mast about 8 m) crossing only when there is some wind, and a pair of swans (about 1.3 m each) gliding slowly. The angler fishes here as on the mountain lake.
+
 ## 9. Ambient life
 
+- In the beech forest, rarely and only in the grey half-light around sunrise or dusk, a Bigfoot walks from right to left along the farthest wooded ridge: a plain light-grey silhouette, shorter than the beeches around it, never drawn in detail and never seen at any other hour.
 - On a mountain lake an angler sometimes fishes from a rowing boat at anchor, by day only. He stays ashore in snow or a storm; rain, drizzle, wind and fog don't put him off.
 - Grass tufts sway with a slowly changing wind. They are drawn **behind** the wanderer, never over him.
 - Flowers in the grass depend on the biome.

@@ -1,3 +1,5 @@
+import { WORLD_EVENTS, type WorldEventId } from './worldEvents.js';
+
 /**
  * Collectible trophies. Most are won once the player's total steps on the road reach their threshold; a
  * streak trophy is won by reaching the daily goal on a number of days in a row.
@@ -15,9 +17,10 @@ export const TROPHIES = [
   { id: 'twardowski', measure: 'steps', goal: 500_000_000 },
 ] as const;
 
-export type TrophyId = (typeof TROPHIES)[number]['id'];
-/** What a trophy counts: steps on the road, or days in a row with the daily goal reached. */
-export type TrophyMeasure = (typeof TROPHIES)[number]['measure'];
+/** A trophy for the road (steps or a streak) or for something seen in the world. */
+export type TrophyId = (typeof TROPHIES)[number]['id'] | WorldEventId;
+/** What a trophy counts: steps on the road, days in a row with the daily goal reached, or one sighting. */
+export type TrophyMeasure = (typeof TROPHIES)[number]['measure'] | 'sighting';
 
 export interface TrophyProgress {
   readonly id: TrophyId;
@@ -43,5 +46,13 @@ export function trophyProgress({ totalSteps, streak }: TrophyInput): TrophyProgr
     // run starts again from nothing.
     const won = streak.best >= goal;
     return { id, measure, goal, done: won ? goal : Math.min(streak.current, goal), won };
+  });
+}
+
+/** The trophies for moments in the world, each won by having seen it once. */
+export function worldTrophyProgress(seen: readonly WorldEventId[]): TrophyProgress[] {
+  return WORLD_EVENTS.map((id) => {
+    const won = seen.includes(id);
+    return { id, measure: 'sighting', goal: 1, done: won ? 1 : 0, won };
   });
 }

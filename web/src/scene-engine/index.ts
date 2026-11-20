@@ -9,6 +9,7 @@ export type {
   SceneOptions,
   SceneSnapshot,
   SceneWalk,
+  SceneWorldEvent,
   WandererStatus,
 } from './prototype/prototypeScene.js';
 export { paletteAt, type Palette } from './palette';

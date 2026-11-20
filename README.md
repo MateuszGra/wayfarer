@@ -186,6 +186,17 @@ they entered day by day. The rules for days, the daily walk and distance are pur
 
 `/scene` needs a planned journey; without one the router sends the player to `/start`, which is closed once a journey exists (except `/start?change` from the settings).
 
+## Achievements from the world
+
+The `achievements` module (`src/modules/achievements`) remembers the rare moments each player has witnessed in the scene, each worth a trophy: the angler driven off the lake by snow or a storm (`anglerBeaten`) and Bigfoot stepping out between the beeches (`bigfootSeen`). The list lives in `src/shared/achievements/worldEvents.ts`; a sighting is kept once, with the first time it was seen.
+
+| Endpoint                             | What it does                                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `GET /api/achievements/world`        | The moments this player has seen                                                                     |
+| `PUT /api/achievements/world/:event` | Records a sighting (seeing it again changes nothing); `validation_failed` (400) for an unknown event |
+
+The scene reports a sighting when it happens in view. One started from the developer panel counts only in the local development build. A trophy won while the game is open is celebrated with a badge under the top edge; tapping it opens the trophies.
+
 ## Weather
 
 The `weather` module (`src/modules/weather`) gives the current weather of the player's region from Open-Meteo (no key). Only the region's coordinates, rounded to about a kilometre, leave the server. Each region is fetched at most once every 30 minutes and kept in memory; when Open-Meteo is down, the last known weather stays. Until the region comes from the IP address, every player gets Słupsk.

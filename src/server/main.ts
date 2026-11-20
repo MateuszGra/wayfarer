@@ -12,6 +12,7 @@ import {
   type AccountId,
 } from '../modules/auth/index.js';
 import { createSqlJourneyRepository } from '../modules/journey/index.js';
+import { createSqlSightingRepository } from '../modules/achievements/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
 import { createOpenMeteo, createWeatherService, DEFAULT_REGION } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
@@ -40,6 +41,7 @@ const app = await buildApp({
     newId: () => uuidv7(new Date()),
     place: DEFAULT_REGION,
   },
+  achievements: { sightings: createSqlSightingRepository(db), clock: { now: () => new Date() } },
   auth: {
     accounts: createSqlAccountRepository(db),
     sessions: createSqlSessionRepository(db),

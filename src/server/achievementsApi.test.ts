@@ -1,0 +1,90 @@
+import type { FastifyInstance } from 'fastify';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createInMemoryAchievements } from '../modules/achievements/index.js';
+import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
+import { createInMemoryJourneys } from '../modules/journey/index.js';
+import { createStaticRouteCatalog } from '../modules/routes/index.js';
+import { createWeatherService } from '../modules/weather/index.js';
+import { buildApp } from './app.js';
+
+const apps: FastifyInstance[] = [];
+async function api(): Promise<FastifyInstance> {
+  const app = await buildApp({
+    checkDatabase: async () => {},
+    routeCatalog: createStaticRouteCatalog(),
+    achievements: createInMemoryAchievements(new Date('2026-11-20T19:30:00Z')),
+    weather: createWeatherService({
+      source: { current: async () => Promise.reject(new Error('offline')) },
+      clock: { now: () => new Date(0) },
+    }),
+    auth: createInMemoryAuth(),
+    authHttp: { secureCookies: true, limiter: new AttemptLimiter(100, 60_000) },
+    journey: createInMemoryJourneys(),
+  });
+  apps.push(app);
+  return app;
+}
+afterEach(async () => {
+  await Promise.all(apps.splice(0).map((app) => app.close()));
+});
+async function signedIn(app: FastifyInstance, email = 'ana@example.com'): Promise<string> {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/auth/register',
+    payload: { email, password: 'camino2026' },
+  });
+  return String(response.headers['set-cookie']).split(';')[0] ?? '';
+}
+const put = (app: FastifyInstance, event: string, cookie: string) =>
+  app.inject({ method: 'PUT', url: `/api/achievements/world/${event}`, headers: { cookie } });
+
+describe('world events API', () => {
+  it('records a sighting and lists it with when it was seen', async () => {
+    const app = await api();
+    const cookie = await signedIn(app);
+
+    const response = await put(app, 'bigfootSeen', cookie);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ seen: [{ id: 'bigfootSeen', seenAt: '2026-11-20T19:30:00.000Z' }] });
+  });
+
+  it('keeps one sighting when the same event is seen again', async () => {
+    const app = await api();
+    const cookie = await signedIn(app);
+    await put(app, 'anglerBeaten', cookie);
+
+    await put(app, 'anglerBeaten', cookie);
+    const response = await app.inject({ method: 'GET', url: '/api/achievements/world', headers: { cookie } });
+
+    expect(response.json().seen).toHaveLength(1);
+  });
+
+  it('shows each player only their own sightings', async () => {
+    const app = await api();
+    await put(app, 'bigfootSeen', await signedIn(app, 'ana@example.com'));
+    const other = await signedIn(app, 'jan@example.com');
+
+    const response = await app.inject({ method: 'GET', url: '/api/achievements/world', headers: { cookie: other } });
+
+    expect(response.json()).toEqual({ seen: [] });
+  });
+
+  it('returns validation_failed with 400 for an event the game does not have', async () => {
+    const app = await api();
+    const cookie = await signedIn(app);
+
+    const response = await put(app, 'unicornSeen', cookie);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.code).toBe('validation_failed');
+  });
+
+  it('returns unauthenticated with 401 without a session', async () => {
+    const app = await api();
+
+    const response = await app.inject({ method: 'GET', url: '/api/achievements/world' });
+
+    expect(response.statusCode).toBe(401);
+  });
+});

@@ -33,6 +33,10 @@
   --cocoa: #5b3a2c;
   --cream: #f6ebc4;
   --comb: #d8392b;
+  /* The pike on the angler's trophy: olive back, yellow-green flanks with pale bean-shaped spots. */
+  --pike-back: #4a5626;
+  --pike-flank: #7d8a3e;
+  --pike-spot: #e6df9a;
   --shadow-panel: 0 18px 50px rgba(10, 8, 20, 0.45);
   --text-sm: 13px;
   --text-md: 15px;

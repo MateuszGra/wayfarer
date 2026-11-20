@@ -10,7 +10,7 @@ Wayfarer is a slow, cozy walking game: a wanderer crosses real regions at the pa
 | #   | Stretch                   | Biome                                                  | Character                                                    | Family            |
 | --- | ------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ | ----------------- |
 | 1   | Polish coast              | **Baltic coast** (done)                                | open sea, beach, coastal pines, lighthouse                   | water             |
-| 2   | Pomerania, Kashubia       | Lake district                                          | lakes in forests, hills, wooden cabins                       | water + forest    |
+| 2   | Pomerania, Kashubia       | **Lake district** (done, "Pojezierze")                 | lakes in forests, hills, wooden cabins                       | water + forest    |
 | 3   | Kuyavia, Greater Poland   | **Polish fields** (done)                               | plains, rapeseed and grain, tree-lined roads, brick churches | fields            |
 | 4   | Lower Silesia             | Sudetes foothills                                      | soft hills, castles on rocks                                 | hills             |
 | 5   | Saxony, Thuringia         | German forests and villages                            | broadleaf forests, half-timbered houses                      | forest            |

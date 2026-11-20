@@ -1,3 +1,4 @@
+import type { WorldEventId } from '@shared/achievements/worldEvents';
 import type { Weather } from '@shared/weather/weather';
 
 /** Height band of a mountain biome; biomes without levels always report `mid`. */
@@ -25,13 +26,20 @@ export type BehaviourId =
   | 'ship'
   | 'fishingBoat'
   | 'angler'
-  | 'bigfoot';
+  | 'bigfoot'
+  | 'sailboat'
+  | 'swans';
 
 export type BehaviourGroup = 'wanderer' | 'cat' | 'bird' | 'world';
 
 export interface SceneBehaviour {
   readonly id: BehaviourId;
   readonly group: BehaviourGroup;
+}
+
+export interface SceneWorldEvent {
+  readonly id: WorldEventId;
+  readonly forced: boolean;
 }
 
 export interface SceneSnapshot {
@@ -75,6 +83,8 @@ export interface SceneOptions {
   readonly walk?: SceneWalk | null;
   /** Called about five times a second; never every frame. */
   readonly onSnapshot?: (snapshot: SceneSnapshot) => void;
+  /** Something rare happened in view; `forced` when the developer panel started it. */
+  readonly onWorldEvent?: (event: SceneWorldEvent) => void;
 }
 
 export interface Scene {

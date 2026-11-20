@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import DevPanel from './DevPanel.vue';
 
 const CLEAR = { sky: 'clear', precipitation: 'none', storm: false, wind: 'breeze', frost: false } as const;
@@ -21,6 +21,11 @@ const panel = (props: Partial<InstanceType<typeof DevPanel>['$props']> = {}) =>
       ...props,
     },
   });
+
+// Which sections are open is remembered in the browser; every test starts with nothing remembered.
+beforeEach(() => {
+  localStorage.clear();
+});
 
 describe('DevPanel', () => {
   it('shows the current time next to the slider', () => {

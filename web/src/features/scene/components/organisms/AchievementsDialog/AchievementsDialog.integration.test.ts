@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { computed } from 'vue';
+import { forgetWorldEventsForTests } from '@/shared/composables/useWorldEvents';
 import AchievementsDialog from './AchievementsDialog.vue';
 
 // Steps come from the player's journey, our own composable: two days adding up to exactly 70 000 steps,
@@ -32,6 +33,12 @@ vi.mock('@/shared/composables/useJourney', () => ({
   }),
 }));
 
+// The network boundary for moments seen in the world: Bigfoot seen once, the angler not yet.
+vi.mock('@/shared/api/achievements', () => ({
+  fetchWorldEvents: async () => ({ seen: [{ id: 'bigfootSeen', seenAt: '2026-11-19T19:30:00.000Z' }] }),
+  recordWorldEvent: async () => ({ seen: [] }),
+}));
+
 // The dialog renders through a portal, so it is queried on the document rather than the wrapper.
 const query = (selector: string) => document.body.querySelector<HTMLElement>(selector);
 
@@ -46,6 +53,7 @@ async function showTrophies() {
 
 beforeEach(() => {
   localStorage.clear();
+  forgetWorldEventsForTests();
 });
 afterEach(() => {
   document.body.innerHTML = '';
@@ -59,12 +67,22 @@ describe('AchievementsDialog', () => {
     expect(query('[data-testid="trophies-count"]')).toBeNull();
   });
 
-  it('counts the trophies won by the steps walked so far', async () => {
+  it('counts the trophies won on the road and in the world', async () => {
     await openAchievements();
 
     await showTrophies();
 
-    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 2 z 8');
+    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 3 z 10');
+  });
+
+  it('lists the moments seen in the world apart, marking the one already seen', async () => {
+    await openAchievements();
+
+    await showTrophies();
+
+    const world = query('[data-testid="world-trophies"]');
+    expect(world?.querySelector('[data-testid="trophy-bigfootSeen"]')?.textContent).toContain('Zdobyty!');
+    expect(world?.querySelector('[data-testid="trophy-anglerBeaten"]')?.textContent).toContain('Jeszcze nie widziane.');
   });
 
   it('counts the days in a row with the goal reached towards the ten-out-of-ten trophy', async () => {
@@ -91,5 +109,12 @@ describe('AchievementsDialog', () => {
     query('[data-testid="correct-steps"]')?.click();
 
     expect(wrapper.emitted('correct-steps')).toEqual([[]]);
+  });
+
+  it('opens straight on the trophies when asked to, after a trophy is won', async () => {
+    mount(AchievementsDialog, { props: { open: true, startTab: 'trophies' }, attachTo: document.body });
+    await flushPromises();
+
+    expect(query('[data-testid="trophies-count"]')).not.toBeNull();
   });
 });

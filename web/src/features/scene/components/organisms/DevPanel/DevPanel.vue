@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { BaseButton, BaseCollapsible, BasePanel } from '@/design-system';
 import type { WeatherResponse } from '@shared/api/contracts';
 import { FULL_BEARD_DAYS } from '@shared/wanderer/beard';
 import type { Precipitation, Sky, Weather, Wind } from '@shared/weather/weather';
 import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
+import { useStoredFlag } from '@/shared/composables/useStoredFlag';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
 export type DevWalkMode = 'steps' | 'fullDay' | 'camp';
@@ -67,12 +68,13 @@ const behaviourGroups = computed(() =>
   ),
 );
 // Every section folds away, so on a small screen the panel only takes the room of what is in use.
-const timeOpen = ref(true);
-const beardOpen = ref(true);
-const placeOpen = ref(true);
-const behavioursOpen = ref(false);
+// Which sections are open is remembered in this browser, like whether the panel is folded away.
+const timeOpen = useStoredFlag('wayfarer.dev.timeOpen', true);
+const beardOpen = useStoredFlag('wayfarer.dev.beardOpen', true);
+const placeOpen = useStoredFlag('wayfarer.dev.placeOpen', true);
+const behavioursOpen = useStoredFlag('wayfarer.dev.behavioursOpen');
 const WALK_MODES: readonly DevWalkMode[] = ['steps', 'fullDay', 'camp'];
-const weatherOpen = ref(false);
+const weatherOpen = useStoredFlag('wayfarer.dev.weatherOpen');
 const SKIES: readonly Sky[] = ['clear', 'partly', 'overcast', 'fog'];
 const FALLS: readonly Precipitation[] = ['none', 'drizzle', 'rain', 'heavyRain', 'snow', 'heavySnow'];
 const WINDS: readonly Wind[] = ['calm', 'breeze', 'strong'];
