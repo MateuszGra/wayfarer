@@ -27,6 +27,14 @@ const CANDY_CUPS: readonly (readonly [number, number])[] = [
   [36, 39],
 ];
 const SUGAR = [18, 23, 28, 33, 38, 43, 47];
+// Five songbirds on the hat, one of each species in the game: starling, robin, great tit, chaffinch, sparrow.
+const HAT_BIRDS = [
+  { x: 15, y: 40, flip: 1, body: 'var(--ink)', head: 'var(--ink)' },
+  { x: 22, y: 25, flip: 1, body: 'var(--rust)', head: 'var(--cocoa)' },
+  { x: 42, y: 25, flip: -1, body: 'var(--sun)', head: 'var(--ink)' },
+  { x: 49, y: 40, flip: -1, body: 'var(--rust-deep)', head: 'var(--mist-deep)' },
+  { x: 32, y: 15, flip: 1, body: 'var(--cocoa)', head: 'var(--paper-line)' },
+];
 // Ten days ticked off on a calendar page, two weeks' rows of five: [x, y] of each box.
 const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, y] as const));
 </script>
@@ -76,7 +84,7 @@ const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, 
       />
     </template>
 
-    <template v-else-if="id === 'anglerBeaten'">
+    <template v-else-if="id === 'pikeCaught'">
       <!--
         A pike, the angler's catch: long and lean with a flat duck-bill snout, an olive back, yellow-green
         flanks in rows of pale bean-shaped spots, a cream belly and reddish fins set far back by the tail.
@@ -112,6 +120,67 @@ const TICKED_DAYS = [27, 38].flatMap((y) => [16, 24, 32, 40, 48].map((x) => [x, 
       <circle cx="36.5" cy="18.5" r="2.7" fill="var(--paper)" />
       <circle cx="41.5" cy="21" r="2.3" fill="var(--paper)" />
       <circle cx="45" cy="25.5" r="2" fill="var(--paper)" />
+    </template>
+
+    <template v-else-if="id === 'lighthouseGlare'">
+      <!-- Our lighthouse at night, its lamp turned full on the viewer: a flare of rays round the lantern. -->
+      <circle cx="32" cy="32" r="30" fill="var(--ink)" />
+      <g fill="var(--sun)" opacity="0.55">
+        <path v-for="i in 8" :key="i" d="M32 17L30.6 4h2.8Z" :transform="`rotate(${i * 45} 32 17)`" />
+      </g>
+      <circle cx="32" cy="17" r="7" fill="var(--sun)" opacity="0.35" />
+      <path d="M28 25h8l2.5 28h-13Z" fill="var(--rust)" />
+      <path d="M27.4 32h9.2l0.6 6h-10.4ZM26.5 43h11l0.6 6h-12.2Z" fill="var(--paper)" />
+      <rect x="25" y="23.5" width="14" height="2" fill="var(--ink)" stroke="var(--paper-line)" stroke-width="0.6" />
+      <rect x="28.5" y="14" width="7" height="9.5" fill="var(--cream)" />
+      <path d="M27.5 14q4.5-6 9 0Z" fill="var(--paper-line)" />
+      <circle cx="32" cy="18.7" r="2.6" fill="var(--paper)" />
+      <path d="M5 53h54a30 30 0 0 1-54 0Z" fill="var(--mist-deep)" />
+    </template>
+
+    <template v-else-if="id === 'hitchcock'">
+      <!-- The wanderer's felt hat with songbirds of every colour crowding onto its brim and crown. -->
+      <circle cx="32" cy="32" r="30" fill="var(--mist)" />
+      <ellipse cx="32" cy="44" rx="22" ry="5" fill="var(--cocoa)" />
+      <path d="M20 44c0-12 4-18 12-18s12 6 12 18Z" fill="var(--cocoa)" />
+      <rect x="20" y="38" width="24" height="3.5" fill="var(--rust)" />
+      <g v-for="bird in HAT_BIRDS" :key="bird.x" :transform="`translate(${bird.x} ${bird.y}) scale(${bird.flip} 1)`">
+        <ellipse cx="0" cy="0" rx="4.2" ry="3" :fill="bird.body" />
+        <circle cx="3" cy="-2.6" r="2.2" :fill="bird.head" />
+        <path d="M5 -2.8l2.4 0.6l-2.4 0.6Z" fill="var(--ink)" />
+        <path d="M-3.5 -0.5l-3.6 1.6l3 0.9Z" :fill="bird.body" />
+      </g>
+    </template>
+
+    <template v-else-if="id === 'blaviken'">
+      <!--
+        Two swords crossed behind a silver wolf medallion on its chain: our own drawing in the world's flat
+        style, a wink at a certain monster slayer who, after sixty days on the road, stopped shaving.
+      -->
+      <circle cx="32" cy="32" r="30" fill="var(--ink)" />
+      <g v-for="side in [-1, 1]" :key="side" :transform="`rotate(${side * 38} 32 34)`">
+        <path d="M30.6 4h2.8v34l-1.4 3-1.4-3Z" fill="var(--mist)" />
+        <path d="M32 6v32" stroke="var(--paper)" stroke-width="0.6" opacity="0.7" />
+        <rect x="25.5" y="41" width="13" height="2.4" rx="1.2" fill="var(--sun)" />
+        <rect x="30.7" y="43.4" width="2.6" height="9" fill="var(--cocoa)" />
+        <circle cx="32" cy="54.4" r="2.2" fill="var(--sun)" />
+      </g>
+      <!-- The chain and the medallion. -->
+      <path d="M24 12q8 7 16 0" fill="none" stroke="var(--mist)" stroke-width="1" stroke-dasharray="1.6 1" />
+      <circle cx="32" cy="31" r="13" fill="var(--mist-deep)" />
+      <circle cx="32" cy="31" r="11.6" fill="var(--mist)" />
+      <circle cx="32" cy="31" r="11.6" fill="none" stroke="var(--paper)" stroke-width="0.8" opacity="0.8" />
+      <circle cx="32" cy="18.6" r="1.6" fill="none" stroke="var(--mist)" stroke-width="1" />
+      <!-- The wolf's head: pricked ears, a heavy brow, narrowed yellow eyes, a long snout and bared fangs. -->
+      <path
+        d="M23.5 22.5l4 6.5h8l4-6.5l-0.6 8.5l2.6 3.4-4.6 1.2-2.4 5.4h-5l-2.4-5.4-4.6-1.2 2.6-3.4Z"
+        fill="var(--ink)"
+      />
+      <path d="M25 25l2 3.6M39 25l-2 3.6" stroke="var(--mist-deep)" stroke-width="0.9" stroke-linecap="round" />
+      <path d="M26.6 31.2l3.6 1.4-3.2 0.6ZM37.4 31.2l-3.6 1.4 3.2 0.6Z" fill="var(--sun)" />
+      <path d="M29.6 29.6h4.8" stroke="var(--mist-deep)" stroke-width="0.8" stroke-linecap="round" />
+      <path d="M30.6 35h2.8l-1.4 1.6Z" fill="var(--mist-deep)" />
+      <path d="M28.6 38.2l1.2 2 0.9-1.4 1.3 1.6 1.3-1.6 0.9 1.4 1.2-2Z" fill="var(--paper)" />
     </template>
 
     <template v-else-if="id === 'postalVote'">

@@ -33,6 +33,13 @@ Suggested build order: the Polish stretch first (Baltic, lake district, fields),
 
 Pacing: about 10,000 steps a day is about 7 km. The full route takes over a year, so each biome is on screen for 3–4 weeks. Every biome needs variety inside it: seasons, weather, rare spots and milestones.
 
+## Covering a route with biomes
+
+- A route is cut into regions (`src/shared/routes/regions/`), each with a mix of biomes, their weights and the levels they may appear at. Where a region's own biome isn't built yet, the nearest finished one stands in, noted in a comment, to be swapped later.
+- `landscapeAt(regions, km, seed)` (`src/shared/routes/landscape.ts`) cuts the route into 8 km pieces, about a day's walk, and draws a biome, level and variant for each from a hash of the piece and the route's seed: random-looking, but the same for every player and every reload. Nothing is stored.
+- The same biome runs at most 30 km in a row when its region offers another. The journey starts on the Baltic beach, and the sea never comes back inland.
+- The scene shows the piece where today's walk starts, so the landscape changes overnight, never mid-walk. In the developer panel a biome picked by hand holds until "Z trasy".
+
 ## A biome is data
 
 A biome is a config object, not new code:

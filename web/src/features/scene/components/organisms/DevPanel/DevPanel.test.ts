@@ -191,4 +191,26 @@ describe('DevPanel', () => {
 
     expect(wrapper.get('[data-testid="dev-walk-camp"]').classes()).toContain('base-button--primary');
   });
+
+  it('goes back to the landscape of the route', async () => {
+    const wrapper = panel({ placeFromRoute: false });
+
+    await wrapper.get('[data-testid="dev-follow-route"]').trigger('click');
+
+    expect(wrapper.emitted('follow-route')).toEqual([[]]);
+  });
+
+  it('shows where on the route today starts', () => {
+    const wrapper = panel({ routePlace: { region: 'lowerVistula', km: 123.4 } });
+
+    expect(wrapper.get('[data-testid="dev-route-place"]').text()).toBe('Trasa: lowerVistula, 123 km');
+  });
+
+  it('keeps him to tea by the fire', async () => {
+    const wrapper = panel();
+
+    await wrapper.get('[data-testid="dev-camp-tea"]').trigger('click');
+
+    expect(wrapper.emitted('update:campHabit')).toEqual([['tea']]);
+  });
 });

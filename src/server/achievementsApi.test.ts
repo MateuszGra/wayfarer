@@ -52,9 +52,9 @@ describe('world events API', () => {
   it('keeps one sighting when the same event is seen again', async () => {
     const app = await api();
     const cookie = await signedIn(app);
-    await put(app, 'anglerBeaten', cookie);
+    await put(app, 'pikeCaught', cookie);
 
-    await put(app, 'anglerBeaten', cookie);
+    await put(app, 'pikeCaught', cookie);
     const response = await app.inject({ method: 'GET', url: '/api/achievements/world', headers: { cookie } });
 
     expect(response.json().seen).toHaveLength(1);
@@ -86,5 +86,14 @@ describe('world events API', () => {
     const response = await app.inject({ method: 'GET', url: '/api/achievements/world' });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  it('records a bird species that perched', async () => {
+    const app = await api();
+    const cookie = await signedIn(app);
+
+    const response = await put(app, 'bird:robin', cookie);
+
+    expect(response.json().seen).toEqual([{ id: 'bird:robin', seenAt: '2026-11-20T19:30:00.000Z' }]);
   });
 });

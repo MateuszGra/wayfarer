@@ -95,6 +95,18 @@ defineSlots<Record<T, () => unknown>>();
 .base-tabs__icon {
   flex: none;
 }
+/* On a small phone a long label wraps onto two lines; beside it the icon would sit far from the words,
+   so it goes above them instead, the label centred under it. */
+@media (max-width: 420px) {
+  .base-tabs__tab {
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+    line-height: 1.2;
+    text-align: center;
+  }
+}
 .base-tabs__tab:focus-visible {
   outline: 2px solid var(--rust);
   outline-offset: 2px;

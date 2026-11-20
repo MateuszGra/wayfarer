@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { landscapeAt } from '@shared/routes/landscape';
+import { ROUTE_REGIONS } from '@shared/routes/regions/index';
 import { DEFAULT_DAYLIGHT, FULL_DAY_STEPS, walkingWindow } from '@shared/steps/dailyWalk';
 import type { Weather } from '@shared/weather/weather';
-import type { SceneSnapshot, SceneWalk } from '@/scene-engine';
+import type { CampHabit, SceneSnapshot, SceneWalk } from '@/scene-engine';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
 import GameMenu from '@/shared/components/organisms/GameMenu/GameMenu.vue';
 import { useGameMenu } from '@/shared/composables/useGameMenu';
@@ -111,6 +113,7 @@ const sceneNow = computed(() => toScene(clockHour.value));
 // In the developer panel the walk can be swapped for a whole day on the road or a day at camp, to see
 // any hour of either; it changes only what the scene shows, never the journey.
 const devWalkMode = ref<DevWalkMode>(devSaved?.walkMode ?? 'steps');
+const campHabit = ref<CampHabit>(devSaved?.campHabit ?? 'both');
 const sceneWalk = computed<SceneWalk | null>(() => {
   if (devWalkMode.value === 'camp') return null;
   const walk =
@@ -146,10 +149,23 @@ const beardDayOverride = ref<number | null>(devSaved?.beardDay ?? null);
 const beardDay = computed(() => beardDayOverride.value ?? today.value?.day ?? 1);
 const beard = computed(() => beardLength(beardDay.value));
 
+// The landscape of the place where today's walk starts on the route; it changes overnight, never mid-walk.
+const routeLandscape = computed(() => {
+  const plan = journey.journey.value;
+  const route = plan ? ROUTE_REGIONS[plan.journey.routeId] : undefined;
+  if (!plan || !route) return null;
+  const km = Math.max(0, plan.today.kmAtDayStart - plan.journey.routeSinceKm);
+  return { ...landscapeAt(route.regions, km, route.seed), km };
+});
+// In the developer panel a biome, level or variant picked by hand holds until "From the route" is pressed.
+const handPlace = ref(devSaved?.biome != null);
 const scene = useSceneHost(host, () => ({
   hour: handHour.value ?? sceneNow.value,
-  biome: devSaved?.biome ?? 'baltic',
-  ...(devSaved?.level ? { level: devSaved.level } : {}),
+  ...(handPlace.value
+    ? { biome: devSaved?.biome ?? 'baltic', ...(devSaved?.level ? { level: devSaved.level } : {}) }
+    : routeLandscape.value
+      ? { biome: routeLandscape.value.biome, level: routeLandscape.value.level, seed: routeLandscape.value.seed }
+      : { biome: 'baltic' }),
   auto: false,
   dayLengthSeconds: (DAY_LENGTHS_MINUTES[dayLengthIndex.value] ?? 2) * 60,
   walk: sceneWalk.value,
@@ -167,21 +183,33 @@ const levels = computed(() => (scene.value && snapshot.value ? scene.value.level
 const behaviours = computed(() => snapshot.value?.behaviours ?? []);
 watch([scene, beard], ([created, length]) => created?.setBeard(length));
 watch([scene, sceneWalk], ([created, walk]) => created?.setWalk(walk));
+watch([scene, campHabit], ([created, habit]) => created?.setCampHabit(habit));
 watch([scene, sceneWeather], ([created, weather]) => created?.setWeather(weather));
 if (devSaved) {
   watch(
     () => ({
       hour: handHour.value,
-      biome: snapshot.value?.biome ?? devSaved.biome,
-      level: snapshot.value?.level ?? devSaved.level,
+      biome: handPlace.value ? (snapshot.value?.biome ?? devSaved.biome) : null,
+      level: handPlace.value ? (snapshot.value?.level ?? devSaved.level) : null,
       beardDay: beardDayOverride.value,
       weather: handWeather.value,
       walkMode: devWalkMode.value,
+      campHabit: campHabit.value,
       dayLengthIndex: dayLengthIndex.value,
     }),
     (settings) => saveDevSettings(settings),
   );
 }
+watch([scene, routeLandscape], ([created, landscape]) => {
+  if (created && landscape && !handPlace.value) created.setLandscape(landscape);
+});
+const placeByHand = (): void => {
+  handPlace.value = true;
+};
+const followRoute = (): void => {
+  handPlace.value = false;
+  if (routeLandscape.value) scene.value?.setLandscape(routeLandscape.value);
+};
 watch(sceneNow, (hour) => {
   if (followClock.value) scene.value?.setHour(hour);
 });
@@ -272,18 +300,23 @@ const cycleDayLength = (): void => {
       :weather="sceneWeather"
       :weather-from-api="handWeather === null"
       :walk-mode="devWalkMode"
+      :camp-habit="campHabit"
+      :place-from-route="!handPlace"
+      :route-place="routeLandscape ? { region: routeLandscape.region, km: routeLandscape.km } : null"
       @update:walk-mode="(mode) => (devWalkMode = mode)"
+      @update:camp-habit="(habit) => (campHabit = habit)"
       @update:weather="(next) => (handWeather = next)"
       @follow-api-weather="handWeather = null"
-      @select-level="(level) => scene?.setLevel(level)"
+      @select-level="(level) => (placeByHand(), scene?.setLevel(level))"
       @update:collapsed="devPanelCollapsed = $event"
       @update:beard-day="beardDayOverride = $event"
       @update:hour="setHour"
       @toggle-play="togglePlay"
       @now="backToNow"
       @cycle-day-length="cycleDayLength"
-      @select-biome="(id) => scene?.setBiome(id)"
-      @reseed="scene?.reseed()"
+      @select-biome="(id) => (placeByHand(), scene?.setBiome(id))"
+      @reseed="(placeByHand(), scene?.reseed())"
+      @follow-route="followRoute"
       @trigger="(id) => scene?.trigger(id)"
     />
   </main>

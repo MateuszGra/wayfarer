@@ -1,4 +1,4 @@
-import type { WorldEventId } from '@shared/achievements/worldEvents';
+import type { SightingId } from '@shared/achievements/worldEvents';
 import type { WorldEventsResponse } from '@shared/api/contracts';
 import { apiGet, apiPut } from '@/shared/api/client';
 
@@ -8,6 +8,6 @@ export function fetchWorldEvents(): Promise<WorldEventsResponse> {
 }
 
 /** Notes that the player saw `event`; seeing it again keeps the first time. */
-export function recordWorldEvent(event: WorldEventId): Promise<WorldEventsResponse> {
+export function recordWorldEvent(event: SightingId): Promise<WorldEventsResponse> {
   return apiPut<WorldEventsResponse>(`/achievements/world/${event}`, {});
 }

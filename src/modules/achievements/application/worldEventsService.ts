@@ -1,5 +1,5 @@
 import type { WorldEventsResponse } from '../../../shared/api/contracts.js';
-import type { WorldEventId } from '../../../shared/achievements/worldEvents.js';
+import type { SightingId } from '../../../shared/achievements/worldEvents.js';
 import type { Clock, SightingRepository } from '../domain/ports.js';
 
 export interface AchievementsDependencies {
@@ -20,7 +20,7 @@ export function worldEvents(deps: AchievementsDependencies, accountId: string): 
 export async function recordWorldEvent(
   deps: AchievementsDependencies,
   accountId: string,
-  event: WorldEventId,
+  event: SightingId,
 ): Promise<WorldEventsResponse> {
   await deps.sightings.record(accountId, event, deps.clock.now());
   return view(deps, accountId);

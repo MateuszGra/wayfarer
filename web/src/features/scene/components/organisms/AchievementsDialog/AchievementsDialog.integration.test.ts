@@ -72,7 +72,7 @@ describe('AchievementsDialog', () => {
 
     await showTrophies();
 
-    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 3 z 10');
+    expect(query('[data-testid="trophies-count"]')?.textContent?.trim()).toBe('Zdobyte: 3 z 13');
   });
 
   it('lists the moments seen in the world apart, marking the one already seen', async () => {
@@ -82,7 +82,7 @@ describe('AchievementsDialog', () => {
 
     const world = query('[data-testid="world-trophies"]');
     expect(world?.querySelector('[data-testid="trophy-bigfootSeen"]')?.textContent).toContain('Zdobyty!');
-    expect(world?.querySelector('[data-testid="trophy-anglerBeaten"]')?.textContent).toContain('Jeszcze nie widziane.');
+    expect(world?.querySelector('[data-testid="trophy-pikeCaught"]')?.textContent).toContain('Jeszcze nie widziane.');
   });
 
   it('counts the days in a row with the goal reached towards the ten-out-of-ten trophy', async () => {

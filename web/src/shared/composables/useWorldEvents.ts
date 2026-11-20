@@ -1,9 +1,9 @@
 import { computed, readonly, ref } from 'vue';
-import type { WorldEventId } from '@shared/achievements/worldEvents';
+import type { SightingId } from '@shared/achievements/worldEvents';
 import { fetchWorldEvents, recordWorldEvent } from '@/shared/api/achievements';
 
 // One list per tab, shared by the scene (which reports sightings) and the achievements window.
-const seen = ref<readonly WorldEventId[]>([]);
+const seen = ref<readonly SightingId[]>([]);
 // Whether the list has been asked for and the server answered, either way.
 const settled = ref(false);
 let loaded: Promise<void> | null = null;
@@ -26,7 +26,7 @@ export function useWorldEvents() {
       });
     return loaded;
   };
-  const record = async (event: WorldEventId): Promise<void> => {
+  const record = async (event: SightingId): Promise<void> => {
     if (seen.value.includes(event)) return;
     seen.value = [...seen.value, event];
     try {

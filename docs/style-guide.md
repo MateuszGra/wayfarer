@@ -219,10 +219,17 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - The near foreground has no rocks: small bushes with reeds at their feet, every stem topped by a bulrush head, long arching leaves between the stems.
 - On the water, all in one scale (the angler's rowing boat about 4.5 m): a dinghy under white sails (about 6 m, mast about 8 m) crossing only when there is some wind, and a pair of swans (about 1.3 m each) gliding slowly. The angler fishes here as on the mountain lake.
 
+## 8d. Polish villages
+
+- White houses with red roofs, of two kinds: gable end to the road (narrow, steep roof, the long side going back in shade) or eaves to the road (wide, a low hipped roof); each with a chimney and small windows, yards between them and trees behind.
+- In the middle a brick Gothic church: a nave with buttresses and tall pointed windows, a square tower with a cornice and a tall spire.
+- Fields are muted ochres and greens; rapeseed and grain never show as a bright yellow.
+- Storks: white with black flight feathers, long red legs bent back at the knee, a long neck in an S and a long red bill; some stand, some probe the grass.
+
 ## 9. Ambient life
 
-- In the beech forest, rarely and only in the grey half-light around sunrise or dusk, a Bigfoot walks from right to left along the farthest wooded ridge: a plain light-grey silhouette, shorter than the beeches around it, never drawn in detail and never seen at any other hour.
-- On a mountain lake an angler sometimes fishes from a rowing boat at anchor, by day only. He stays ashore in snow or a storm; rain, drizzle, wind and fog don't put him off.
+- In the beech forest, rarely and only in the grey half-light around sunrise or dusk, a Bigfoot steps out between the beeches on the near wooded ridge, walks left for 5 to 10 seconds and is gone behind a tree again: a plain light-grey silhouette, shorter than the beeches around it, never drawn in detail and never seen at any other hour.
+- On a mountain lake an angler sometimes fishes from a rowing boat at anchor, by day only. He stays ashore in snow or a storm; rain, drizzle, wind and fog don't put him off. Now and then (about one catch in ten) the fish on his line is a pike: long, olive and spotted, thrashing and bending the rod; seeing it wins "Fanatyk".
 - Grass tufts sway with a slowly changing wind. They are drawn **behind** the wanderer, never over him.
 - Flowers in the grass depend on the biome.
 - Morning mist bands drift through the valleys.

@@ -11,6 +11,8 @@ export interface DevSettings {
   /** Weather set by hand, or null when following the API. */
   readonly weather: Weather | null;
   readonly walkMode: 'steps' | 'fullDay' | 'camp';
+  /** What he does by the fire: takes turns with the pipe and tea, or keeps to one. */
+  readonly campHabit: 'both' | 'pipe' | 'tea';
   readonly dayLengthIndex: number;
 }
 
@@ -21,6 +23,7 @@ export const NO_DEV_SETTINGS: DevSettings = {
   beardDay: null,
   weather: null,
   walkMode: 'steps',
+  campHabit: 'both',
   dayLengthIndex: 0,
 };
 

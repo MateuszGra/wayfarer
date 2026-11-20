@@ -14,7 +14,13 @@ export function useTrophies() {
   const dailySteps = computed(() => journey.journey.value?.journey.dailySteps ?? 0);
   const summary = computed(() => summarize(history.value, dailySteps.value));
   const road = computed(() =>
-    trophyProgress({ totalSteps: summary.value.totalSteps, streak: goalStreak(history.value, dailySteps.value) }),
+    trophyProgress({
+      totalSteps: summary.value.totalSteps,
+      // Days on the road start with the first steps; before them there are none.
+      days: journey.journey.value?.journey.startedOn ? journey.journey.value.today.day : 0,
+      bestDay: history.value.reduce((best, day) => Math.max(best, day.steps), 0),
+      streak: goalStreak(history.value, dailySteps.value),
+    }),
   );
   const world = computed(() => worldTrophyProgress(worldEvents.seen.value));
   const all = computed(() => [...road.value, ...world.value]);

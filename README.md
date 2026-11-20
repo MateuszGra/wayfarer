@@ -188,14 +188,14 @@ they entered day by day. The rules for days, the daily walk and distance are pur
 
 ## Achievements from the world
 
-The `achievements` module (`src/modules/achievements`) remembers the rare moments each player has witnessed in the scene, each worth a trophy: the angler driven off the lake by snow or a storm (`anglerBeaten`) and Bigfoot stepping out between the beeches (`bigfootSeen`). The list lives in `src/shared/achievements/worldEvents.ts`; a sighting is kept once, with the first time it was seen.
+The `achievements` module (`src/modules/achievements`) remembers the rare moments each player has witnessed in the scene, each worth a trophy: the angler landing a pike instead of the usual small fish (`pikeCaught`), the lighthouse beam turned full on the player at night (`lighthouseGlare`), every bird species perched on the wanderer's pack or tent (`bird:*`, for "Hitchcock") and Bigfoot stepping out between the beeches (`bigfootSeen`). The list lives in `src/shared/achievements/worldEvents.ts`; a sighting is kept once, with the first time it was seen.
 
 | Endpoint                             | What it does                                                                                         |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `GET /api/achievements/world`        | The moments this player has seen                                                                     |
 | `PUT /api/achievements/world/:event` | Records a sighting (seeing it again changes nothing); `validation_failed` (400) for an unknown event |
 
-The scene reports a sighting when it happens in view. One started from the developer panel counts only in the local development build. A trophy won while the game is open is celebrated with a badge under the top edge; tapping it opens the trophies.
+Road trophies count total steps, the best single day (AEZAKMI), days in a row with the goal reached and days on the road (the full beard, day 60). The scene reports a sighting when it happens in view. One started from the developer panel counts only in the local development build. A trophy won while the game is open is celebrated with a badge under the top edge; tapping it opens the trophies.
 
 ## Weather
 

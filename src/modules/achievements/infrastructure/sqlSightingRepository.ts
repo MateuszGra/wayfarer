@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import { isWorldEvent } from '../../../shared/achievements/worldEvents.js';
+import { isSighting } from '../../../shared/achievements/worldEvents.js';
 import type { Database } from '../../../db/schema.js';
 import type { Sighting, SightingRepository } from '../domain/ports.js';
 
@@ -14,7 +14,7 @@ export function createSqlSightingRepository(db: Kysely<Database>): SightingRepos
         .execute();
       // An event no longer in the game is left out rather than failing the whole list.
       return rows.flatMap((row): Sighting[] =>
-        isWorldEvent(row.event) ? [{ event: row.event, seenAt: row.seen_at }] : [],
+        isSighting(row.event) ? [{ event: row.event, seenAt: row.seen_at }] : [],
       );
     },
     async record(accountId, event, at) {

@@ -4,7 +4,7 @@ import { BaseButton, BaseCollapsible, BasePanel } from '@/design-system';
 import type { WeatherResponse } from '@shared/api/contracts';
 import { FULL_BEARD_DAYS } from '@shared/wanderer/beard';
 import type { Precipitation, Sky, Weather, Wind } from '@shared/weather/weather';
-import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
+import type { BehaviourGroup, BehaviourId, CampHabit, ElevationLevel, SceneBehaviour } from '@/scene-engine';
 import { useStoredFlag } from '@/shared/composables/useStoredFlag';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
@@ -30,12 +30,25 @@ export interface Props {
   weather: Weather;
   /** Whether the scene follows the API or a weather set by hand here. */
   weatherFromApi: boolean;
+  /** Whether the scene shows the landscape of today's place on the route, not one picked here. */
+  placeFromRoute?: boolean;
+  /** The route region and kilometre where today's walk starts, when known. */
+  routePlace?: { readonly region: string; readonly km: number } | null;
+  /** What he does by the fire: takes turns with the pipe and tea, or keeps to one. */
+  campHabit?: CampHabit;
   /** Which walk the scene shows: today's from the steps, a whole day on the road, or a day at camp. */
   walkMode?: DevWalkMode;
 }
 
 defineOptions({ name: 'DevPanel' });
-const props = withDefaults(defineProps<Props>(), { behaviours: () => [], apiWeather: null, walkMode: 'steps' });
+const props = withDefaults(defineProps<Props>(), {
+  behaviours: () => [],
+  apiWeather: null,
+  walkMode: 'steps',
+  placeFromRoute: true,
+  campHabit: 'both',
+  routePlace: null,
+});
 const emit = defineEmits<{
   'update:hour': [hour: number];
   'update:collapsed': [collapsed: boolean];
@@ -50,6 +63,8 @@ const emit = defineEmits<{
   'update:weather': [weather: Weather];
   'follow-api-weather': [];
   'update:walkMode': [mode: DevWalkMode];
+  'follow-route': [];
+  'update:campHabit': [habit: CampHabit];
 }>();
 
 const clock = computed(() => {
@@ -74,6 +89,7 @@ const beardOpen = useStoredFlag('wayfarer.dev.beardOpen', true);
 const placeOpen = useStoredFlag('wayfarer.dev.placeOpen', true);
 const behavioursOpen = useStoredFlag('wayfarer.dev.behavioursOpen');
 const WALK_MODES: readonly DevWalkMode[] = ['steps', 'fullDay', 'camp'];
+const CAMP_HABITS: readonly CampHabit[] = ['both', 'pipe', 'tea'];
 const weatherOpen = useStoredFlag('wayfarer.dev.weatherOpen');
 const SKIES: readonly Sky[] = ['clear', 'partly', 'overcast', 'fog'];
 const FALLS: readonly Precipitation[] = ['none', 'drizzle', 'rain', 'heavyRain', 'snow', 'heavySnow'];
@@ -159,6 +175,19 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
             {{ t(`dev.walk.${mode}`) }}
           </BaseButton>
         </div>
+        <div class="dev-panel__row" role="group" :aria-label="t('dev.campHabit')">
+          <span class="dev-panel__label">{{ t('dev.campHabit') }}</span>
+          <BaseButton
+            v-for="habit in CAMP_HABITS"
+            :key="habit"
+            size="sm"
+            :variant="campHabit === habit ? 'primary' : 'ghost'"
+            :data-testid="`dev-camp-${habit}`"
+            @click="emit('update:campHabit', habit)"
+          >
+            {{ t(`dev.campHabit.${habit}`) }}
+          </BaseButton>
+        </div>
       </BaseCollapsible>
 
       <BaseCollapsible v-model:open="beardOpen" :title="beardLabel" data-testid="dev-beard-section">
@@ -203,6 +232,17 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
           </BaseButton>
         </div>
         <BaseButton size="sm" data-testid="dev-reseed" @click="emit('reseed')">{{ t('dev.reseed') }}</BaseButton>
+        <BaseButton
+          size="sm"
+          :variant="placeFromRoute ? 'primary' : 'ghost'"
+          data-testid="dev-follow-route"
+          @click="emit('follow-route')"
+        >
+          {{ t('dev.fromRoute') }}
+        </BaseButton>
+        <p v-if="routePlace" class="dev-panel__hint" data-testid="dev-route-place">
+          {{ t('dev.routePlace', { region: routePlace.region, km: Math.round(routePlace.km) }) }}
+        </p>
       </BaseCollapsible>
 
       <BaseCollapsible v-model:open="weatherOpen" :title="t('dev.weather')" data-testid="dev-weather">
@@ -360,6 +400,19 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--fg-dim);
+}
+/* Section headings stand apart from the options inside them: gold, bold small capitals over a hairline
+   that divides one section from the next. */
+.dev-panel__body :deep(.base-collapsible) {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.dev-panel__body :deep(.base-collapsible__trigger) {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 .dev-panel__group {
   display: grid;

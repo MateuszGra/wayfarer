@@ -1,4 +1,4 @@
-import type { WorldEventId } from '../achievements/worldEvents.js';
+import type { SightingId } from '../achievements/worldEvents.js';
 import type { Weather } from '../weather/weather.js';
 
 export interface HealthResponse {
@@ -95,5 +95,5 @@ export interface WeatherResponse {
 
 export interface WorldEventsResponse {
   /** The moments in the world this player has seen, with when they first saw each, ISO 8601. */
-  readonly seen: readonly { readonly id: WorldEventId; readonly seenAt: string }[];
+  readonly seen: readonly { readonly id: SightingId; readonly seenAt: string }[];
 }

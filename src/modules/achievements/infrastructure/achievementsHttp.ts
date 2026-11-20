@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
-import { WORLD_EVENTS, type WorldEventId } from '../../../shared/achievements/worldEvents.js';
+import { SIGHTINGS, type SightingId } from '../../../shared/achievements/worldEvents.js';
 import type { WorldEventsResponse } from '../../../shared/api/contracts.js';
 import { recordWorldEvent, worldEvents, type AchievementsDependencies } from '../application/worldEventsService.js';
 
@@ -15,7 +15,7 @@ const eventSchema = {
   params: {
     type: 'object',
     required: ['event'],
-    properties: { event: { type: 'string', enum: [...WORLD_EVENTS] } },
+    properties: { event: { type: 'string', enum: [...SIGHTINGS] } },
   },
 } as const;
 
@@ -31,7 +31,7 @@ export function registerAchievementsHttp(
   );
 
   // PUT, since recording the same sighting again changes nothing.
-  app.put<{ Params: { event: WorldEventId } }>(
+  app.put<{ Params: { event: SightingId } }>(
     '/api/achievements/world/:event',
     { ...guarded, schema: eventSchema },
     async (request): Promise<WorldEventsResponse> =>

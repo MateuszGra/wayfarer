@@ -1,4 +1,4 @@
-import type { WorldEventId } from '@shared/achievements/worldEvents';
+import type { SightingId } from '@shared/achievements/worldEvents';
 import type { Weather } from '@shared/weather/weather';
 
 /** Height band of a mountain biome; biomes without levels always report `mid`. */
@@ -37,8 +37,10 @@ export interface SceneBehaviour {
   readonly group: BehaviourGroup;
 }
 
+export type CampHabit = 'both' | 'pipe' | 'tea';
+
 export interface SceneWorldEvent {
-  readonly id: WorldEventId;
+  readonly id: SightingId;
   readonly forced: boolean;
 }
 
@@ -77,6 +79,7 @@ export interface SceneOptions {
   readonly hideWanderer?: boolean;
   /** Beard length from 0 (clean-shaven) to 1 (full). */
   readonly beard?: number;
+  readonly campHabit?: CampHabit;
   /** The weather layers to draw; left out, a clear sky with a light breeze. */
   readonly weather?: Weather;
   /** Today's walk, or null for a day at camp; left out, the prototype's demo day (07:12–19:18). */
@@ -96,11 +99,15 @@ export interface Scene {
   /** Today's walk, or null for a day at camp. */
   setWalk(walk: SceneWalk | null): void;
   setWeather(weather: Weather): void;
+  /** What he does by the fire: takes turns with his pipe and a mug of tea, or keeps to one. */
+  setCampHabit(habit: CampHabit): void;
   setBiome(id: string): void;
   /** The levels a biome offers: low, mid and high for mountain biomes, only mid for the rest. */
   levelsOf(id: string): readonly ElevationLevel[];
   setLevel(level: ElevationLevel): void;
   reseed(): void;
+  /** Shows the landscape of a place on the route: biome, level and variant at once. */
+  setLandscape(landscape: { readonly biome: string; readonly level: ElevationLevel; readonly seed: number }): void;
   /** Starts a behaviour now instead of waiting for its loop. */
   trigger(id: BehaviourId): void;
   destroy(): void;

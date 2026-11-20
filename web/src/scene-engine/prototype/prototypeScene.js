@@ -78,7 +78,8 @@ export async function startPrototypeScene(host, options = {}) {
   // `speed` is the parallax factor relative to the path the traveller walks on.
   const BIOMES = {
     fields: {
-      // Kujawy and Greater Poland: flat plains in a patchwork of rapeseed, grain and meadow, poplar avenues
+      // Kujawy and Greater Poland: flat plains in a patchwork of rapeseed, grain and meadow (muted ochres,
+      // never a bright yellow that would shout over the rest of the palette), poplar avenues
       // along field roads, white villages with red roofs around a brick church, farmsteads, hay bales,
       // storks feeding in the meadow, a tractor now and then, a hunting stand at a field edge, and a band
       // of forest on the horizon.
@@ -90,14 +91,14 @@ export async function startPrototypeScene(host, options = {}) {
         { kind: 'hill', depth: 0.9, base: 0.645, amp: 0.02, wave: 0.6, oct: 3, speed: 0.012, color: 0x6c8574, fog: 0.3,
           trees: { type: 'round', spacing: 0.005, h: [0.02, 0.038], density: 0.95, mix: 0.4, groves: 0.32 } },
         { kind: 'hill', depth: 0.7, base: 0.675, amp: 0.018, wave: 0.5, oct: 3, speed: 0.03, color: 0x9fae6a, fog: 0.22,
-          patchwork: { colors: [0xd4c15a, 0xc2b07a, 0x9fb06c], bands: 4 },
+          patchwork: { colors: [0xc2b46e, 0xbcae80, 0x9fb06c], bands: 4 },
           stands: { spacing: 1.6, chance: 0.55, scale: 0.6 } },
         { kind: 'hill', depth: 0.5, base: 0.725, amp: 0.028, wave: 0.45, oct: 3, speed: 0.08, color: 0x9aae5e, fog: 0.14,
-          patchwork: { colors: [0xe4c84a, 0xcdb478, 0x98b061, 0xb2bd6e], bands: 5, bales: true },
+          patchwork: { colors: [0xc8b866, 0xc4b080, 0x98b061, 0xb2bd6e], bands: 5, bales: true },
           village: { wall: 0xeee6d2, roof: 0xb24a30, church: 0xa54c33, spacing: 1.1 },
           farms: { spacing: 0.9, chance: 0.6 }, tractors: { spacing: 1.3, chance: 0.45 } },
         { kind: 'hill', depth: 0.32, base: 0.83, amp: 0.024, wave: 0.4, oct: 3, speed: 0.22, color: 0x86a552, fog: 0.07,
-          patchwork: { colors: [0xe8cc48, 0xd2b878, 0x8daa58], bands: 6, bales: true },
+          patchwork: { colors: [0xccba63, 0xc8b281, 0x8daa58], bands: 6, bales: true },
           trees: { type: 'poplar', spacing: 0.05, h: [0.1, 0.125], density: 1, avenue: 0.26, avenueShare: 0.24, color: 0x4f6e44 },
           storks: { spacing: 0.7, chance: 0.55 }, shrines: { spacing: 2.4, chance: 0.6 } },
         { kind: 'ground', depth: 0.07, base: 0.96, amp: 0.016, wave: 0.3, oct: 3, speed: 1, color: 0x6c8444, path: 0xb79c6c,
@@ -295,6 +296,7 @@ export async function startPrototypeScene(host, options = {}) {
     // Today's walk: from `startHour` to `endHour`, after `leadHours` of getting up and packing. Null is a
     // day at camp (no steps yet, or a rest day). Without a walk given, the demo day of the prototype.
     walk: options.walk === undefined ? DEMO_WALK : options.walk,
+    campHabit: options.campHabit ?? 'both',
     weather: options.weather ?? CLEAR_WEATHER,
   };
 
@@ -610,6 +612,52 @@ export async function startPrototypeScene(host, options = {}) {
       house(L, sx, yAt(L, sx, uOff) + 2, C.size * H, { chimney: true, planks: true });
     }
   }
+  // A Polish village house in one of two kinds: gable end to the road (narrow, steep roof, the long side
+  // in shade going back) or eaves to the road (wide, a low hipped roof). White walls, red roofs, a chimney
+  // and small windows; `r` picks the kind and its proportions.
+  function villageHouse(L, sx, y, s, r) {
+    const [r1, r2, r3, r4] = r;
+    if (r1 < 0.45) {
+      const w = s * (1.15 + 0.3 * r2), h = s * (0.95 + 0.25 * r3), side = s * (0.9 + 0.5 * r4), roofH = s * 1.05;
+      L.planks.poly([sx + w / 2, y - h, sx + w / 2 + side, y - h - s * 0.12, sx + w / 2 + side, y + 1, sx + w / 2, y + 1]).fill(0xffffff);
+      L.roofs.poly([sx, y - h - roofH, sx + side, y - h - roofH - s * 0.12, sx + w / 2 + side + s * 0.12, y - h - s * 0.12, sx + w / 2 + s * 0.12, y - h]).fill(0xffffff);
+      L.walls.poly([sx - w / 2, y + 1, sx - w / 2, y - h, sx, y - h - roofH * 0.92, sx + w / 2, y - h, sx + w / 2, y + 1]).fill(0xffffff);
+      L.roofs.poly([sx - w / 2 - s * 0.12, y - h + s * 0.02, sx, y - h - roofH, sx + s * 0.08, y - h - roofH + s * 0.14, sx - w / 2 + s * 0.02, y - h + s * 0.14]).fill(0xffffff);
+      L.win.rect(sx - s * 0.2, y - h * 0.62, s * 0.4, s * 0.38).fill(0xffffff);
+      if (r4 > 0.5) L.win.rect(sx - s * 0.1, y - h - roofH * 0.55, s * 0.2, s * 0.22).fill(0xffffff);
+      L.roofs.rect(sx + side * 0.55, y - h - roofH - s * 0.25, s * 0.22, s * 0.4).fill(0xffffff);
+    } else {
+      const w = s * (2.1 + 0.7 * r2), h = s * (0.9 + 0.2 * r3), roofH = s * (0.75 + 0.2 * r4);
+      L.walls.rect(sx - w / 2, y - h, w, h + 1).fill(0xffffff);
+      L.roofs.poly([sx - w / 2 - s * 0.18, y - h, sx - w / 2 + s * 0.55, y - h - roofH, sx + w / 2 - s * 0.55, y - h - roofH, sx + w / 2 + s * 0.18, y - h]).fill(0xffffff);
+      for (const f of [-0.28, 0.28]) L.win.rect(sx + w * f - s * 0.19, y - h * 0.66, s * 0.38, s * 0.38).fill(0xffffff);
+      L.planks.rect(sx - s * 0.18, y - h * 0.62, s * 0.36, h * 0.62 + 1).fill(0xffffff);
+      L.roofs.rect(sx + w * 0.22, y - h - roofH - s * 0.2, s * 0.22, s * 0.45).fill(0xffffff);
+    }
+  }
+  // Brick Gothic church: a long nave with buttresses and tall pointed windows under a steep roof, and a
+  // square west tower with a cornice and a tall spire, all in the brick tint.
+  function villageChurch(L, cx, y, s) {
+    const nave = [cx - s * 2.2, cx + s * 1.3], naveH = s * 2.0;
+    L.church.rect(nave[0], y - naveH, nave[1] - nave[0], naveH + 1).fill(0xffffff);
+    for (let i = 0; i <= 3; i++) {
+      const bx = lerp(nave[0], nave[1], i / 3);
+      L.planks.rect(bx - s * 0.11, y - naveH * 0.8, s * 0.22, naveH * 0.8 + 1).fill(0xffffff);
+      if (i < 3) {
+        const wx = lerp(nave[0], nave[1], (i + 0.5) / 3);
+        L.win.poly([wx - s * 0.16, y - naveH * 0.25, wx - s * 0.16, y - naveH * 0.7, wx, y - naveH * 0.85, wx + s * 0.16, y - naveH * 0.7, wx + s * 0.16, y - naveH * 0.25]).fill(0xffffff);
+      }
+    }
+    L.roofs.poly([nave[0] - s * 0.15, y - naveH, (nave[0] + nave[1]) / 2, y - naveH - s * 1.35, nave[1] + s * 0.15, y - naveH]).fill(0xffffff);
+    const t0 = nave[1] - s * 0.1, tw = s * 1.25, tH = s * 4.6;
+    L.church.rect(t0, y - tH, tw, tH + 1).fill(0xffffff);
+    L.planks.rect(t0 + tw * 0.62, y - tH, tw * 0.38, tH + 1).fill(0xffffff);
+    L.church.rect(t0 - s * 0.1, y - tH - s * 0.18, tw + s * 0.2, s * 0.2).fill(0xffffff);
+    L.win.poly([t0 + tw * 0.3, y - tH * 0.62, t0 + tw * 0.3, y - tH * 0.8, t0 + tw * 0.42, y - tH * 0.86, t0 + tw * 0.54, y - tH * 0.8, t0 + tw * 0.54, y - tH * 0.62]).fill(0xffffff);
+    L.roofs.poly([t0 - s * 0.05, y - tH - s * 0.18, t0 + tw / 2, y - tH - s * 2.6, t0 + tw + s * 0.05, y - tH - s * 0.18]).fill(0xffffff);
+    L.roofs.rect(t0 + tw / 2 - s * 0.04, y - tH - s * 3.05, s * 0.08, s * 0.5).fill(0xffffff);
+    L.roofs.rect(t0 + tw / 2 - s * 0.2, y - tH - s * 2.92, s * 0.4, s * 0.07).fill(0xffffff);
+  }
   function drawVillage(L, uOff, x1) {
     const spacing = L.village.spacing ?? 2.6;
     const k0 = Math.floor((uOff - 0.3) / spacing), k1 = Math.ceil((uOff + x1 / S + 0.3) / spacing);
@@ -617,25 +665,21 @@ export async function startPrototypeScene(host, options = {}) {
       if (hash(k, L.seed + 3) > 0.75) continue;
       const cu = (k + 0.3 + hash(k, L.seed + 4) * 0.4) * spacing;
       const s = H * 0.011 * (L.village.scale ?? 1);
-      const n = 5 + Math.floor(hash(k, L.seed + 6) * 6);
+      const n = 6 + Math.floor(hash(k, L.seed + 6) * 6);
+      const cx = (cu - uOff) * S;
+      // Houses strung out along the road either side of the church, with yards between them and trees
+      // behind; the church stands in the middle.
       for (let i = 0; i < n; i++) {
-        const sx = (cu - uOff) * S + (i - n / 2) * s * 1.8 + (hash(i, k + L.seed) - 0.5) * s;
-        house(L, sx, yAt(L, sx, uOff) + 1, s, { w: 1.1 + hash(i, k * 3 + 1) * 0.8, h: 0.75 + hash(i, k * 3 + 2) * 0.5, roof: 0.55, windows: hash(i, k * 3 + 5) < 0.7 ? 1 : 0 });
+        const side = i % 2 ? 1 : -1, rank = Math.floor(i / 2) + 1;
+        const sx = cx + side * (s * 2.6 + rank * s * 3.2 + (hash(i, k + L.seed) - 0.5) * s * 1.2);
+        const y = yAt(L, sx, uOff) + 1;
+        if (hash(i, k * 7 + L.seed) < 0.75) roundHalves(L.tL, L.tR, sx + side * s * 1.7, y + 1, s * (2.4 + hash(i, k * 9 + L.seed) * 1.2), hash(i, k * 11 + L.seed));
+        villageHouse(L, sx, y, s, [hash(i, k * 3 + 1), hash(i, k * 3 + 2), hash(i, k * 3 + 3), hash(i, k * 3 + 4)]);
       }
-      const cx = (cu - uOff) * S, y = yAt(L, cx, uOff) + 1;
-      if (L.village.church) {
-        // Brick Gothic church: a tall nave with a steep roof and a tower with a pointed spire.
-        L.church.rect(cx - s * 1.8, y - s * 1.9, s * 3.4, s * 1.9 + 1).fill(0xffffff);
-        L.roofs.poly([cx - s * 1.95, y - s * 1.9, cx - s * 0.1, y - s * 3.1, cx + s * 1.75, y - s * 1.9]).fill(0xffffff);
-        L.church.rect(cx + s * 1.3, y - s * 4.6, s * 1.15, s * 4.6 + 1).fill(0xffffff);
-        L.roofs.poly([cx + s * 1.2, y - s * 4.6, cx + s * 1.875, y - s * 6.6, cx + s * 2.55, y - s * 4.6]).fill(0xffffff);
-        L.win.rect(cx + s * 1.72, y - s * 3.9, s * 0.32, s * 0.6).fill(0xffffff);
-        continue;
-      }
-      house(L, cx, y, s, { w: 3.2, h: 1.5, roof: 0.7, windows: 0 });
-      L.walls.rect(cx + s * 1.1, y - s * 3.6, s * 0.95, s * 3.6 + 1).fill(0xffffff);
-      L.roofs.poly([cx + s * 1.0, y - s * 3.6, cx + s * 1.575, y - s * 4.9, cx + s * 2.15, y - s * 3.6]).fill(0xffffff);
-      L.win.rect(cx + s * 1.43, y - s * 3.1, s * 0.3, s * 0.45).fill(0xffffff);
+      const y = yAt(L, cx, uOff) + 1;
+      roundHalves(L.tL, L.tR, cx - s * 3, y + 1, s * 3.4, hash(k, L.seed + 8));
+      if (L.village.church) { villageChurch(L, cx, y, s); continue; }
+      villageHouse(L, cx, y, s * 1.2, [0.9, 0.6, 0.5, 0.5]);
     }
   }
   function findPeaks(ys, win) {
@@ -904,7 +948,7 @@ export async function startPrototypeScene(host, options = {}) {
   // neck, black flight feathers ending in ragged tips, a black tail, and long red legs bent at the knee
   // and a red beak. Some stand upright, some bend down to feed.
   function drawStorks(L, uOff, x1) {
-    const C = L.storks, s = H * 0.0042;
+    const C = L.storks, s = H * 0.0048;
     eachSlot(C.spacing, uOff, x1, (k) => {
       if (hash(k, L.seed + 61) > C.chance) return;
       const count = 1 + Math.floor(hash(k, L.seed + 63) * 2);
@@ -921,23 +965,28 @@ export async function startPrototypeScene(host, options = {}) {
           for (const q of rest) g.lineTo(q[0], q[1]);
           g.stroke({ width: Math.max(0.8, s * w), color: 0xffffff, cap: 'round', join: 'round' });
         };
-        // Legs bent backwards at the knee.
-        line(L.storkRed, [[-0.4, 0], [-0.1, 1.6], [-0.3, 3.2]], 0.22);
-        line(L.storkRed, [[0.5, 0], [0.7, 1.6], [0.4, 3.2]], 0.22);
-        // Body, then the black wing with ragged primary tips and the black tail.
-        poly(L.stork, [[-1.6, 3.6], [-0.6, 4.6], [0.9, 4.7], [1.6, 4.1], [1.1, 3.2], [-0.6, 3]]);
-        poly(L.storkDark, [[-0.8, 4.4], [0.7, 4.5], [0.2, 3.6], [-0.9, 3.3], [-1.9, 2.9], [-1.6, 3.3], [-2.1, 3.2], [-1.7, 3.6], [-2.2, 3.6], [-1.4, 4]]);
-        poly(L.storkDark, [[-1.5, 3.5], [-2.1, 3.9], [-1.9, 3.2]]);
+        const smoothPoly = (g, pts) => g.poly(smoothLoop(pts, 4).flatMap(([x, yy]) => P(x, yy))).fill(0xffffff);
+        // Long red legs, the knee bending backwards, one leg a little behind the other.
+        line(L.storkRed, [[-0.5, 0], [-0.25, 1.7], [-0.45, 3.1]], 0.2);
+        line(L.storkRed, [[0.45, 0], [0.75, 1.6], [0.35, 3.1]], 0.2);
+        L.storkRed.ellipse(...P(-0.65, 0.05), s * 0.45, s * 0.12).fill(0xffffff);
+        L.storkRed.ellipse(...P(0.6, 0.05), s * 0.45, s * 0.12).fill(0xffffff);
+        // A smooth white body, fuller at the breast, then the black flight feathers folded over the back
+        // and running out past the tail in ragged tips.
+        smoothPoly(L.stork, [[-2.1, 3.7], [-1.2, 4.5], [0.4, 4.85], [1.6, 4.6], [2, 4], [1.5, 3.3], [0, 2.95], [-1.4, 3.15]]);
+        smoothPoly(L.storkDark, [[-0.7, 4.55], [0.9, 4.6], [0.6, 4], [-0.4, 3.45], [-1.6, 3.25], [-2.4, 3.05], [-2.9, 3.25], [-2.3, 3.6], [-2.8, 3.75], [-2.2, 4.05], [-1.6, 4.35]]);
+        line(L.stork, [[-0.4, 4.3], [0.6, 4.25]], 0.12);
         if (feeding) {
-          // Neck reaching down to the grass, beak nearly touching it.
-          line(L.stork, [[1.2, 4.3], [1.9, 3.6], [2.3, 2.4]], 0.45);
-          L.stork.circle(...P(2.35, 2.2), s * 0.4).fill(0xffffff);
-          line(L.storkRed, [[2.5, 2], [2.8, 0.6]], 0.16);
+          // Neck stretched down to the grass, the bill probing it.
+          line(L.stork, [[1.6, 4.3], [2.3, 3.7], [2.6, 2.7]], 0.48);
+          L.stork.ellipse(...P(2.65, 2.45), s * 0.48, s * 0.4).fill(0xffffff);
+          L.storkRed.poly([...P(2.85, 2.55), ...P(3.15, 0.55), ...P(2.6, 2.25)]).fill(0xffffff);
         } else {
-          // S-shaped neck, head held high, beak forward.
-          line(L.stork, [[1.2, 4.4], [1.5, 5.4], [1.2, 6.2], [1.5, 7]], 0.42);
-          L.stork.circle(...P(1.6, 7.1), s * 0.42).fill(0xffffff);
-          line(L.storkRed, [[1.95, 7.1], [3.4, 6.7]], 0.17);
+          // A long neck in a gentle S, the head held high, the long red bill pointing forward and down.
+          line(L.stork, [[1.6, 4.4], [1.95, 5.35], [1.65, 6.25], [1.95, 7.05]], 0.46);
+          L.stork.ellipse(...P(2.05, 7.15), s * 0.5, s * 0.42).fill(0xffffff);
+          L.storkDark.circle(...P(2.25, 7.25), s * 0.1).fill(0xffffff);
+          L.storkRed.poly([...P(2.4, 7.3), ...P(4.25, 6.55), ...P(2.45, 6.95)]).fill(0xffffff);
         }
       }
     });
@@ -1369,7 +1418,9 @@ export async function startPrototypeScene(host, options = {}) {
 
   // Now and then a fish bites: over five seconds of a 28-second cast the rod dips, rises bent, the fish
   // comes up wriggling on the line and is swung into the boat; then he casts again.
-  const CATCH = { cast: 28, length: 5, chance: 0.5, seed: 617 };
+  const CATCH = { cast: 28, length: 5, chance: 0.5, seed: 617, pike: 0.1 };
+  // The cast whose pike was last reported, so each catch is reported once.
+  let pikeReported = null;
   // The angler's rowing boat: in vessel units (100 to the length of the lane, waterline at 0), the hull 60
   // long, about 4.5 m. `at` places a point of it in the drawing.
   function rowboat(g, col, at) {
@@ -1413,10 +1464,16 @@ export async function startPrototypeScene(host, options = {}) {
       g.moveTo(X(-10), Y(0.4)).lineTo(X(-22), Y(1.2)).stroke({ width: 0.8, color: 0xffffff, alpha: 0.35 });
     }
   }
-  function drawAngler(g, col, t) {
+  // `shownFor`: seconds since the developer panel called him up, or Infinity; then he lands a pike at once,
+  // so the rare catch can be seen on demand.
+  function drawAngler(g, col, t, shownFor) {
     g.clear();
-    const cast = Math.floor(t / CATCH.cast), c = mod(t, CATCH.cast);
-    const catching = hash(cast, CATCH.seed) < CATCH.chance && c < CATCH.length;
+    const forced = shownFor < Infinity;
+    const onDemand = forced && shownFor > 2 && shownFor < 2 + CATCH.length;
+    const cast = onDemand ? -1 : Math.floor(t / CATCH.cast), c = onDemand ? shownFor - 2 : mod(t, CATCH.cast);
+    const catching = onDemand || (hash(cast, CATCH.seed) < CATCH.chance && c < CATCH.length);
+    // Now and then the fish on the line is a pike: long, olive and spotted, fighting and bending the rod.
+    const pike = catching && (onDemand || hash(cast, CATCH.seed + 1) < CATCH.pike);
     const water = [58, 0];
     // The rod tip: resting with a small twitch now and then, dipping at the bite, raised and bent while
     // the fish comes up.
@@ -1441,11 +1498,33 @@ export async function startPrototypeScene(host, options = {}) {
     g.circle(-8, -29, 4.2).fill(col(0xd8b08c));
     g.ellipse(-8, -32.5, 7, 1.6).fill(col(0x4a3a2a));
     g.roundRect(-11.5, -37, 7, 5, 2).fill(col(0x4a3a2a));
-    const bend = fish ? -8 : 0;
+    const bend = fish ? (pike ? -14 + Math.sin(t * 9) * 3 : -8) : 0;
     g.moveTo(-4, -18).quadraticCurveTo(24, -46 + bend, tip[0], tip[1]).stroke({ width: 1.4, color: col(0x3a3028) });
     const end = fish ?? (catching && c >= 4 ? null : water);
     if (end) g.moveTo(tip[0], tip[1]).quadraticCurveTo(lerp(tip[0], end[0], 0.5) + 4, lerp(tip[1], end[1], 0.6), end[0], end[1]).stroke({ width: 0.6, color: col(0xe8e4da), alpha: 0.8 });
-    if (fish) {
+    if (fish && pike) {
+      // A pike hanging from the line, head up and duck-bill snout open, thrashing: a long olive body with
+      // pale spots and a cream belly, red fins near the tail.
+      const w = Math.sin(t * 16) * 2.2;
+      const P = (x, y) => [fish[0] + x + (y / 22) * w, fish[1] + y];
+      const body = [[-2.6, 3], [-3, 8], [-2.8, 14], [-1.6, 19], [0, 20], [1.6, 19], [2.8, 14], [3, 8], [2.6, 3], [1.4, 0.5], [0, -0.4], [-1.4, 0.5]];
+      g.poly(body.flatMap(([x, y]) => P(x, y))).fill(col(0x7d8a3e));
+      g.poly([[0.6, 2], [2.6, 3], [3, 8], [2.8, 14], [1.6, 19], [0.8, 19.4], [1.6, 12], [1.4, 6]].flatMap(([x, y]) => P(x, y))).fill(col(0xe8dcb8));
+      for (const [x, y] of [[-1.2, 6], [0.2, 9], [-1.4, 12], [0, 15]]) g.ellipse(...P(x, y), 0.8, 0.45).fill(col(0xe6df9a));
+      g.poly([[-1, 19.5], [-3.6, 23], [0, 21.4], [3.6, 23], [1, 19.5]].flatMap(([x, y]) => P(x, y))).fill(col(0xb5563a));
+      g.poly([[-2.8, 15], [-4.4, 17.5], [-2.2, 17.2]].flatMap(([x, y]) => P(x, y))).fill(col(0xb5563a));
+      g.circle(...P(-0.9, 2.2), 0.55).fill(col(0x1d1b1a));
+      // Splash drops flung off it.
+      for (let i = 0; i < 4; i++) {
+        const a = t * 7 + i * 1.6, r = 4 + mod(t * 3 + i, 1) * 6;
+        g.circle(fish[0] + Math.cos(a) * r, fish[1] + 10 + Math.sin(a) * r * 0.6, 0.6).fill({ color: 0xffffff, alpha: 0.6 });
+      }
+      const catchKey = onDemand ? `forced${Math.floor(t - shownFor)}` : cast;
+      if (pikeReported !== catchKey && c > 1.4 && c < 3) {
+        pikeReported = catchKey;
+        options.onWorldEvent?.({ id: 'pikeCaught', forced });
+      }
+    } else if (fish) {
       // A silver fish hanging from the line, head down, wriggling.
       const w = Math.sin(t * 22) * 0.5;
       g.ellipse(fish[0], fish[1] + 5, 2.2, 5).fill(col(0xc9d2d6));
@@ -1494,18 +1573,29 @@ export async function startPrototypeScene(host, options = {}) {
   // A wanderer's pack: a soft, lumpy canvas sack cinched at the top, with a pocket, a metal buckle and a
   // sleeping bag rolled into a scroll and strapped across the top (seen end-on, a spiral). The same pack
   // is drawn on his back and standing at the camp; `at` maps its own units (as worn) to the drawing.
-  function drawPack(g, at) {
+  // `open`: set down at camp, the bedroll is in the tent and the drawstring is undone, the top flap thrown
+  // back and the mouth of the sack showing.
+  function drawPack(g, at, { open = false } = {}) {
     const sm = pts => { const f = []; for (const p of smoothLoop(pts, 5)) f.push(...at(p[0], p[1])); return f; };
     const ln = (a, b, wd, col) => { const A = at(...a), B = at(...b); g.moveTo(A[0], A[1]).lineTo(B[0], B[1]).stroke({ width: wd, color: col, cap: 'round' }); };
     g.poly(sm([[-9, -37], [-13.5, -38.5], [-18.5, -36], [-20.6, -31], [-20, -26.5], [-23.2, -21], [-24.2, -14], [-22, -8.4], [-16, -6.2], [-10.5, -6.8], [-8.4, -9]])).fill(TC.pack);
     g.poly(sm([[-18.5, -36], [-20.6, -31], [-20, -26.5], [-23.2, -21], [-24.2, -14], [-22, -8.4], [-19.4, -7.4], [-20.6, -13], [-19.8, -20], [-17.8, -26], [-18, -31.5]])).fill(TC.packDark);
     g.poly(sm([[-21.8, -20], [-15.6, -20.6], [-14.6, -13.4], [-16.6, -9.6], [-21.4, -9.8], [-22.8, -14]])).fill(TC.packFlap);
     ln([-21.4, -16.2], [-15.2, -16.6], 1, TC.packDark);
-    for (const [x, y] of [[-11, -37.6], [-14, -39.2], [-17, -37.8]]) g.poly(sm([[x - 1.6, y + 1.4], [x, y - 1.6], [x + 1.6, y + 1.4]])).fill(TC.packFlap);
-    ln([-10, -36.4], [-18.4, -35.4], 1.1, TC.strap);
+    if (open) {
+      // The mouth of the sack, and the flap thrown back over its far side.
+      const mouth = at(-13.6, -37.2), m1 = at(-8.6, -37.2);
+      g.ellipse(mouth[0], mouth[1], Math.abs(m1[0] - mouth[0]), Math.max(1, Math.abs(m1[0] - mouth[0]) * 0.32)).fill(TC.strap);
+      g.poly(sm([[-18.2, -37.6], [-21.8, -34], [-22.6, -28], [-20, -27.4], [-18.6, -32.4], [-15.6, -36.6]])).fill(TC.packFlap);
+      ln([-20.6, -28.2], [-20.2, -25.6], 1, TC.strap);
+    } else {
+      for (const [x, y] of [[-11, -37.6], [-14, -39.2], [-17, -37.8]]) g.poly(sm([[x - 1.6, y + 1.4], [x, y - 1.6], [x + 1.6, y + 1.4]])).fill(TC.packFlap);
+      ln([-10, -36.4], [-18.4, -35.4], 1.1, TC.strap);
+    }
     const buckle = at(-23.4, -24.5);
     g.circle(buckle[0], buckle[1], 2.3).fill(0x9aa0a6);
     ln([-23.4, -26.6], [-21.6, -28.4], 0.9, 0x9aa0a6);
+    if (open) return;
     const rc = at(-15, -43.5), rr = 6.6;
     for (const x of [-20.2, -9.8]) ln([x, -43.5], [x + (x < -15 ? -0.6 : 0.6), -36.4], 1.6, TC.strap);
     g.circle(rc[0], rc[1], rr).fill(TC.roll);
@@ -1823,6 +1913,10 @@ export async function startPrototypeScene(host, options = {}) {
   // ridge. Every species shares one shape and size and differs only in colours.
   // Order matches BIRD_IDS, which the dev panel uses to call a chosen species.
   const BIRD_IDS = ['birdStarling', 'birdRobin', 'birdTit', 'birdChaffinch', 'birdSparrow'];
+  // The same species as reported to the game when one perches (see BIRD_SPECIES in src/shared).
+  const BIRD_KEYS = ['starling', 'robin', 'tit', 'chaffinch', 'sparrow'];
+  // The visit whose perching bird was last reported, so each visit is reported once.
+  let birdReported = null;
   const BIRD_SPECIES = [
     // Starling: dark, glossy, speckled, yellow beak.
     { back: 0x2b2a35, tail: 0x24232c, wing: 0x3a3946, head: 0x2b2a35, beak: 0xe0b84a, spots: 0xcfd0d8 },
@@ -2040,9 +2134,9 @@ export async function startPrototypeScene(host, options = {}) {
     .ellipse(-2, -22, 9, 2).stroke({ width: 1, color: 0x7a5a3d })
     .rect(-60, -10, 8, 10).fill(0x3c3631).rect(-59, -13, 6, 3).fill(0x3c3631));
   // The pack he walks with, set down upright beside the stump: the worn shape, shifted so it stands on
-  // the ground left of the stump.
+  // the ground left of the stump, opened, its bedroll taken into the tent for the night.
   const campPack = new Graphics();
-  drawPack(campPack, (x, y) => [x - 21, y + 6.2]);
+  drawPack(campPack, (x, y) => [x - 21, y + 6.2], { open: true });
   campC.addChild(campPack);
   const lanternGlow = addSprite(actors, glowTex, { add: true, tint: 0xffc070 });
   const lanternFlame = new Graphics().roundRect(-58.5, -9, 5, 7, 1.5).fill(0xffffff);
@@ -2562,10 +2656,7 @@ export async function startPrototypeScene(host, options = {}) {
 
     if (env.ships) {
       const foul = state.weather.storm || state.weather.precipitation === 'snow' || state.weather.precipitation === 'heavySnow';
-      const fairBefore = fairK;
       fairK += ((foul ? 0 : 1) - fairK) * Math.min(1, dt * 0.8);
-      // The moment the weather drives a fair-weather boat off the water while it is plainly in view.
-      const drivenOff = fairBefore >= 0.5 && fairK < 0.5;
       for (const kind of Object.keys(env.ships)) {
         const sh = SHIPS[kind], g = env.ships[kind];
         const pass = shipPass(kind, t, forcedAge(sh.id));
@@ -2587,12 +2678,9 @@ export async function startPrototypeScene(host, options = {}) {
           x = (anchors[kind].u - state.offsetU * LAKE_SPEED) * S;
           g.alpha *= smooth(0, 0.05, pass.k) * (1 - smooth(0.95, 1, pass.k));
         }
-        if (sh.fairWeather && drivenOff && g.alpha / Math.max(fairK, 0.01) > 0.5) {
-          options.onWorldEvent?.({ id: 'anglerBeaten', forced: forcedAge(sh.id) < sh.cross });
-        }
         const col = (c) => colorAt(c, sh.depth);
         if (kind === 'cargo') drawCargoShip(g, col, nightK);
-        else if (kind === 'angler') drawAngler(g, col, t);
+        else if (kind === 'angler') drawAngler(g, col, t, forcedAge(sh.id) < sh.cross ? forcedAge(sh.id) : Infinity);
         else if (kind === 'sailboat') drawSailboat(g, col, t, WIND_STRENGTH[state.weather.wind]);
         else if (kind === 'swans') drawSwans(g, col, t);
         else drawCutter(g, col, nightK, t);
@@ -2669,6 +2757,8 @@ export async function startPrototypeScene(host, options = {}) {
         env.flash.position.set(lamp.x, lamp.y);
         env.flash.width = env.flash.height = Math.hypot(W, H) * 2;
         env.flash.alpha = nightK * 0.22 * facing;
+        // Dazzled: the beam full in the face on a dark night, with the lamp in view.
+        if (facing > 0.9 && nightK > 0.5 && lamp.x > 0 && lamp.x < W) options.onWorldEvent?.({ id: 'lighthouseGlare', forced: false });
       }
     }
 
@@ -2759,9 +2849,11 @@ export async function startPrototypeScene(host, options = {}) {
     if (sitting) {
       const sipK = smooth(0, 0.25, mod(t, 15) - 11) * (1 - smooth(0, 0.25, mod(t, 15) - 13.2));
       const lookK = smooth(0.55, 0.8, noise1(t * 0.05, 77));
-      // Smokes his pipe for most of a 30 s cycle, otherwise warms up with a mug of tea.
-      // Every 6 s he draws on the pipe for about two seconds, then lowers it and breathes the smoke out.
-      const pipeK = smooth(3, 3.6, mod(t, 30)) * (1 - smooth(22, 22.6, mod(t, 30)));
+      // By the fire he takes turns: his pipe for about half of a 30 s cycle, a mug of tea for the rest (or
+      // only one of them, when the developer panel asks). Every 6 s he draws on the pipe for about two
+      // seconds, then lowers it and breathes the smoke out.
+      const pipeK = state.campHabit === 'pipe' ? 1 : state.campHabit === 'tea' ? 0
+        : smooth(3, 3.6, mod(t, 30)) * (1 - smooth(17, 17.6, mod(t, 30)));
       const pc = mod(t, 6);
       puff = smooth(0, 0.6, pc) * (1 - smooth(2, 2.6, pc));
       exhaling = pipeK > 0.5 && pc > 2.4 && pc < 3.6;
@@ -2797,12 +2889,19 @@ export async function startPrototypeScene(host, options = {}) {
       const visit = Math.floor(t / 46);
       // While the cat rides on the backpack, no bird lands there.
       const visiting = dark < 0.4 && (birdForced || (hash(visit, 77) < 0.17 && (atCamp || !catRideOverlaps(visit * 46 + 6, visit * 46 + 39))));
-      const species = birdForced ? BIRD_SPECIES[forcedBirdSpecies] : BIRD_SPECIES[Math.floor(hash(visit, 78) * BIRD_SPECIES.length)];
+      const speciesIndex = birdForced ? forcedBirdSpecies : Math.floor(hash(visit, 78) * BIRD_SPECIES.length);
+      const species = BIRD_SPECIES[speciesIndex];
       let pos = null, flying = false, face = 1;
       if (visiting && cyc >= 11 && cyc < 34) {
         const hp = mod(cyc - 11, 4);
         pos = [perch[0], perch[1] - (hp < 0.3 ? Math.sin(hp / 0.3 * Math.PI) * 3 * unit : 0)];
         face = noise1(cyc * 0.3, 5) > 0.5 ? 1 : -1;
+        // Perched in view on his pack or the tent: the player has had this species visit.
+        const visitKey = birdForced ? `forced${forced.bird}` : visit;
+        if (birdReported !== visitKey && pos[0] > 0 && pos[0] < W) {
+          birdReported = visitKey;
+          options.onWorldEvent?.({ id: `bird:${BIRD_KEYS[speciesIndex]}`, forced: birdForced });
+        }
       } else if (visiting && cyc >= 7 && cyc < 11) {
         // Arrives from beyond the left edge and leaves past the right edge, so it never pops in or out on screen.
         const from = [-W * 0.08, perch[1] - H * 0.4];
@@ -2988,6 +3087,7 @@ export async function startPrototypeScene(host, options = {}) {
     setBeard(length) { state.beard = clamp(length); },
     setDayLength(seconds) { state.dayLength = seconds; },
     setWalk(walk) { state.walk = walk; },
+    setCampHabit(habit) { state.campHabit = habit; },
     setWeather(weather) {
       const skyChanged = weather.sky !== state.weather.sky;
       state.weather = weather;
@@ -2998,6 +3098,13 @@ export async function startPrototypeScene(host, options = {}) {
     levelsOf(id) { return LEVELED_BIOMES.includes(id) ? Object.keys(LEVELS) : ['mid']; },
     setLevel(level) { if (LEVELS[level] && level !== state.level) { state.level = level; buildEnvironment(); } },
     reseed() { state.seed += 1; buildEnvironment(); },
+    // The landscape of a place on the route, set in one go so the scene is rebuilt once.
+    setLandscape({ biome, level, seed }) {
+      if (!BIOMES[biome]) return;
+      if (biome === state.biome && level === state.level && seed === state.seed) return;
+      state.biome = biome; if (LEVELS[level]) state.level = level; state.seed = seed;
+      buildEnvironment();
+    },
     trigger(id) {
       if (!BEHAVIOURS.some((b) => b.id === id)) return;
       if (id === 'shootingStar') { shooting.next = state.t; return; }
