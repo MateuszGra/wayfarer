@@ -58,7 +58,7 @@ These architecture rules are checked by `npm run depcruise`:
 ## Requirements
 
 - **Docker Desktop.** It is enough to run everything: the app container brings its own Node.js 26.
-- Optional: **Node.js 26 LTS** on the host (see `.nvmrc`; the minimum is Node 24.7, for the built-in argon2 used to hash passwords), only if you want to run the tools outside Docker. With nvm, run `nvm install && nvm use`.
+- Optional: **Node.js 26 LTS** on the host (see `.nvmrc`; the minimum is Node 24.7), only if you want to run the tools outside Docker. With nvm, run `nvm install && nvm use`.
 
 ## Getting started
 
@@ -164,7 +164,7 @@ The `auth` module (`src/modules/auth`) owns accounts and sessions. `/start` and 
 | `GET /api/auth/me`        | The signed-in account, or `unauthenticated` (401)                             |
 | `POST /api/auth/password` | Changes the password; needs the current one and signs out every other session |
 
-- **Passwords** are hashed with argon2id from Node's built-in `crypto` (19 MiB, 2 passes). Each hash is stored as one PHC string that carries its own random salt and parameters.
+- **Passwords** are hashed with scrypt from Node's built-in `crypto` (N=2^15, r=8, p=3, 32 MiB; argon2 would need OpenSSL 3.2, which MyDevil's Node builds lack). Each hash is stored as one PHC string that carries its own random salt and parameters.
 - **Password rules** (`src/shared/auth/password.ts`, shared with the game): 8 to 128 characters, any characters, no composition rules. New passwords are checked against Have I Been Pwned with k-anonymity: only the first 5 characters of the SHA-1 leave the server. If the service is down, the password is accepted and a warning is logged.
 - **Sessions** last 30 days. The cookie `wayfarer_session` is `HttpOnly`, `SameSite=Lax`, `Path=/api` and `Secure`; the database keeps only the SHA-256 of the token.
 - **Guessing:** five wrong passwords in a row lock an account for 15 minutes, and each client address gets 30 attempts per 15 minutes. Addresses are counted in memory only, never stored.
@@ -202,14 +202,13 @@ The rules that turn Open-Meteo's weather codes, wind and temperature into the sc
 
 ## Deploying to MyDevil
 
-1. In the panel, create a Node.js website for the domain and pick the newest Node version available (24.7 or newer, for the built-in argon2). Create a PostgreSQL database and user.
-2. Put the repository in the website's Passenger directory, so that `app.js` and `public/` sit in its root.
-3. Create `.env` there with the production `DATABASE_URL` and `PORT`, and `TRUST_PROXY=true` so the client address comes from Passenger's `X-Forwarded-For`. Leave `SESSION_COOKIE_SECURE` unset there: the session cookie must stay `Secure` in production. The server loads `.env` at start-up, because Passenger runs `app.js` without `--env-file`.
-4. Build and migrate on the server:
+1. In the panel, create a Node.js website for the domain and pick the newest Node version available (24.7 or newer). Create a PostgreSQL database and user.
+2. Create `.env` in the website's Passenger directory (`domains/<domain>/public_nodejs`) from a filled-in `.env.production` (git-ignored; see its comments): the production `DATABASE_URL`, `NODE_ENV=production` and `TRUST_PROXY=true`. Leave `SESSION_COOKIE_SECURE` and `DEV_LOGIN` unset there. The server loads `.env` at start-up, because Passenger runs `app.js` without `--env-file`.
+3. Build locally (`npm run build`) and upload `dist/`, `public/`, `app.js`, `package.json` and `package-lock.json` to that directory. Building on the server would mean compiling the build tools on FreeBSD.
+4. On the server, install the runtime packages and migrate. The plain `node` and `npm` there are older, so use the versioned ones:
    ```bash
-   npm ci
-   npm run build
-   node --env-file=.env dist/db/migrate.js latest
+   npm26 ci --omit=dev
+   node26 --env-file=.env dist/db/migrate.js latest
    ```
 5. Restart the app with `devil www restart <domain>`.
 

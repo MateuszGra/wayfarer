@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import { createDatabase } from '../db/database.js';
 import {
   AttemptLimiter,
-  createArgon2Hasher,
+  createScryptHasher,
   createPwnedPasswords,
   createSqlAccountRepository,
   createSqlSessionRepository,
@@ -42,7 +42,7 @@ const app = await buildApp({
   auth: {
     accounts: createSqlAccountRepository(db),
     sessions: createSqlSessionRepository(db),
-    hasher: createArgon2Hasher(),
+    hasher: createScryptHasher(),
     breached: createPwnedPasswords(fetch, (error) => console.warn('Pwned Passwords unavailable', error)),
     tokens: sessionTokens,
     clock: { now: () => new Date() },

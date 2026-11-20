@@ -16,7 +16,7 @@ const NOW = new Date('2026-11-20T10:00:00Z');
 const ID_A = '019aa0a0-0000-7000-8000-000000000001' as AccountId;
 const ID_B = '019aa0a0-0000-7000-8000-000000000002' as AccountId;
 const anAccount = (id = ID_A, email = 'ana@example.com') =>
-  Account.create(id, toEmail(email), '$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA' as PasswordHash, NOW);
+  Account.create(id, toEmail(email), '$scrypt$ln=15,r=8,p=3$c2FsdA$aGFzaA' as PasswordHash, NOW);
 
 describe.skipIf(!url)('SQL auth repositories', () => {
   let db: Kysely<Database>;
@@ -58,13 +58,13 @@ describe.skipIf(!url)('SQL auth repositories', () => {
     const account = anAccount();
     await accounts.add(account);
     account.recordFailedLogin(NOW);
-    account.changePassword('$argon2id$v=19$m=19456,t=2,p=1$bmV3$bmV3' as PasswordHash);
+    account.changePassword('$scrypt$ln=15,r=8,p=3$bmV3$bmV3' as PasswordHash);
 
     await accounts.save(account);
 
     expect((await accounts.findById(ID_A))?.snapshot()).toMatchObject({
       failedLogins: 1,
-      passwordHash: '$argon2id$v=19$m=19456,t=2,p=1$bmV3$bmV3',
+      passwordHash: '$scrypt$ln=15,r=8,p=3$bmV3$bmV3',
     });
   });
 

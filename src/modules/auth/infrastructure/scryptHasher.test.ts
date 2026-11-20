@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { PasswordHash } from '../domain/account';
-import { createArgon2Hasher } from './argon2Hasher';
+import { createScryptHasher } from './scryptHasher';
 
-const hasher = createArgon2Hasher();
+const hasher = createScryptHasher();
 
-describe('argon2 hasher', () => {
-  it('stores argon2id with its parameters and salt in one PHC string', async () => {
-    expect(await hasher.hash('camino2026')).toMatch(
-      /^\$argon2id\$v=19\$m=19456,t=2,p=1\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$/,
-    );
+describe('scrypt hasher', () => {
+  it('stores scrypt with its parameters and salt in one PHC string', async () => {
+    expect(await hasher.hash('camino2026')).toMatch(/^\$scrypt\$ln=15,r=8,p=3\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$/);
   });
 
   it('accepts the password a hash was made from', async () => {
@@ -31,7 +29,14 @@ describe('argon2 hasher', () => {
     expect(await hasher.verify('camino2026', null)).toBe(false);
   });
 
-  it('rejects a stored value that is not an argon2id hash', async () => {
+  it('rejects a stored value that is not a scrypt hash', async () => {
     expect(await hasher.verify('camino2026', 'plain-text' as PasswordHash)).toBe(false);
+  });
+
+  it('rejects a stored hash asking for a cost above 2^20 instead of computing it', async () => {
+    const forged =
+      '$scrypt$ln=30,r=8,p=1$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g' as PasswordHash;
+
+    expect(await hasher.verify('camino2026', forged)).toBe(false);
   });
 });
