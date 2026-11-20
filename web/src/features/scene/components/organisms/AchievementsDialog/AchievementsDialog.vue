@@ -14,7 +14,7 @@ export interface Props {
 
 defineOptions({ name: 'AchievementsDialog' });
 defineProps<Props>();
-const emit = defineEmits<{ 'update:open': [open: boolean] }>();
+const emit = defineEmits<{ 'update:open': [open: boolean]; back: [] }>();
 
 const { history } = useStepHistory();
 // Each day is judged against the current goal until the goal history is stored on the server.
@@ -30,7 +30,9 @@ const newestFirst = computed(() => [...history.value].reverse());
     size="wide"
     :escape-closes="false"
     :corner-close-label="t('achievements.close')"
+    :back-label="t('menu.back')"
     @update:open="emit('update:open', $event)"
+    @back="emit('back')"
   >
     <div class="achievements">
       <AchievementStats :summary="summary" />

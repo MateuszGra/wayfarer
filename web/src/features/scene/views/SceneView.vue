@@ -11,6 +11,7 @@ import DevPanel from '../components/organisms/DevPanel/DevPanel.vue';
 import AchievementsDialog from '../components/organisms/AchievementsDialog/AchievementsDialog.vue';
 import MapDialog from '../components/organisms/MapDialog/MapDialog.vue';
 import SceneHud from '../components/organisms/SceneHud/SceneHud.vue';
+import SettingsDialog from '../components/organisms/SettingsDialog/SettingsDialog.vue';
 import { useClockHour } from '../composables/useClockHour';
 
 defineOptions({ name: 'SceneView' });
@@ -20,9 +21,9 @@ const query = new URLSearchParams(location.search);
 const devMode = import.meta.env.DEV || query.has('dev');
 const DAY_LENGTHS_MINUTES = [2, 10, 60] as const;
 
-// `?menu`, `?map` or `?achievements` in dev mode starts with that window open, for reviewing its design.
+// `?menu`, `?map`, `?achievements` or `?settings` in dev mode starts with that window open, for reviewing its design.
 const startOverlay = devMode
-  ? ((['menu', 'map', 'achievements'] as const).find((name) => query.has(name)) ?? null)
+  ? ((['menu', 'map', 'achievements', 'settings'] as const).find((name) => query.has(name)) ?? null)
   : null;
 const menu = useGameMenu(startOverlay);
 
@@ -93,10 +94,16 @@ const cycleDayLength = (): void => {
       @select="menu.select"
       @logout="menu.logout"
     />
-    <MapDialog :open="menu.overlay.value === 'map'" @update:open="menu.show('map')($event)" />
+    <MapDialog :open="menu.overlay.value === 'map'" @update:open="menu.show('map')($event)" @back="menu.back" />
     <AchievementsDialog
       :open="menu.overlay.value === 'achievements'"
       @update:open="menu.show('achievements')($event)"
+      @back="menu.back"
+    />
+    <SettingsDialog
+      :open="menu.overlay.value === 'settings'"
+      @update:open="menu.show('settings')($event)"
+      @back="menu.back"
     />
     <DevPanel
       v-if="devMode && snapshot"

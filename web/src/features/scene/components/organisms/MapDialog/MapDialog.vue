@@ -14,7 +14,7 @@ export interface Props {
 
 defineOptions({ name: 'MapDialog' });
 defineProps<Props>();
-const emit = defineEmits<{ 'update:open': [open: boolean] }>();
+const emit = defineEmits<{ 'update:open': [open: boolean]; back: [] }>();
 
 const { routes, error } = useRoutes();
 const { routeId, dailySteps } = usePlan();
@@ -30,7 +30,9 @@ const route = computed(() => routes.value.find((r) => r.id === routeId.value) ??
     size="wide"
     :escape-closes="false"
     :corner-close-label="t('map.close')"
+    :back-label="t('menu.back')"
     @update:open="emit('update:open', $event)"
+    @back="emit('back')"
   >
     <div class="map-dialog">
       <RouteMap :path="route?.path ?? null" :length-km="route?.lengthKm ?? 0" :done-km="doneKm" />

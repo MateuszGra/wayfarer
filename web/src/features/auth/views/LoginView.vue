@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSceneHost } from '@/shared/composables/useSceneHost';
 import AuthPanel from '../components/organisms/AuthPanel/AuthPanel.vue';
+import { useAuthForms } from '../composables/useAuthForms';
 
 defineOptions({ name: 'LoginView' });
 
@@ -24,15 +25,21 @@ watch(scene, (created) => {
   if (created && pick) created.setBiome(pick);
 });
 
-// Until the auth API exists, both forms lead straight on to planning the journey.
-const enterGame = (): void => void router.push('/start');
+const auth = useAuthForms();
 </script>
 
 <template>
   <main class="login-view">
     <div ref="host" class="login-view__scene" aria-hidden="true" />
     <div class="login-view__center">
-      <AuthPanel @login="enterGame" @register="enterGame" @forgot-password="router.push('/forgot-password')" />
+      <AuthPanel
+        :pending="auth.pending.value"
+        :error="auth.error.value"
+        @login="auth.login"
+        @register="auth.register"
+        @mode-change="auth.clearError"
+        @forgot-password="router.push('/forgot-password')"
+      />
     </div>
   </main>
 </template>

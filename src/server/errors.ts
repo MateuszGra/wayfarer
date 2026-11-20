@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
+import { AuthError } from '../modules/auth/index.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from '../shared/api/errorCodes.js';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
@@ -6,6 +7,16 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   validation_failed: 400,
   database_unavailable: 503,
   internal_error: 500,
+  unauthenticated: 401,
+  invalid_credentials: 401,
+  account_locked: 429,
+  too_many_requests: 429,
+  email_taken: 409,
+  wrong_password: 403,
+  password_too_short: 400,
+  password_too_long: 400,
+  password_unchanged: 400,
+  password_breached: 400,
 };
 
 export class ApiError extends Error {
@@ -26,9 +37,12 @@ export function errorBody(code: ErrorCode, message: string): ApiErrorBody {
 }
 
 export function registerErrorHandling(app: FastifyInstance): void {
-  app.setErrorHandler((error: FastifyError | ApiError, request, reply) => {
+  app.setErrorHandler((error: FastifyError | ApiError | AuthError, request, reply) => {
     if (error instanceof ApiError) {
       return reply.status(error.statusCode).send(errorBody(error.code, error.message));
+    }
+    if (error instanceof AuthError) {
+      return reply.status(STATUS_BY_CODE[error.code]).send(errorBody(error.code, error.message));
     }
     if ('validation' in error && error.validation) {
       return reply.status(400).send(errorBody(ERROR_CODES.validationFailed, 'Request validation failed'));

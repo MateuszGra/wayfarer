@@ -1,9 +1,10 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { TranslationKey } from '../i18n';
+import { useSession } from './useSession';
 
 /** Windows that open over the game. Only one is open at a time. */
-export type GameOverlay = 'menu' | 'map' | 'achievements';
+export type GameOverlay = 'menu' | 'map' | 'achievements' | 'settings';
 
 export interface MenuEntry {
   readonly id: Exclude<GameOverlay, 'menu'>;
@@ -14,6 +15,7 @@ export interface MenuEntry {
 export const MENU_ENTRIES: readonly MenuEntry[] = [
   { id: 'map', label: 'menu.map' },
   { id: 'achievements', label: 'menu.achievements' },
+  { id: 'settings', label: 'menu.settings' },
 ];
 
 /**
@@ -39,11 +41,16 @@ export function useGameMenu(initial: GameOverlay | null = null) {
   const select = (id: MenuEntry['id']): void => {
     overlay.value = id;
   };
-  // Until the auth API exists, signing out just returns to the sign-in screen.
-  const logout = (): void => {
+  const back = (): void => {
+    overlay.value = 'menu';
+  };
+  const session = useSession();
+  // Back to the sign-in screen even if the server couldn't be told: the local session is gone either way.
+  const logout = async (): Promise<void> => {
     overlay.value = null;
-    void router.push('/login');
+    await session.signOut().catch(() => {});
+    await router.push('/login');
   };
 
-  return { overlay, entries: MENU_ENTRIES, show, select, logout };
+  return { overlay, entries: MENU_ENTRIES, show, select, back, logout };
 }

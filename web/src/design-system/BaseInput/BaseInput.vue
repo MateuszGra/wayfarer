@@ -30,6 +30,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 <style scoped>
 .base-input {
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   padding: var(--space-2) var(--space-3);
   font: inherit;

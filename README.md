@@ -57,7 +57,7 @@ These architecture rules are checked by `npm run depcruise`:
 ## Requirements
 
 - **Docker Desktop.** It is enough to run everything: the app container brings its own Node.js 26.
-- Optional: **Node.js 26 LTS** on the host (see `.nvmrc`; the minimum is Node 24), only if you want to run the tools outside Docker. With nvm, run `nvm install && nvm use`.
+- Optional: **Node.js 26 LTS** on the host (see `.nvmrc`; the minimum is Node 24.7, for the built-in argon2 used to hash passwords), only if you want to run the tools outside Docker. With nvm, run `nvm install && nvm use`.
 
 ## Getting started
 
@@ -124,12 +124,12 @@ To stop everything, run `docker compose down`. Your data stays in the `db-data` 
 
 ## Screens
 
-| Path               | What it is                                                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `/login`           | Sign-in and account creation over a still landscape, without the wanderer                                                       |
-| `/forgot-password` | Placeholder until password reset exists                                                                                         |
-| `/start`           | Choosing the route and the daily step goal on the map, with the journey length worked out live                                  |
-| `/scene`           | The game. The ☰ button (or Escape) opens the menu: Map and Achievements open as windows over the game, sign-out is always last |
+| Path               | What it is                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`           | Sign-in and account creation over a still landscape, without the wanderer                                                                                                     |
+| `/forgot-password` | Placeholder until password reset exists                                                                                                                                       |
+| `/start`           | Choosing the route and the daily step goal on the map, with the journey length worked out live                                                                                |
+| `/scene`           | The game. The ☰ button (or Escape) opens the menu: Map, Achievements and Settings open as windows over the game, each with a back arrow to the menu; sign-out is always last |
 
 Until the auth API and step sync exist, signing in leads straight on, and progress and step history are demo data.
 
@@ -137,11 +137,11 @@ Until the auth API and step sync exist, signing in leads straight on, and progre
 
 In development builds the game shows a developer panel on the right (it slides away to a tab): time of day, a faster clock, the beard by days on the road, the biome and a new variant. URL parameters, in development or with `?dev`:
 
-| Parameter                        | Effect                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| `?dev`                           | Shows the developer tools in a production build                                |
-| `?t=56`                          | Jumps the animation loops (pipe, stops on the road, lighthouse) to that second |
-| `?menu`, `?map`, `?achievements` | Starts with that window open                                                   |
+| Parameter                                     | Effect                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `?dev`                                        | Shows the developer tools in a production build                                |
+| `?t=56`                                       | Jumps the animation loops (pipe, stops on the road, lighthouse) to that second |
+| `?menu`, `?map`, `?achievements`, `?settings` | Starts with that window open                                                   |
 
 ## API errors
 
@@ -153,11 +153,30 @@ Every error response has the same shape and an HTTP status that matches the code
 
 All codes are listed in one place, `src/shared/api/errorCodes.ts`, which the server and the game share. The game maps each code to Polish text (`web/src/shared/api/errorMessages.ts`) and never shows `message` to players.
 
+## Accounts and sessions
+
+The `auth` module (`src/modules/auth`) owns accounts and sessions. `/start` and `/scene` need a signed-in player; the router sends anyone else to `/login` and back afterwards.
+
+| Endpoint                  | What it does                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `POST /api/auth/register` | Creates an account and signs in (201)                                         |
+| `POST /api/auth/login`    | Signs in                                                                      |
+| `POST /api/auth/logout`   | Ends this session (204)                                                       |
+| `GET /api/auth/me`        | The signed-in account, or `unauthenticated` (401)                             |
+| `POST /api/auth/password` | Changes the password; needs the current one and signs out every other session |
+
+- **Passwords** are hashed with argon2id from Node's built-in `crypto` (19 MiB, 2 passes). Each hash is stored as one PHC string that carries its own random salt and parameters.
+- **Password rules** (`src/shared/auth/password.ts`, shared with the game): 8 to 128 characters, any characters, no composition rules. New passwords are checked against Have I Been Pwned with k-anonymity: only the first 5 characters of the SHA-1 leave the server. If the service is down, the password is accepted and a warning is logged.
+- **Sessions** last 30 days. The cookie `wayfarer_session` is `HttpOnly`, `SameSite=Lax`, `Path=/api` and `Secure`; the database keeps only the SHA-256 of the token.
+- **Guessing:** five wrong passwords in a row lock an account for 15 minutes, and each client address gets 30 attempts per 15 minutes. Addresses are counted in memory only, never stored.
+- New routes that need a player use the `requireSession` preHandler and read the player from `request.auth`.
+- **Local development:** with `DEV_LOGIN=true` in `.env`, the password `localhost` signs in with any address and creates the account if needed. The server refuses to start with it when `NODE_ENV=production`, with Secure cookies or with `TRUST_PROXY=true`.
+
 ## Deploying to MyDevil
 
-1. In the panel, create a Node.js website for the domain and pick the newest Node version available (24 or newer). Create a PostgreSQL database and user.
+1. In the panel, create a Node.js website for the domain and pick the newest Node version available (24.7 or newer, for the built-in argon2). Create a PostgreSQL database and user.
 2. Put the repository in the website's Passenger directory, so that `app.js` and `public/` sit in its root.
-3. Create `.env` there with the production `DATABASE_URL` and `PORT`. The server loads it at start-up, because Passenger runs `app.js` without `--env-file`.
+3. Create `.env` there with the production `DATABASE_URL` and `PORT`, and `TRUST_PROXY=true` so the client address comes from Passenger's `X-Forwarded-For`. Leave `SESSION_COOKIE_SECURE` unset there: the session cookie must stay `Secure` in production. The server loads `.env` at start-up, because Passenger runs `app.js` without `--env-file`.
 4. Build and migrate on the server:
    ```bash
    npm ci

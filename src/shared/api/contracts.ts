@@ -15,3 +15,21 @@ export interface RouteSummaryDto {
 export interface RouteListResponse {
   readonly routes: readonly RouteSummaryDto[];
 }
+
+export interface CredentialsRequest {
+  readonly email: string;
+  readonly password: string;
+}
+
+export interface ChangePasswordRequest {
+  readonly currentPassword: string;
+  readonly newPassword: string;
+}
+
+export interface AccountDto {
+  readonly email: string;
+}
+
+export interface AccountResponse {
+  readonly account: AccountDto;
+}

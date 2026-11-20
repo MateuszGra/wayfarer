@@ -5,7 +5,7 @@
   "description": "A slow, cozy walking game powered by the player's real-world steps.",
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.7"
   },
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",

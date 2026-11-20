@@ -35,4 +35,24 @@ describe('RegisterForm', () => {
 
     expect(wrapper.emitted('submit')).toEqual([[{ email: 'wanderer@example.com', password: 'camino2026' }]]);
   });
+
+  it('tells the minimum password length before anything is typed', () => {
+    const wrapper = mount(RegisterForm);
+
+    const input = wrapper.get('#register-password');
+
+    expect(wrapper.get(`#${input.attributes('aria-describedby')}`).text()).toBe('Co najmniej 8 znaków.');
+  });
+
+  it('shows the server answer above the button', () => {
+    const wrapper = mount(RegisterForm, { props: { error: 'Konto z tym adresem już istnieje. Zaloguj się.' } });
+
+    expect(wrapper.get('[data-testid="register-error"]').text()).toBe('Konto z tym adresem już istnieje. Zaloguj się.');
+  });
+
+  it('keeps the button disabled while the account is being created', () => {
+    const wrapper = mount(RegisterForm, { props: { pending: true } });
+
+    expect(wrapper.get('[data-testid="register-submit"]').attributes('disabled')).toBeDefined();
+  });
 });

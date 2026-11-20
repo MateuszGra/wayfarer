@@ -4,6 +4,16 @@ export const ERROR_CODES = {
   validationFailed: 'validation_failed',
   databaseUnavailable: 'database_unavailable',
   internalError: 'internal_error',
+  unauthenticated: 'unauthenticated',
+  invalidCredentials: 'invalid_credentials',
+  accountLocked: 'account_locked',
+  tooManyRequests: 'too_many_requests',
+  emailTaken: 'email_taken',
+  wrongPassword: 'wrong_password',
+  passwordTooShort: 'password_too_short',
+  passwordTooLong: 'password_too_long',
+  passwordUnchanged: 'password_unchanged',
+  passwordBreached: 'password_breached',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

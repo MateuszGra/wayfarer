@@ -1,12 +1,19 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
+import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
 import { buildApp, type AppDependencies } from './app.js';
 
 const apps: FastifyInstance[] = [];
 
 async function appWith(overrides: Partial<AppDependencies> = {}): Promise<FastifyInstance> {
-  const app = await buildApp({ checkDatabase: async () => {}, routeCatalog: createStaticRouteCatalog(), ...overrides });
+  const app = await buildApp({
+    checkDatabase: async () => {},
+    routeCatalog: createStaticRouteCatalog(),
+    auth: createInMemoryAuth(),
+    authHttp: { secureCookies: true, limiter: new AttemptLimiter(100, 60_000) },
+    ...overrides,
+  });
   apps.push(app);
   return app;
 }

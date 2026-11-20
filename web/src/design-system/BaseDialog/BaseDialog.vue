@@ -18,6 +18,8 @@ export interface Props {
    * sits: while a window is open the menu button reads as its close button.
    */
   cornerCloseLabel?: string | undefined;
+  /** Accessible label of a back (←) button in the panel's top-left corner, for a window opened from a menu. */
+  backLabel?: string | undefined;
 }
 
 defineOptions({ name: 'BaseDialog' });
@@ -27,8 +29,9 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'square',
   closeLabel: undefined,
   cornerCloseLabel: undefined,
+  backLabel: undefined,
 });
-const emit = defineEmits<{ 'update:open': [open: boolean] }>();
+const emit = defineEmits<{ 'update:open': [open: boolean]; back: [] }>();
 
 const onEscape = (event: KeyboardEvent): void => {
   if (!props.escapeCloses) event.preventDefault();
@@ -56,6 +59,25 @@ const onEscape = (event: KeyboardEvent): void => {
               <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </DialogClose>
+          <button
+            v-if="backLabel"
+            type="button"
+            class="base-dialog__back"
+            :aria-label="backLabel"
+            data-testid="dialog-back"
+            @click="emit('back')"
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path
+                d="M12 4l-6 6 6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
           <slot name="art" />
           <DialogTitle class="base-dialog__title" :class="{ 'base-dialog__title--hidden': hideTitle }">
             {{ title }}
@@ -98,6 +120,14 @@ const onEscape = (event: KeyboardEvent): void => {
 .base-dialog__content :deep(.base-card) {
   position: relative;
 }
+/* A square window with a lot in it (a form showing its errors) stays on screen and scrolls inside. */
+.base-dialog__content :deep(.base-card--square) {
+  max-height: calc(100dvh - 2 * var(--space-4));
+}
+.base-dialog__content :deep(.base-card--square > .base-card__inner) {
+  min-height: 0;
+  overflow-y: auto;
+}
 .base-dialog__corner-close {
   position: fixed;
   top: max(var(--space-4), env(safe-area-inset-top));
@@ -118,7 +148,8 @@ const onEscape = (event: KeyboardEvent): void => {
 .base-dialog__corner-close:hover {
   color: var(--rust-deep);
 }
-.base-dialog__close {
+.base-dialog__close,
+.base-dialog__back {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
@@ -134,9 +165,18 @@ const onEscape = (event: KeyboardEvent): void => {
   border-radius: 50%;
   cursor: pointer;
 }
-.base-dialog__close:hover {
+.base-dialog__back {
+  right: auto;
+  left: var(--space-3);
+}
+.base-dialog__close:hover,
+.base-dialog__back:hover {
   color: var(--rust-deep);
   border-color: var(--rust);
+}
+.base-dialog__back:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 2px;
 }
 .base-dialog__title {
   margin: var(--space-3) 0 var(--space-4);

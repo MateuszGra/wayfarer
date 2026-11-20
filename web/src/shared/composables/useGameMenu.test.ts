@@ -1,8 +1,11 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { useGameMenu, type GameOverlay } from './useGameMenu';
+
+const api = vi.hoisted(() => ({ logout: vi.fn<() => Promise<void>>(), fetchCurrentAccount: vi.fn() }));
+vi.mock('@/shared/api/auth', () => api);
 
 function mountMenu(initial: GameOverlay | null = null) {
   const router = createRouter({
@@ -42,14 +45,31 @@ describe('useGameMenu', () => {
     expect(menu.overlay.value).toBe('map');
   });
 
-  it('closes everything and goes to the sign-in screen on sign-out', async () => {
+  it('returns from a window to the menu it was opened from', () => {
+    const { menu } = mountMenu('settings');
+
+    menu.back();
+
+    expect(menu.overlay.value).toBe('menu');
+  });
+
+  it('signs out on the server, closes everything and goes to the sign-in screen', async () => {
+    api.logout.mockResolvedValue(undefined);
     const { menu, router } = mountMenu('menu');
 
-    menu.logout();
-    await router.isReady();
-    await new Promise((resolve) => setTimeout(resolve));
+    await menu.logout();
 
+    expect(api.logout).toHaveBeenCalledTimes(1);
     expect(menu.overlay.value).toBeNull();
+    expect(router.currentRoute.value.path).toBe('/login');
+  });
+
+  it('still goes to the sign-in screen when the server cannot be told about the sign-out', async () => {
+    api.logout.mockRejectedValue(new Error('offline'));
+    const { menu, router } = mountMenu('menu');
+
+    await menu.logout();
+
     expect(router.currentRoute.value.path).toBe('/login');
   });
 

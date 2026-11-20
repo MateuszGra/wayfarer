@@ -20,6 +20,11 @@ function read(): StoredPlan {
   }
 }
 
+/** Where a signed-in player belongs: the journey planner the first time, then straight into the game. */
+export function signedInHome(): string {
+  return read().routeId !== null ? '/scene' : '/start';
+}
+
 /**
  * The player's chosen route and daily step goal. Kept in the browser until the player's account
  * lives on the server; storage can be unavailable (private mode), so failures fall back to defaults.

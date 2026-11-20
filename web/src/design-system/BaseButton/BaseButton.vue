@@ -29,6 +29,10 @@ withDefaults(defineProps<Props>(), { variant: 'ghost', size: 'md', type: 'button
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
+.base-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
 .base-button--sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-sm);

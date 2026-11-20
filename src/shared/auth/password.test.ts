@@ -1,23 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { emailError, loginPasswordError, newPasswordError, passwordRepeatError } from './validation';
+import { existingPasswordError, newPasswordError, passwordRepeatError, passwordUnchangedError } from './password';
 
-describe('emailError', () => {
-  it.each(['wanderer@example.com', '  wanderer@example.pl  '])('accepts "%s"', (email) => {
-    expect(emailError(email)).toBeNull();
-  });
-
-  it.each(['', 'wanderer', 'wanderer@', 'wanderer@example', 'wan derer@example.com'])('rejects "%s"', (email) => {
-    expect(emailError(email)).toBe('emailInvalid');
-  });
-});
-
-describe('loginPasswordError', () => {
+describe('existingPasswordError', () => {
   it('asks for a password when it is empty', () => {
-    expect(loginPasswordError('')).toBe('passwordRequired');
+    expect(existingPasswordError('')).toBe('passwordRequired');
   });
 
-  it('accepts any non-empty password when signing in', () => {
-    expect(loginPasswordError('x')).toBeNull();
+  it('accepts any non-empty password', () => {
+    expect(existingPasswordError('x')).toBeNull();
   });
 });
 
@@ -27,6 +17,8 @@ describe('newPasswordError', () => {
     { password: '1234567', error: 'passwordTooShort' },
     { password: '12345678', error: null },
     { password: '123456789', error: null },
+    { password: 'x'.repeat(128), error: null },
+    { password: 'x'.repeat(129), error: 'passwordTooLong' },
   ])('returns $error for a password of length $password.length', ({ password, error }) => {
     expect(newPasswordError(password)).toBe(error);
   });
@@ -39,5 +31,15 @@ describe('passwordRepeatError', () => {
 
   it('rejects a repeat that differs', () => {
     expect(passwordRepeatError('camino2026', 'camino2025')).toBe('passwordMismatch');
+  });
+});
+
+describe('passwordUnchangedError', () => {
+  it('rejects a new password equal to the current one', () => {
+    expect(passwordUnchangedError('camino2026', 'camino2026')).toBe('passwordUnchanged');
+  });
+
+  it('accepts a new password that differs from the current one', () => {
+    expect(passwordUnchangedError('camino2026', 'santiago2026')).toBeNull();
   });
 });
