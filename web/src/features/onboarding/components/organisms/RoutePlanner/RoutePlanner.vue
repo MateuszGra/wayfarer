@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import type { RouteSummaryDto } from '@shared/api/contracts';
 import { DAILY_GOAL } from '@shared/journey/rules';
-import { BaseButton, BaseCard, BaseIconButton } from '@/design-system';
+import { BaseButton, BaseCard } from '@/design-system';
 import { t } from '@/shared/i18n';
 import JourneySummary from '../../molecules/JourneySummary/JourneySummary.vue';
 import RouteOption from '../../molecules/RouteOption/RouteOption.vue';
@@ -17,7 +17,7 @@ export interface Props {
   pending?: boolean;
   /** What the server said went wrong, already in the player's words. */
   error?: string | null;
-  /** Changing a planned journey from the settings rather than planning the first one. */
+  /** Changing a planned journey from the settings rather than planning the first one (the button says so). */
   changing?: boolean;
 }
 
@@ -27,7 +27,6 @@ const emit = defineEmits<{
   'update:routeId': [id: string];
   'update:dailySteps': [steps: number];
   continue: [];
-  back: [];
 }>();
 
 const selected = computed(() => props.routes.find((route) => route.id === props.routeId) ?? null);
@@ -35,25 +34,6 @@ const selected = computed(() => props.routes.find((route) => route.id === props.
 
 <template>
   <BaseCard class="route-planner">
-    <!-- Only when changing a planned journey: the first plan has nowhere to go back to. -->
-    <BaseIconButton
-      v-if="changing"
-      class="route-planner__back"
-      :label="t('plan.back')"
-      data-testid="plan-back"
-      @click="emit('back')"
-    >
-      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-        <path
-          d="M12 4l-6 6 6 6"
-          stroke="currentColor"
-          stroke-width="2"
-          fill="none"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </BaseIconButton>
     <h1 class="route-planner__title">{{ t('plan.title') }}</h1>
 
     <section class="route-planner__section">
@@ -98,14 +78,6 @@ const selected = computed(() => props.routes.find((route) => route.id === props.
 .route-planner {
   position: relative;
 }
-.route-planner__back {
-  position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
-  width: 36px;
-  height: 36px;
-  box-shadow: none;
-}
 .route-planner__error {
   margin: 0;
   font-size: var(--text-sm);
@@ -137,5 +109,74 @@ const selected = computed(() => props.routes.find((route) => route.id === props.
 }
 .route-planner :deep(.journey-summary) {
   margin-bottom: var(--space-4);
+}
+/* On a phone, in portrait (a sheet over the bottom of the map) or in landscape (a low panel at the side),
+   the planner keeps every control but drops the title and folds its lines together, so the map stays in
+   view. The title stays for screen readers. */
+@media (max-width: 719px), (max-height: 600px) {
+  .route-planner :deep(.base-card__inner) {
+    padding: var(--space-3) var(--space-4);
+  }
+  .route-planner__title,
+  .route-planner__heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .route-planner__section,
+  .route-planner :deep(.journey-summary) {
+    margin-bottom: var(--space-3);
+  }
+  /* Grid and flex items grow to fit their text unless told otherwise; the long route name must shrink
+     to an ellipsis instead of pushing the card past the screen edge. */
+  .route-planner__routes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .route-planner :deep(.base-card__inner) > * {
+    min-width: 0;
+  }
+  .route-planner :deep(.route-option) {
+    min-width: 0;
+    padding: var(--space-2) var(--space-3);
+  }
+  .route-planner :deep(.route-option__name) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .route-planner :deep(.step-goal) {
+    gap: var(--space-1);
+  }
+  /* The duration on the first line, the daily distance and the arrival side by side below it; the arrival
+     moves to its own line when the two don't fit. */
+  .route-planner :deep(.journey-summary) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    column-gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+  }
+  .route-planner :deep(.journey-summary__line) {
+    white-space: nowrap;
+  }
+  .route-planner :deep(.journey-summary__line--main) {
+    flex-basis: 100%;
+    order: -1;
+    white-space: normal;
+  }
+}
+@media (max-width: 719px) {
+  .route-planner {
+    width: 100%;
+  }
+}
+@media (min-width: 720px) and (max-height: 600px) {
+  .route-planner {
+    width: 340px;
+  }
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { BaseIconButton } from '@/design-system';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
 import { t } from '@/shared/i18n';
 import RouteMap from '@/shared/components/organisms/RouteMap/RouteMap.vue';
@@ -21,6 +22,21 @@ const routeId = ref<string | null>(journey.journey.value?.journey.routeId ?? nul
 const dailySteps = ref(journey.journey.value?.journey.dailySteps ?? DEFAULT_DAILY_STEPS);
 const today = new Date();
 const wide = window.matchMedia('(min-width: 720px)').matches;
+// The planner covers part of the map (the bottom on a phone, the right side on a wider screen); the route
+// is framed in the part left free.
+const panel = ref<HTMLElement | null>(null);
+const panelHeight = ref(0);
+const panelWidth = ref(440);
+let panelObserver: ResizeObserver | null = null;
+onMounted(() => {
+  if (!panel.value) return;
+  panelObserver = new ResizeObserver(() => {
+    if (wide) panelWidth.value = (panel.value?.offsetWidth ?? 400) + 40;
+    else panelHeight.value = panel.value?.offsetHeight ?? 0;
+  });
+  panelObserver.observe(panel.value);
+});
+onBeforeUnmount(() => panelObserver?.disconnect());
 const pending = ref(false);
 const saveError = ref<string | null>(null);
 
@@ -53,8 +69,28 @@ const start = async (): Promise<void> => {
 
 <template>
   <main class="start-view">
-    <RouteMap :path="selectedPath" :padding-right="wide ? 440 : 0" />
-    <div class="start-view__panel">
+    <!-- Only when changing a planned journey: the first plan has nowhere to go back to. It sits in the
+         screen's top-left corner rather than on the planner, which on a phone covers the bottom. -->
+    <BaseIconButton
+      v-if="changing"
+      class="start-view__back"
+      :label="t('plan.back')"
+      data-testid="plan-back"
+      @click="back"
+    >
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+        <path
+          d="M12 4l-6 6 6 6"
+          stroke="currentColor"
+          stroke-width="2"
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </BaseIconButton>
+    <RouteMap :path="selectedPath" :padding-right="wide ? panelWidth : 0" :padding-bottom="panelHeight" />
+    <div ref="panel" class="start-view__panel">
       <p v-if="error" class="start-view__error" role="alert">{{ t(error) }}</p>
       <RoutePlanner
         v-model:route-id="routeId"
@@ -65,7 +101,6 @@ const start = async (): Promise<void> => {
         :error="saveError"
         :changing="changing"
         @continue="start"
-        @back="back"
       />
     </div>
   </main>
@@ -78,12 +113,20 @@ const start = async (): Promise<void> => {
 }
 .start-view__panel {
   position: absolute;
-  left: var(--space-4);
-  right: var(--space-4);
-  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: max(var(--space-2), env(safe-area-inset-bottom));
   display: grid;
   justify-items: center;
   gap: var(--space-2);
+}
+/* Only on a very short screen does the planner scroll inside, still leaving the top of the map in view;
+   otherwise it must not scroll, which would clip its rounded corners and shadow. */
+@media (max-height: 340px) {
+  .start-view__panel {
+    max-height: calc(100dvh - 2 * var(--space-2));
+    overflow-y: auto;
+  }
 }
 @media (min-width: 720px) {
   .start-view__panel {
@@ -93,6 +136,12 @@ const start = async (): Promise<void> => {
     bottom: auto;
     transform: translateY(-50%);
   }
+}
+.start-view__back {
+  position: absolute;
+  z-index: 1;
+  top: max(var(--space-4), env(safe-area-inset-top));
+  left: max(var(--gutter), env(safe-area-inset-left));
 }
 .start-view__error {
   margin: 0;

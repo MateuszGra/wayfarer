@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  AttributionControl,
   Map as MapLibreMap,
   setWorkerUrl,
   type GeoJSONSource,
@@ -25,12 +26,19 @@ export interface Props {
   doneKm?: number;
   /** The part of `doneKm` today's steps added; drawn apart from the rest of the walked route. */
   todayKm?: number;
-  /** Room the overlay panel takes on the right, so the route is framed in the free part of the map. */
+  /** Room an overlay panel takes on the right or at the bottom, so the route is framed in the free part. */
   paddingRight?: number;
+  paddingBottom?: number;
 }
 
 defineOptions({ name: 'RouteMap' });
-const props = withDefaults(defineProps<Props>(), { paddingRight: 0, lengthKm: 0, doneKm: 0, todayKm: 0 });
+const props = withDefaults(defineProps<Props>(), {
+  paddingRight: 0,
+  paddingBottom: 0,
+  lengthKm: 0,
+  doneKm: 0,
+  todayKm: 0,
+});
 
 const container = ref<HTMLElement | null>(null);
 let map: MapLibreMap | null = null;
@@ -192,7 +200,10 @@ function fitRoute(path: readonly RoutePoint[]): void {
     [Math.min(...lons), Math.min(...lats)],
     [Math.max(...lons), Math.max(...lats)],
   ];
-  map.fitBounds(bounds, { padding: { top: 60, bottom: 60, left: 60, right: 60 + props.paddingRight }, duration: 0 });
+  // A panel taller than the map leaves no room; the route is then framed in what is left, never in nothing.
+  const height = container.value?.clientHeight ?? 0;
+  const bottom = Math.min(60 + props.paddingBottom, Math.max(60, height - 160));
+  map.fitBounds(bounds, { padding: { top: 60, bottom, left: 40, right: 40 + props.paddingRight }, duration: 0 });
 }
 
 onMounted(() => {
@@ -204,15 +215,28 @@ onMounted(() => {
     zoom: 4,
     // One copy of the world, kept around Europe: no repeating the map at its edges, no panning into nowhere.
     renderWorldCopies: false,
+    // The credit sits folded in the top corner, where no panel covers it (the planner is at the bottom on a
+    // phone); it opens on tap.
+    attributionControl: false,
+    // The bounds reach well south of Europe: a phone in portrait frames the route in the top part of a tall
+    // map, and tighter bounds would hold the route down behind the planner.
     maxBounds: [
-      [-32, 26],
-      [48, 72],
+      [-40, 0],
+      [56, 76],
     ],
   });
   // 'style.load' rather than 'load': 'load' waits for the first tiles, which can take long or never
   // settle on a slow connection, and the route must not wait for the background map.
   // The map often starts inside a container that is still growing (e.g. a dialog opening), so it is
   // resized and the route reframed whenever the container changes size.
+  map.addControl(new AttributionControl({ compact: true }), 'top-right');
+  // MapLibre shows the compact credit open until the first drag, and reopens it as the tile sources load;
+  // once the map has settled it is folded to the small ⓘ, which opens it on tap.
+  map.once('idle', () => {
+    const credit = container.value?.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show');
+    credit?.classList.remove('maplibregl-compact-show');
+    credit?.removeAttribute('open');
+  });
   resizeObserver = new ResizeObserver(() => {
     map?.resize();
     if (styleReady && props.path) fitRoute(props.path);
@@ -223,6 +247,12 @@ onMounted(() => {
     if (props.path) showRoute(props.path);
   });
 });
+watch(
+  () => [props.paddingRight, props.paddingBottom] as const,
+  () => {
+    if (styleReady && props.path) fitRoute(props.path);
+  },
+);
 watch(
   () => [props.path, props.doneKm, props.todayKm, props.lengthKm] as const,
   ([path]) => {
