@@ -13,10 +13,10 @@ describe('AuthPanel', () => {
   it('switches to account creation from its tab', async () => {
     const wrapper = mount(AuthPanel);
 
-    await wrapper.get('[data-testid="auth-tab-register"]').trigger('click');
+    await wrapper.get('[data-testid="tab-register"]').trigger('mousedown', { button: 0 });
 
     expect(wrapper.find('#register-repeat').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="auth-tab-register"]').attributes('aria-selected')).toBe('true');
+    expect(wrapper.get('[data-testid="tab-register"]').attributes('aria-selected')).toBe('true');
   });
 
   it('passes valid sign-in details up', async () => {

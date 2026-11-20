@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { BaseCard, WorldEmblem } from '@/design-system';
-import AuthTabs, { type AuthMode } from '../../molecules/AuthTabs/AuthTabs.vue';
+import { BaseCard, BaseTabs, WorldEmblem } from '@/design-system';
+import { t } from '@/shared/i18n';
 import LoginForm, { type Credentials } from '../LoginForm/LoginForm.vue';
 import RegisterForm from '../RegisterForm/RegisterForm.vue';
+
+export type AuthMode = 'login' | 'register';
 
 export interface Props {
   pending?: boolean;
@@ -21,6 +23,10 @@ const emit = defineEmits<{
 }>();
 
 const mode = ref<AuthMode>('login');
+const tabs = [
+  { value: 'login', label: t('auth.tab.login') },
+  { value: 'register', label: t('auth.tab.register') },
+] as const;
 watch(mode, (next) => emit('mode-change', next));
 </script>
 
@@ -28,15 +34,19 @@ watch(mode, (next) => emit('mode-change', next));
   <BaseCard square class="auth-panel">
     <WorldEmblem />
     <h1 class="auth-panel__title">Wayfarer</h1>
-    <AuthTabs v-model="mode" class="auth-panel__tabs" />
-    <LoginForm
-      v-if="mode === 'login'"
-      :pending="pending"
-      :error="error"
-      @submit="emit('login', $event)"
-      @forgot-password="emit('forgot-password')"
-    />
-    <RegisterForm v-else :pending="pending" :error="error" @submit="emit('register', $event)" />
+    <BaseTabs v-model="mode" :tabs="tabs" :label="t('auth.tabs')">
+      <template #login>
+        <LoginForm
+          :pending="pending"
+          :error="error"
+          @submit="emit('login', $event)"
+          @forgot-password="emit('forgot-password')"
+        />
+      </template>
+      <template #register>
+        <RegisterForm :pending="pending" :error="error" @submit="emit('register', $event)" />
+      </template>
+    </BaseTabs>
   </BaseCard>
 </template>
 
@@ -48,8 +58,5 @@ watch(mode, (next) => emit('mode-change', next));
   font-weight: 700;
   letter-spacing: 0.06em;
   text-align: center;
-}
-.auth-panel__tabs {
-  margin-bottom: var(--space-4);
 }
 </style>
