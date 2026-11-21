@@ -4,6 +4,8 @@
 // (sky, landscape, biomes, wanderer, camp, weather) step by step; until then it is excluded from lint and format.
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { leadOf, pitchHour, seatOut, tentUp } from '../campSchedule';
+import { CAT_RIDE, CAT_WASH, catRideOverlaps, catWashSkipped } from '../catSchedule';
+import { catWear } from '../catWear';
 
 /** @type {import('./prototypeScene').startPrototypeScene} */
 export async function startPrototypeScene(host, options = {}) {
@@ -2082,7 +2084,7 @@ export async function startPrototypeScene(host, options = {}) {
       for (const dy of [-0.25, 0.2]) blob(cx + dy * ry * Math.sin(rot), cy + dy * ry * Math.cos(rot), rx * 0.92, ry * 0.11, rot, CAT_JUMPER.stripe, 0);
       if (collar) blob(collar[0], collar[1], collar[2], collar[3], collar[4] ?? 0, CAT_JUMPER.collar, 0.05);
     };
-    // In a downpour a yellow oilskin cape: it lies over the back like a poncho, a little wider than the body,
+    // In the rain a yellow oilskin cape: it lies over the back like a poncho, a little wider than the body,
     // and hangs to a straight hem below the middle of it, over the jumper when there is one too. The hood
     // is drawn with the head.
     const raincape = (cx, cy, rx, ry, rot = 0) => {
@@ -2534,21 +2536,12 @@ export async function startPrototypeScene(host, options = {}) {
   }
 
   const dragging = false;
-  // On these stretches of every period (seconds of the animation clock) the cat rides on the backpack.
-  const CAT_RIDE = { period: 240, from: 150, to: 205, leap: 0.7 };
   // The cat's place relative to the wanderer, in his units: behind him on the road, past the fire at camp.
   const CAT_FOLLOW_X = -56, CAT_CAMP_X = 102;
   // `noRideUntil`: after being sent down, the cat stays off the backpack for the rest of that ride.
   const cat = { x: null, phase: 0, pendingDown: false, downStart: -Infinity, noRideUntil: -Infinity };
   // What can be started at this moment, refreshed every frame and reported in the snapshot.
   const available = new Set();
-  function catRideOverlaps(a, b) {
-    for (let k = Math.floor(a / CAT_RIDE.period) - 1; k <= Math.floor(b / CAT_RIDE.period) + 1; k++) {
-      const s0 = k * CAT_RIDE.period + CAT_RIDE.from, s1 = k * CAT_RIDE.period + CAT_RIDE.to;
-      if (s0 < b && s1 > a) return true;
-    }
-    return false;
-  }
   // Behaviours a developer can trigger from the dev panel. Each normally runs on its own loop of the
   // animation clock; a trigger starts it now, and `forcedAge` gives the seconds since that trigger.
   const BEHAVIOURS = [
@@ -3088,8 +3081,12 @@ export async function startPrototypeScene(host, options = {}) {
       const atCamp = camp > 0.5 || seat > 0.3;
       const rideForced = forcedAge('catRide') < CAT_RIDE.to - CAT_RIDE.from;
       const rc = rideForced ? CAT_RIDE.from + forcedAge('catRide') : mod(t, CAT_RIDE.period);
-      const brk = forcedAge('catWash') < 7 ? 30 + forcedAge('catWash') : mod(t, 75);
-      const onBreak = walking && !rideForced && brk > 30 && brk < 37;
+      const washLength = CAT_WASH.to - CAT_WASH.from;
+      const washForced = forcedAge('catWash') < washLength;
+      const brk = washForced ? CAT_WASH.from + forcedAge('catWash') : mod(t, CAT_WASH.period);
+      // A wash that would fall during a ride is skipped; otherwise the cat would drop from the backpack
+      // without a leap to wash on the road, and pop back up when it is done.
+      const onBreak = walking && !rideForced && brk > CAT_WASH.from && brk < CAT_WASH.to && (washForced || !catWashSkipped(t));
       let riding = walking && !onBreak && !birdPos && rc >= CAT_RIDE.from && rc < CAT_RIDE.to && t >= cat.noRideUntil;
       let rcShown = rc;
       if (cat.pendingDown) {
@@ -3137,12 +3134,8 @@ export async function startPrototypeScene(host, options = {}) {
       if (walking && !riding && !birdPos) available.add('catRide');
       if (walking && !riding && !onBreak) available.add('catWash');
       if (dark < 0.4 && !birdPos && !riding) for (const id of BIRD_IDS) available.add(id);
-      // The cat wears its jumper in the frost and whenever it snows, and its yellow cape with the hood up
-      // in a downpour or a thunderstorm's rain (light rain doesn't bother it); in freezing rain, both.
-      const fall = state.weather.precipitation;
-      const catCold = state.weather.frost || fall === 'snow' || fall === 'heavySnow';
-      const catWet = fall === 'heavyRain' || (state.weather.storm && (fall === 'rain' || fall === 'drizzle'));
-      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t, coat: catCold, cape: catWet });
+      const wear = catWear(state.weather);
+      drawCat(catG, catEyeG, pose, face, cat.phase, { look, shut, t, coat: wear.coat, cape: wear.cape });
       catC.position.set(pos[0], pos[1]);
       // It fades out as it slips through the tent door and fades in as it comes back out.
       catC.alpha = camp > 0.01 ? smooth(4, 24, Math.abs(cat.x - tentRelX)) : 1;
