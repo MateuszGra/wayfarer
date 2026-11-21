@@ -2,14 +2,18 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createInMemoryAchievements } from '../modules/achievements/index.js';
 import { createInMemoryNotifications } from '../modules/notifications/index.js';
-import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
+import { AttemptLimiter, createInMemoryAuth, type InMemoryAuth } from '../modules/auth/index.js';
 import { createInMemoryJourneys } from '../modules/journey/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
 import { createWeatherService } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
+import { signedIn } from './testing/signedIn.js';
 
 const apps: FastifyInstance[] = [];
+let auth: InMemoryAuth;
+
 async function api(): Promise<FastifyInstance> {
+  auth = createInMemoryAuth();
   const app = await buildApp({
     checkDatabase: async () => {},
     routeCatalog: createStaticRouteCatalog(),
@@ -19,7 +23,7 @@ async function api(): Promise<FastifyInstance> {
       source: { current: async () => Promise.reject(new Error('offline')) },
       clock: { now: () => new Date(0) },
     }),
-    auth: createInMemoryAuth(),
+    auth,
     authHttp: { secureCookies: true, limiter: new AttemptLimiter(100, 60_000) },
     journey: createInMemoryJourneys(),
   });
@@ -29,21 +33,13 @@ async function api(): Promise<FastifyInstance> {
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
-async function signedIn(app: FastifyInstance, email = 'ana@example.com'): Promise<string> {
-  const response = await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email, password: 'camino2026' },
-  });
-  return String(response.headers['set-cookie']).split(';')[0] ?? '';
-}
 const put = (app: FastifyInstance, event: string, cookie: string) =>
   app.inject({ method: 'PUT', url: `/api/achievements/world/${event}`, headers: { cookie } });
 
 describe('world events API', () => {
   it('records a sighting and lists it with when it was seen', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await put(app, 'bigfootSeen', cookie);
 
@@ -53,7 +49,7 @@ describe('world events API', () => {
 
   it('keeps one sighting when the same event is seen again', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await put(app, 'pikeCaught', cookie);
 
     await put(app, 'pikeCaught', cookie);
@@ -64,8 +60,8 @@ describe('world events API', () => {
 
   it('shows each player only their own sightings', async () => {
     const app = await api();
-    await put(app, 'bigfootSeen', await signedIn(app, 'ana@example.com'));
-    const other = await signedIn(app, 'jan@example.com');
+    await put(app, 'bigfootSeen', await signedIn(app, auth, 'ana@example.com'));
+    const other = await signedIn(app, auth, 'jan@example.com');
 
     const response = await app.inject({ method: 'GET', url: '/api/achievements/world', headers: { cookie: other } });
 
@@ -74,7 +70,7 @@ describe('world events API', () => {
 
   it('returns validation_failed with 400 for an event the game does not have', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await put(app, 'unicornSeen', cookie);
 
@@ -92,7 +88,7 @@ describe('world events API', () => {
 
   it('records a bird species that perched', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await put(app, 'bird:robin', cookie);
 

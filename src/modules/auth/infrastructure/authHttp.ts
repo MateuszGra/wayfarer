@@ -1,25 +1,44 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { AccountResponse, ChangePasswordRequest, CredentialsRequest } from '../../../shared/api/contracts.js';
-import { MAX_EMAIL_LENGTH } from '../../../shared/auth/email.js';
+import type {
+  AccountResponse,
+  ChangePasswordRequest,
+  ConfirmEmailCodeRequest,
+  ConfirmEmailRequest,
+  CredentialsRequest,
+  EmailRequest,
+  ResetPasswordRequest,
+} from '../../../shared/api/contracts.js';
+import { MAX_EMAIL_LENGTH, normalizeEmail } from '../../../shared/auth/email.js';
 import {
   authenticate,
   changePassword,
+  confirmEmail,
+  confirmEmailWithCode,
   currentAccount,
   login,
   logout,
   register,
+  requestPasswordReset,
+  resendVerification,
+  resetPassword,
   type AuthDependencies,
   type Authenticated,
 } from '../application/authService.js';
 import { AuthError } from '../domain/errors.js';
-import type { AttemptLimiter } from './attemptLimiter.js';
+import { AttemptLimiter } from './attemptLimiter.js';
 import { clearedSessionCookie, readSessionToken, sessionCookie } from './sessionCookie.js';
 
 export interface AuthHttpOptions {
   readonly secureCookies: boolean;
   /** Limits sign-in, sign-up and password changes per client address. */
   readonly limiter: AttemptLimiter;
+  /** Limits links by e-mail per address and kind, so nobody can flood someone's mailbox. */
+  readonly mailLimiter?: AttemptLimiter;
 }
+
+// Three links of one kind an hour to one address is plenty for a player who lost the first e-mail.
+const LINKS_PER_ADDRESS = 3;
+const LINK_WINDOW_MS = 60 * 60 * 1000;
 
 // Long enough for any real password (the use case rejects anything over the length rule with its own
 // code), short enough that nobody can make the server hash megabytes.
@@ -36,7 +55,7 @@ const credentialsSchema = {
     additionalProperties: false,
     properties: { email: { type: 'string', maxLength: MAX_EMAIL_LENGTH + 64 }, password: PASSWORD_FIELD },
   },
-  response: { 200: accountResponse, 201: accountResponse },
+  response: { 200: accountResponse },
 } as const;
 const changePasswordSchema = {
   body: {
@@ -45,6 +64,47 @@ const changePasswordSchema = {
     additionalProperties: false,
     properties: { currentPassword: PASSWORD_FIELD, newPassword: PASSWORD_FIELD },
   },
+} as const;
+
+const confirmEmailSchema = {
+  body: {
+    type: 'object',
+    required: ['token'],
+    additionalProperties: false,
+    properties: { token: { type: 'string', minLength: 1, maxLength: 256 } },
+  },
+  response: { 200: accountResponse },
+} as const;
+
+const confirmEmailCodeSchema = {
+  body: {
+    type: 'object',
+    required: ['email', 'code'],
+    additionalProperties: false,
+    properties: {
+      email: { type: 'string', maxLength: MAX_EMAIL_LENGTH + 64 },
+      code: { type: 'string', maxLength: 32 },
+    },
+  },
+  response: { 200: accountResponse },
+} as const;
+
+const emailSchema = {
+  body: {
+    type: 'object',
+    required: ['email'],
+    additionalProperties: false,
+    properties: { email: { type: 'string', maxLength: MAX_EMAIL_LENGTH + 64 } },
+  },
+} as const;
+const resetPasswordSchema = {
+  body: {
+    type: 'object',
+    required: ['token', 'newPassword'],
+    additionalProperties: false,
+    properties: { token: { type: 'string', minLength: 1, maxLength: 256 }, newPassword: PASSWORD_FIELD },
+  },
+  response: { 200: accountResponse },
 } as const;
 
 declare module 'fastify' {
@@ -62,16 +122,18 @@ export function registerAuthHttp(app: FastifyInstance, deps: AuthDependencies, o
   const setSession = (reply: FastifyReply, value: string): void => {
     void reply.header('set-cookie', sessionCookie(value, options.secureCookies));
   };
+  const mailLimiter = options.mailLimiter ?? new AttemptLimiter(LINKS_PER_ADDRESS, LINK_WINDOW_MS);
+  const mayMail = (kind: string, email: string): boolean =>
+    mailLimiter.attempt(`${kind}:${normalizeEmail(email)}`, deps.clock.now());
 
+  // No session yet: the player signs in by following the confirmation link.
   app.post<{ Body: CredentialsRequest }>(
     '/api/auth/register',
     { schema: credentialsSchema },
-    async (request, reply): Promise<AccountResponse> => {
+    async (request, reply) => {
       limit(request);
-      const signedIn = await register(deps, request.body.email, request.body.password);
-      setSession(reply, signedIn.token);
-      void reply.status(201);
-      return { account: signedIn.account };
+      await register(deps, request.body.email, request.body.password);
+      return reply.status(204).send();
     },
   );
 
@@ -106,6 +168,54 @@ export function registerAuthHttp(app: FastifyInstance, deps: AuthDependencies, o
       limit(request);
       await changePassword(deps, token(request), request.body.currentPassword, request.body.newPassword);
       return reply.status(204).send();
+    },
+  );
+
+  app.post<{ Body: ConfirmEmailRequest }>(
+    '/api/auth/verify-email',
+    { schema: confirmEmailSchema },
+    async (request, reply): Promise<AccountResponse> => {
+      limit(request);
+      const signedIn = await confirmEmail(deps, request.body.token);
+      setSession(reply, signedIn.token);
+      return { account: signedIn.account };
+    },
+  );
+
+  // Each try counts towards the client's limit as well as the code's own five tries.
+  app.post<{ Body: ConfirmEmailCodeRequest }>(
+    '/api/auth/verify-email/code',
+    { schema: confirmEmailCodeSchema },
+    async (request, reply): Promise<AccountResponse> => {
+      limit(request);
+      const signedIn = await confirmEmailWithCode(deps, request.body.email, request.body.code);
+      setSession(reply, signedIn.token);
+      return { account: signedIn.account };
+    },
+  );
+
+  // Always 204, whether the address has an unconfirmed account, has had too many links, or got one now.
+  app.post<{ Body: EmailRequest }>('/api/auth/verify-email/resend', { schema: emailSchema }, async (request, reply) => {
+    limit(request);
+    if (mayMail('verify', request.body.email)) await resendVerification(deps, request.body.email);
+    return reply.status(204).send();
+  });
+
+  // Always 204, whether the address has an account, has had too many links, or got one now.
+  app.post<{ Body: EmailRequest }>('/api/auth/password-reset', { schema: emailSchema }, async (request, reply) => {
+    limit(request);
+    if (mayMail('reset', request.body.email)) await requestPasswordReset(deps, request.body.email);
+    return reply.status(204).send();
+  });
+
+  app.post<{ Body: ResetPasswordRequest }>(
+    '/api/auth/password-reset/confirm',
+    { schema: resetPasswordSchema },
+    async (request, reply): Promise<AccountResponse> => {
+      limit(request);
+      const signedIn = await resetPassword(deps, request.body.token, request.body.newPassword);
+      setSession(reply, signedIn.token);
+      return { account: signedIn.account };
     },
   );
 }

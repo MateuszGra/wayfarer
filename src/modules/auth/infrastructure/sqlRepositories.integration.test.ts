@@ -7,8 +7,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '../../../db/database';
 import type { Database } from '../../../db/schema';
 import { Account, type AccountId, type PasswordHash, toEmail } from '../domain/account';
+import { startVerification, type CodeHash } from '../domain/emailVerification';
 import { startSession, type SessionTokenHash } from '../domain/session';
-import { createSqlAccountRepository, createSqlSessionRepository } from './sqlRepositories';
+import {
+  createSqlAccountRepository,
+  createSqlEmailVerificationRepository,
+  createSqlSessionRepository,
+} from './sqlRepositories';
 
 // Runs against the separate wayfarer_test database (see docker/postgres/init.sql); skipped without it.
 const url = process.env['TEST_DATABASE_URL'];
@@ -93,5 +98,46 @@ describe.skipIf(!url)('SQL auth repositories', () => {
     await db.deleteFrom('accounts').where('id', '=', ID_A).execute();
 
     expect(await sessions.find('s1' as SessionTokenHash)).toBeNull();
+  });
+
+  describe('email verifications', () => {
+    const LINK = 'link-hash-a' as SessionTokenHash;
+    const added = async () => {
+      await createSqlAccountRepository(db).add(anAccount());
+      const verifications = createSqlEmailVerificationRepository(db);
+      await verifications.add(startVerification(LINK, 'code-hash-a' as CodeHash, ID_A, NOW));
+      return verifications;
+    };
+
+    it('finds a verification by its link and by its account, code hash included', async () => {
+      const verifications = await added();
+
+      expect(await verifications.find(LINK)).toMatchObject({ accountId: ID_A, codeHash: 'code-hash-a' });
+      expect(await verifications.findFor(ID_A)).toMatchObject({ tokenHash: LINK, codeHash: 'code-hash-a' });
+    });
+
+    it('counts code tries up to the limit and refuses the next', async () => {
+      const verifications = await added();
+      await verifications.countCodeAttempt(LINK, 2);
+
+      expect(await verifications.countCodeAttempt(LINK, 2)).toBe(true);
+      expect(await verifications.countCodeAttempt(LINK, 2)).toBe(false);
+    });
+
+    it('lets only the allowed number of tries through when they arrive at the same moment', async () => {
+      const verifications = await added();
+
+      const results = await Promise.all(Array.from({ length: 10 }, () => verifications.countCodeAttempt(LINK, 5)));
+
+      expect(results.filter(Boolean)).toHaveLength(5);
+    });
+
+    it('forgets the verification of the account', async () => {
+      const verifications = await added();
+
+      await verifications.removeAllFor(ID_A);
+
+      expect(await verifications.findFor(ID_A)).toBeNull();
+    });
   });
 });

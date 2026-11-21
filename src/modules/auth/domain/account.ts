@@ -19,6 +19,8 @@ export interface AccountState {
   readonly passwordHash: PasswordHash;
   readonly failedLogins: number;
   readonly lockedUntil: Date | null;
+  /** When the player confirmed the address by the link in the e-mail; null until then. */
+  readonly emailVerifiedAt: Date | null;
   readonly createdAt: Date;
 }
 
@@ -26,7 +28,15 @@ export class Account {
   private constructor(private state: AccountState) {}
 
   static create(id: AccountId, email: Email, passwordHash: PasswordHash, now: Date): Account {
-    return new Account({ id, email, passwordHash, failedLogins: 0, lockedUntil: null, createdAt: now });
+    return new Account({
+      id,
+      email,
+      passwordHash,
+      failedLogins: 0,
+      lockedUntil: null,
+      emailVerifiedAt: null,
+      createdAt: now,
+    });
   }
 
   static restore(state: AccountState): Account {
@@ -43,6 +53,10 @@ export class Account {
 
   get passwordHash(): PasswordHash {
     return this.state.passwordHash;
+  }
+
+  get emailVerified(): boolean {
+    return this.state.emailVerifiedAt !== null;
   }
 
   snapshot(): AccountState {
@@ -71,5 +85,10 @@ export class Account {
 
   changePassword(passwordHash: PasswordHash): void {
     this.state = { ...this.state, passwordHash };
+  }
+
+  /** Confirming again keeps the first time. */
+  confirmEmail(now: Date): void {
+    if (this.state.emailVerifiedAt === null) this.state = { ...this.state, emailVerifiedAt: now };
   }
 }

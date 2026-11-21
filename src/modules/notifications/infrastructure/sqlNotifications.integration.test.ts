@@ -30,7 +30,12 @@ describe.skipIf(!url)('SQL notifications', () => {
     await db.deleteFrom('accounts').where('id', '=', ACCOUNT).execute();
     await db
       .insertInto('accounts')
-      .values({ id: ACCOUNT, email: 'reminders@example.com', password_hash: '$scrypt$ln=15,r=8,p=3$c2FsdA$aGFzaA' })
+      .values({
+        id: ACCOUNT,
+        email: 'reminders@example.com',
+        password_hash: '$scrypt$ln=15,r=8,p=3$c2FsdA$aGFzaA',
+        email_verified_at: new Date('2026-11-18T08:00:00Z'),
+      })
       .execute();
     await db
       .insertInto('journeys')
@@ -66,6 +71,12 @@ describe.skipIf(!url)('SQL notifications', () => {
       lastStepsDate: '2026-11-19',
       sent: [],
     });
+  });
+
+  it('leaves out a player whose address is not confirmed yet', async () => {
+    await db.updateTable('accounts').set({ email_verified_at: null }).where('id', '=', ACCOUNT).execute();
+
+    expect(await mine()).toBeUndefined();
   });
 
   it('leaves out a player who turned reminders off', async () => {

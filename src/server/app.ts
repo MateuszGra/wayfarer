@@ -16,6 +16,7 @@ import { registerWeatherHttp, type WeatherService } from '../modules/weather/ind
 import { ERROR_CODES } from '../shared/api/errorCodes.js';
 import { errorBody, registerErrorHandling } from './errors.js';
 import { registerHealth, type DatabaseCheck } from './health.js';
+import { requestForLog } from './logging.js';
 
 export interface AppDependencies {
   readonly checkDatabase: DatabaseCheck;
@@ -34,7 +35,10 @@ export interface AppDependencies {
 }
 
 export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> {
-  const app = Fastify({ logger: deps.logger ?? false, trustProxy: deps.trustProxy ?? false });
+  const app = Fastify({
+    logger: deps.logger ? { serializers: { req: requestForLog } } : false,
+    trustProxy: deps.trustProxy ?? false,
+  });
   registerErrorHandling(app);
 
   registerHealth(app, deps.checkDatabase);

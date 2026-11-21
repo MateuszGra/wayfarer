@@ -33,6 +33,26 @@ export interface AccountDto {
   readonly email: string;
 }
 
+export interface ConfirmEmailRequest {
+  readonly token: string;
+}
+
+/** The code from the confirmation e-mail, typed in with the address it went to. */
+export interface ConfirmEmailCodeRequest {
+  readonly email: string;
+  readonly code: string;
+}
+
+/** Asks for a link by e-mail: a new confirmation link or a password link. */
+export interface EmailRequest {
+  readonly email: string;
+}
+
+export interface ResetPasswordRequest {
+  readonly token: string;
+  readonly newPassword: string;
+}
+
 export interface AccountResponse {
   readonly account: AccountDto;
 }

@@ -33,6 +33,18 @@ export function createAppRouter(history = createWebHistory()): Router {
         component: () => import('@/features/auth/views/ForgotPasswordView.vue'),
       },
       {
+        // The link from the password e-mail; it signs the player in once the new password is set.
+        path: '/reset-password',
+        name: 'reset-password',
+        component: () => import('@/features/auth/views/ResetPasswordView.vue'),
+      },
+      {
+        // The link from the confirmation e-mail; it works signed in or not, on any device.
+        path: '/verify-email',
+        name: 'verify-email',
+        component: () => import('@/features/auth/views/VerifyEmailView.vue'),
+      },
+      {
         path: '/start',
         name: 'start',
         meta: { requiresAuth: true, planner: true },

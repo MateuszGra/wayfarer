@@ -47,6 +47,8 @@ export function createSqlReminders(db: Kysely<Database>): ReminderRepository {
             .as('lastStepsDate'),
         ])
         .where(sql<boolean>`coalesce(n.step_reminders, true)`)
+        // Reminders go only to confirmed addresses, never to someone who was signed up by another.
+        .where('a.email_verified_at', 'is not', null)
         .execute();
       // Two days back covers every time zone's "today".
       const sent = await db

@@ -11,7 +11,21 @@ export interface AccountsTable {
   password_hash: string;
   failed_logins: Generated<number>;
   locked_until: Date | null;
+  email_verified_at: Date | null;
   created_at: Generated<Date>;
+}
+
+/** The shape of the one-time link tables: `password_resets`, and the base of `email_verifications`. */
+export interface OneTimeLinksTable {
+  token_hash: string;
+  account_id: string;
+  expires_at: Date;
+  created_at: Generated<Date>;
+}
+
+export interface EmailVerificationsTable extends OneTimeLinksTable {
+  code_hash: string;
+  code_attempts: Generated<number>;
 }
 
 export interface SessionsTable {
@@ -66,6 +80,8 @@ export interface Database {
   players: PlayersTable;
   accounts: AccountsTable;
   sessions: SessionsTable;
+  email_verifications: EmailVerificationsTable;
+  password_resets: OneTimeLinksTable;
   journeys: JourneysTable;
   step_entries: StepEntriesTable;
   world_sightings: WorldSightingsTable;

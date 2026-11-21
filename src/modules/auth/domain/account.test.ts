@@ -58,4 +58,13 @@ describe('Account', () => {
       'ana@example.com',
     );
   });
+
+  it('keeps the first time the address was confirmed when it is confirmed again', () => {
+    const a = account();
+    a.confirmEmail(NOW);
+
+    a.confirmEmail(at(60_000));
+
+    expect(a.snapshot().emailVerifiedAt).toEqual(NOW);
+  });
 });

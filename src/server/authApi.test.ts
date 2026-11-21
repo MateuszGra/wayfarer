@@ -45,18 +45,23 @@ const me = (app: FastifyInstance, cookie?: string) =>
 const cookieOf = (response: LightMyRequestResponse): string =>
   String(response.headers['set-cookie']).split(';')[0] ?? '';
 const codeOf = (response: LightMyRequestResponse): string => response.json().error.code;
+// The fake tokens are numbered: sign-up's confirmation link is token-1, the session it starts is token-2.
+const LINK_TOKEN = 'token-1';
+/** Signs up and follows the confirmation link; returns the session cookie it set. */
+const signedUpCookie = async (app: FastifyInstance): Promise<string> => {
+  await register(app);
+  return cookieOf(await post(app, '/api/auth/verify-email', { token: LINK_TOKEN }));
+};
 
 describe('POST /api/auth/register', () => {
-  it('creates the account with 201 and signs the player in with a protected cookie', async () => {
+  it('creates the account with 204 and e-mails a confirmation link, without signing in', async () => {
     const app = await api();
 
     const response = await register(app);
 
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).toEqual({ account: { email: 'ana@example.com' } });
-    expect(response.headers['set-cookie']).toBe(
-      'wayfarer_session=token-1; Path=/api; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure',
-    );
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['set-cookie']).toBeUndefined();
+    expect(auth.outbox.map((mail) => mail.subject)).toEqual(['Potwierdź adres e-mail w Wayfarerze']);
   });
 
   it('returns email_taken with 409 for an address that already has an account', async () => {
@@ -101,13 +106,24 @@ describe('POST /api/auth/register', () => {
 describe('POST /api/auth/login', () => {
   it('signs in with the right password and sets a new session cookie', async () => {
     const app = await api();
-    await register(app);
+    await signedUpCookie(app);
 
     const response = await post(app, '/api/auth/login', { email: 'ana@example.com', password: PASSWORD });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ account: { email: 'ana@example.com' } });
-    expect(cookieOf(response)).toBe('wayfarer_session=token-2');
+    expect(cookieOf(response)).toBe('wayfarer_session=token-3');
+  });
+
+  it('returns email_not_verified with 403 for an unconfirmed address, without a cookie', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await post(app, '/api/auth/login', { email: 'ana@example.com', password: PASSWORD });
+
+    expect(response.statusCode).toBe(403);
+    expect(codeOf(response)).toBe('email_not_verified');
+    expect(response.headers['set-cookie']).toBeUndefined();
   });
 
   it('returns invalid_credentials with 401 for a wrong password, without a cookie', async () => {
@@ -149,7 +165,7 @@ describe('POST /api/auth/login', () => {
 describe('GET /api/auth/me', () => {
   it('returns the signed-in account', async () => {
     const app = await api();
-    const cookie = cookieOf(await register(app));
+    const cookie = await signedUpCookie(app);
 
     const response = await me(app, cookie);
 
@@ -176,7 +192,7 @@ describe('GET /api/auth/me', () => {
 describe('POST /api/auth/logout', () => {
   it('ends the session and clears the cookie', async () => {
     const app = await api();
-    const cookie = cookieOf(await register(app));
+    const cookie = await signedUpCookie(app);
 
     const response = await post(app, '/api/auth/logout', {}, cookie);
 
@@ -191,7 +207,7 @@ describe('POST /api/auth/logout', () => {
 describe('POST /api/auth/password', () => {
   it('changes the password with 204 so the new one signs in', async () => {
     const app = await api();
-    const cookie = cookieOf(await register(app));
+    const cookie = await signedUpCookie(app);
 
     const response = await post(
       app,
@@ -216,7 +232,7 @@ describe('POST /api/auth/password', () => {
 
   it('returns wrong_password with 403 for a wrong current password', async () => {
     const app = await api();
-    const cookie = cookieOf(await register(app));
+    const cookie = await signedUpCookie(app);
 
     const response = await post(
       app,
@@ -231,7 +247,7 @@ describe('POST /api/auth/password', () => {
 
   it('returns password_unchanged with 400 when the new password is the current one', async () => {
     const app = await api();
-    const cookie = cookieOf(await register(app));
+    const cookie = await signedUpCookie(app);
 
     const response = await post(
       app,
@@ -242,5 +258,184 @@ describe('POST /api/auth/password', () => {
 
     expect(response.statusCode).toBe(400);
     expect(codeOf(response)).toBe('password_unchanged');
+  });
+});
+
+describe('POST /api/auth/verify-email', () => {
+  it('confirms the address and signs the player in with a protected cookie', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await post(app, '/api/auth/verify-email', { token: LINK_TOKEN });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ account: { email: 'ana@example.com' } });
+    expect(response.headers['set-cookie']).toBe(
+      'wayfarer_session=token-2; Path=/api; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure',
+    );
+  });
+
+  it('returns verification_invalid with 400 for an unknown link', async () => {
+    const app = await api();
+
+    const response = await post(app, '/api/auth/verify-email', { token: 'made-up' });
+
+    expect(response.statusCode).toBe(400);
+    expect(codeOf(response)).toBe('verification_invalid');
+  });
+
+  it('returns validation_failed with 400 without a token', async () => {
+    const app = await api();
+
+    expect(codeOf(await post(app, '/api/auth/verify-email', {}))).toBe('validation_failed');
+  });
+});
+
+describe('POST /api/auth/verify-email/code', () => {
+  // The fake codes count up from 100001, so sign-up's e-mail carries 100-001.
+  const withCode = (app: FastifyInstance, code: string, email = 'ana@example.com') =>
+    post(app, '/api/auth/verify-email/code', { email, code });
+
+  it('confirms the address with the code and signs the player in with a protected cookie', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await withCode(app, '100-001');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ account: { email: 'ana@example.com' } });
+    expect(response.headers['set-cookie']).toBe(
+      'wayfarer_session=token-2; Path=/api; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure',
+    );
+  });
+
+  it('returns verification_code_invalid with 400 for a wrong code, without a cookie', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await withCode(app, '999-999');
+
+    expect(response.statusCode).toBe(400);
+    expect(codeOf(response)).toBe('verification_code_invalid');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('returns validation_failed with 400 for a code that is not six digits', async () => {
+    const app = await api();
+
+    expect(codeOf(await withCode(app, '12345'))).toBe('validation_failed');
+  });
+
+  it('returns validation_failed with 400 without a code', async () => {
+    const app = await api();
+
+    expect(codeOf(await post(app, '/api/auth/verify-email/code', { email: 'ana@example.com' }))).toBe(
+      'validation_failed',
+    );
+  });
+});
+
+describe('POST /api/auth/verify-email/resend', () => {
+  it('answers 204 and e-mails a new link to an unconfirmed address, without a session', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await post(app, '/api/auth/verify-email/resend', { email: 'ana@example.com' });
+
+    expect(response.statusCode).toBe(204);
+    expect(auth.outbox).toHaveLength(2);
+  });
+
+  it('answers 204 for an address without an account too', async () => {
+    const app = await api();
+
+    const response = await post(app, '/api/auth/verify-email/resend', { email: 'nobody@example.com' });
+
+    expect(response.statusCode).toBe(204);
+    expect(auth.outbox).toEqual([]);
+  });
+
+  it('sends at most three links an hour to one address', async () => {
+    const app = await api();
+    await register(app);
+    auth.outbox.length = 0;
+
+    const ask = () => post(app, '/api/auth/verify-email/resend', { email: 'ana@example.com' });
+    await ask();
+    await ask();
+    await ask();
+    await ask();
+
+    expect(auth.outbox).toHaveLength(3);
+  });
+
+  it('returns validation_failed with 400 without an address', async () => {
+    const app = await api();
+
+    expect(codeOf(await post(app, '/api/auth/verify-email/resend', {}))).toBe('validation_failed');
+  });
+});
+
+describe('POST /api/auth/password-reset', () => {
+  it('answers 204 and e-mails a link to an address with an account', async () => {
+    const app = await api();
+    await register(app);
+
+    const response = await post(app, '/api/auth/password-reset', { email: 'ana@example.com' });
+
+    expect(response.statusCode).toBe(204);
+    expect(auth.outbox.map((mail) => mail.subject)).toContain('Nowe hasło do Wayfarera');
+  });
+
+  it('answers 204 for an address without an account too', async () => {
+    const app = await api();
+
+    const response = await post(app, '/api/auth/password-reset', { email: 'nobody@example.com' });
+
+    expect(response.statusCode).toBe(204);
+    expect(auth.outbox).toEqual([]);
+  });
+
+  it('sends at most three links an hour to one address', async () => {
+    const app = await api();
+    await register(app);
+    auth.outbox.length = 0;
+
+    const ask = () => post(app, '/api/auth/password-reset', { email: 'ana@example.com' });
+    await ask();
+    await ask();
+    await ask();
+    await ask();
+
+    expect(auth.outbox).toHaveLength(3);
+  });
+});
+
+describe('POST /api/auth/password-reset/confirm', () => {
+  it('sets the new password and signs the player in with a new cookie', async () => {
+    const app = await api();
+    await signedUpCookie(app);
+    await post(app, '/api/auth/password-reset', { email: 'ana@example.com' });
+
+    const response = await post(app, '/api/auth/password-reset/confirm', {
+      token: 'token-3',
+      newPassword: 'santiago2026',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ account: { email: 'ana@example.com' } });
+    expect(cookieOf(response)).toBe('wayfarer_session=token-4');
+  });
+
+  it('returns reset_invalid with 400 for an unknown link', async () => {
+    const app = await api();
+
+    const response = await post(app, '/api/auth/password-reset/confirm', {
+      token: 'made-up',
+      newPassword: 'santiago2026',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(codeOf(response)).toBe('reset_invalid');
   });
 });

@@ -1,17 +1,21 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AttemptLimiter, createInMemoryAuth } from '../modules/auth/index.js';
+import { AttemptLimiter, createInMemoryAuth, type InMemoryAuth } from '../modules/auth/index.js';
 import { createInMemoryJourneys, type InMemoryJourneys } from '../modules/journey/index.js';
 import { createInMemoryAchievements } from '../modules/achievements/index.js';
 import { createInMemoryNotifications } from '../modules/notifications/index.js';
 import { createStaticRouteCatalog } from '../modules/routes/index.js';
 import { createWeatherService } from '../modules/weather/index.js';
 import { buildApp } from './app.js';
+import { signedIn } from './testing/signedIn.js';
 
 const apps: FastifyInstance[] = [];
 let journeys: InMemoryJourneys;
 
+let auth: InMemoryAuth;
+
 async function api(): Promise<FastifyInstance> {
+  auth = createInMemoryAuth();
   // 08:00 in Warsaw on 20 November 2026.
   journeys = createInMemoryJourneys(new Date('2026-11-20T07:00:00Z'));
   const app = await buildApp({
@@ -23,7 +27,7 @@ async function api(): Promise<FastifyInstance> {
       source: { current: async () => Promise.reject(new Error('offline')) },
       clock: { now: () => new Date(0) },
     }),
-    auth: createInMemoryAuth(),
+    auth,
     authHttp: { secureCookies: true, limiter: new AttemptLimiter(100, 60_000) },
     journey: journeys,
   });
@@ -34,14 +38,6 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
 
-async function signedIn(app: FastifyInstance): Promise<string> {
-  const response = await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email: 'ana@example.com', password: 'camino2026' },
-  });
-  return String(response.headers['set-cookie']).split(';')[0] ?? '';
-}
 const send = (app: FastifyInstance, method: 'GET' | 'POST' | 'PUT', url: string, cookie: string, payload?: object) =>
   app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
 const plan = { routeId: 'baltic-santiago', dailySteps: 10_000, timeZone: 'Europe/Warsaw' };
@@ -59,7 +55,7 @@ describe('journey API', () => {
 
   it('returns journey_not_found with 404 before a journey is planned', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await send(app, 'GET', '/api/journey', cookie);
 
@@ -69,7 +65,7 @@ describe('journey API', () => {
 
   it('plans a journey with 201 and asks for yesterday steps on day 1', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await send(app, 'POST', '/api/journey', cookie, plan);
 
@@ -82,7 +78,7 @@ describe('journey API', () => {
 
   it('returns journey_exists with 409 for a second journey', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
 
     const response = await send(app, 'POST', '/api/journey', cookie, plan);
@@ -93,7 +89,7 @@ describe('journey API', () => {
 
   it('returns unknown_route with 400 for a route that does not exist', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
 
     const response = await send(app, 'POST', '/api/journey', cookie, { ...plan, routeId: 'atlantis' });
 
@@ -103,7 +99,7 @@ describe('journey API', () => {
 
   it('records yesterday steps and sets off on day 1 from the hour they came in', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
 
     const response = await send(app, 'PUT', '/api/journey/steps', cookie, { steps: 10_000 });
@@ -119,7 +115,7 @@ describe('journey API', () => {
 
   it('returns invalid_steps with 400 above 50 000 steps', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
 
     const response = await send(app, 'PUT', '/api/journey/steps', cookie, { steps: 50_001 });
@@ -130,7 +126,7 @@ describe('journey API', () => {
 
   it('lets the player correct yesterday steps the same day', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
     await send(app, 'PUT', '/api/journey/steps', cookie, { steps: 10_000 });
 
@@ -141,7 +137,7 @@ describe('journey API', () => {
 
   it('asks again the next day and counts a skipped day as rest', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
     await send(app, 'PUT', '/api/journey/steps', cookie, { steps: 10_000 });
     journeys.clock.set(new Date('2026-11-22T07:00:00Z'));
@@ -162,7 +158,7 @@ describe('journey API', () => {
 
   it('changes the goal and the route from the settings', async () => {
     const app = await api();
-    const cookie = await signedIn(app);
+    const cookie = await signedIn(app, auth);
     await send(app, 'POST', '/api/journey', cookie, plan);
 
     const response = await send(app, 'PUT', '/api/journey', cookie, { routeId: 'baltic-santiago', dailySteps: 12_000 });

@@ -127,8 +127,10 @@ To stop everything, run `docker compose down`. Your data stays in the `db-data` 
 
 | Path               | What it is                                                                                                                                                                    |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/login`           | Sign-in and account creation over a still landscape, without the wanderer                                                                                                     |
-| `/forgot-password` | Placeholder until password reset exists                                                                                                                                       |
+| `/login`           | Sign-in and account creation over a still landscape, without the wanderer; after sign-up, the code from the confirmation e-mail is typed in here                              |
+| `/forgot-password` | Asks for a password link by e-mail                                                                                                                                            |
+| `/reset-password`  | Sets a new password from the e-mail's link, then signs in                                                                                                                     |
+| `/verify-email`    | Confirms the address from the e-mail's link, then signs in                                                                                                                    |
 | `/start`           | Choosing the route and the daily step goal on the map, with the journey length worked out live                                                                                |
 | `/scene`           | The game. The ☰ button (or Escape) opens the menu: Map, Achievements and Settings open as windows over the game, each with a back arrow to the menu; sign-out is always last |
 
@@ -156,20 +158,28 @@ All codes are listed in one place, `src/shared/api/errorCodes.ts`, which the ser
 
 The `auth` module (`src/modules/auth`) owns accounts and sessions. `/start` and `/scene` need a signed-in player; the router sends anyone else to `/login` and back afterwards.
 
-| Endpoint                  | What it does                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `POST /api/auth/register` | Creates an account and signs in (201)                                         |
-| `POST /api/auth/login`    | Signs in                                                                      |
-| `POST /api/auth/logout`   | Ends this session (204)                                                       |
-| `GET /api/auth/me`        | The signed-in account, or `unauthenticated` (401)                             |
-| `POST /api/auth/password` | Changes the password; needs the current one and signs out every other session |
+| Endpoint                                | What it does                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `POST /api/auth/register`               | Creates an account and e-mails a confirmation link and code (204); no session yet              |
+| `POST /api/auth/login`                  | Signs in; `email_not_verified` (403) after the right password while the address is unconfirmed |
+| `POST /api/auth/logout`                 | Ends this session (204)                                                                        |
+| `GET /api/auth/me`                      | The signed-in account, or `unauthenticated` (401)                                              |
+| `POST /api/auth/password`               | Changes the password; needs the current one and signs out every other session                  |
+| `POST /api/auth/verify-email`           | Confirms the address with the link's token and signs in                                        |
+| `POST /api/auth/verify-email/code`      | Confirms the address with the six-digit code and signs in                                      |
+| `POST /api/auth/verify-email/resend`    | Sends a new link and code; always 204                                                          |
+| `POST /api/auth/password-reset`         | Sends a password link; always 204                                                              |
+| `POST /api/auth/password-reset/confirm` | Sets a new password with the link's token, signs out everywhere and signs in                   |
 
 - **Passwords** are hashed with scrypt from Node's built-in `crypto` (N=2^15, r=8, p=3, 32 MiB; argon2 would need OpenSSL 3.2, which MyDevil's Node builds lack). Each hash is stored as one PHC string that carries its own random salt and parameters.
 - **Password rules** (`src/shared/auth/password.ts`, shared with the game): 8 to 128 characters, any characters, no composition rules. New passwords are checked against Have I Been Pwned with k-anonymity: only the first 5 characters of the SHA-1 leave the server. If the service is down, the password is accepted and a warning is logged.
+- **Confirming the address** is required before the first sign-in. The e-mail carries a link and a six-digit code, both valid for 48 hours; a new e-mail replaces them. A code allows five tries. Only hashes are stored, and the code's is salted with its link's. Confirmation e-mails and password links are limited to three an hour per address, and the answer never says whether an address has an account.
+- **Password links** last 30 minutes and work once. Setting a new password confirms the address, lifts a sign-in lock and signs out every session.
+- **Mail:** with `SMTP_*` in `.env` it is sent for real; without them, locally, each e-mail is printed to the app's log with its link and code.
 - **Sessions** last 30 days. The cookie `wayfarer_session` is `HttpOnly`, `SameSite=Lax`, `Path=/api` and `Secure`; the database keeps only the SHA-256 of the token.
 - **Guessing:** five wrong passwords in a row lock an account for 15 minutes, and each client address gets 30 attempts per 15 minutes. Addresses are counted in memory only, never stored.
 - New routes that need a player use the `requireSession` preHandler and read the player from `request.auth`.
-- **Local development:** with `DEV_LOGIN=true` in `.env`, the password `localhost` signs in with any address and creates the account if needed. The server refuses to start with it when `NODE_ENV=production`, with Secure cookies or with `TRUST_PROXY=true`.
+- **Local development:** with `DEV_LOGIN=true` in `.env`, the password `localhost` signs in with any address, creating the account if needed and confirming its address. The server refuses to start with it when `NODE_ENV=production`, with Secure cookies or with `TRUST_PROXY=true`.
 
 ## The journey
 
