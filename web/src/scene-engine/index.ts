@@ -3,7 +3,6 @@ export { startPrototypeScene as createScene } from './prototype/prototypeScene.j
 export type {
   BehaviourGroup,
   BehaviourId,
-  CampHabit,
   ElevationLevel,
   Scene,
   SceneBehaviour,

@@ -116,6 +116,20 @@ describe('DevPanel', () => {
     expect(wrapper.text()).toContain('Rudzik');
   });
 
+  it('lists the pipe and the tea by the fire under their own heading', async () => {
+    const wrapper = panel({
+      behaviours: [
+        { id: 'campPipe', group: 'camp' },
+        { id: 'campTea', group: 'camp' },
+      ],
+    });
+
+    await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
+
+    expect(wrapper.get('[aria-label="W obozie"]').text()).toContain('Pali fajkę');
+    expect(wrapper.get('[aria-label="W obozie"]').text()).toContain('Pije herbatę');
+  });
+
   it('emits the behaviour to start when its button is pressed', async () => {
     const wrapper = panel({ behaviours: [{ id: 'catRide', group: 'cat' }] });
     await wrapper.get('[data-testid="dev-behaviours"] button').trigger('click');
@@ -204,13 +218,5 @@ describe('DevPanel', () => {
     const wrapper = panel({ routePlace: { region: 'lowerVistula', km: 123.4 } });
 
     expect(wrapper.get('[data-testid="dev-route-place"]').text()).toBe('Trasa: lowerVistula, 123 km');
-  });
-
-  it('keeps him to tea by the fire', async () => {
-    const wrapper = panel();
-
-    await wrapper.get('[data-testid="dev-camp-tea"]').trigger('click');
-
-    expect(wrapper.emitted('update:campHabit')).toEqual([['tea']]);
   });
 });

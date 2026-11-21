@@ -14,6 +14,8 @@ export type BehaviourId =
   | 'strap'
   | 'hat'
   | 'pebble'
+  | 'campPipe'
+  | 'campTea'
   | 'catRide'
   | 'catDown'
   | 'catWash'
@@ -32,14 +34,12 @@ export type BehaviourId =
   | 'shop'
   | 'jetty';
 
-export type BehaviourGroup = 'wanderer' | 'cat' | 'bird' | 'world';
+export type BehaviourGroup = 'wanderer' | 'camp' | 'cat' | 'bird' | 'world';
 
 export interface SceneBehaviour {
   readonly id: BehaviourId;
   readonly group: BehaviourGroup;
 }
-
-export type CampHabit = 'both' | 'pipe' | 'tea';
 
 export interface SceneWorldEvent {
   readonly id: SightingId;
@@ -81,7 +81,6 @@ export interface SceneOptions {
   readonly hideWanderer?: boolean;
   /** Beard length from 0 (clean-shaven) to 1 (full). */
   readonly beard?: number;
-  readonly campHabit?: CampHabit;
   /** The weather layers to draw; left out, a clear sky with a light breeze. */
   readonly weather?: Weather;
   /** Today's walk, or null for a day at camp; left out, the prototype's demo day (07:12–19:18). */
@@ -101,8 +100,6 @@ export interface Scene {
   /** Today's walk, or null for a day at camp. */
   setWalk(walk: SceneWalk | null): void;
   setWeather(weather: Weather): void;
-  /** What he does by the fire: takes turns with his pipe and a mug of tea, or keeps to one. */
-  setCampHabit(habit: CampHabit): void;
   setBiome(id: string): void;
   /** The levels a biome offers: low, mid and high for mountain biomes, only mid for the rest. */
   levelsOf(id: string): readonly ElevationLevel[];

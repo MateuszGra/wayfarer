@@ -4,7 +4,7 @@ import { landscapeAt } from '@shared/routes/landscape';
 import { ROUTE_REGIONS } from '@shared/routes/regions/index';
 import { DEFAULT_DAYLIGHT, FULL_DAY_STEPS, walkingWindow } from '@shared/steps/dailyWalk';
 import type { Weather } from '@shared/weather/weather';
-import type { CampHabit, SceneSnapshot, SceneWalk } from '@/scene-engine';
+import type { SceneSnapshot, SceneWalk } from '@/scene-engine';
 import { apiErrorMessage } from '@/shared/api/errorMessages';
 import GameMenu from '@/shared/components/organisms/GameMenu/GameMenu.vue';
 import { useGameMenu } from '@/shared/composables/useGameMenu';
@@ -113,7 +113,6 @@ const sceneNow = computed(() => toScene(clockHour.value));
 // In the developer panel the walk can be swapped for a whole day on the road or a day at camp, to see
 // any hour of either; it changes only what the scene shows, never the journey.
 const devWalkMode = ref<DevWalkMode>(devSaved?.walkMode ?? 'steps');
-const campHabit = ref<CampHabit>(devSaved?.campHabit ?? 'both');
 const sceneWalk = computed<SceneWalk | null>(() => {
   if (devWalkMode.value === 'camp') return null;
   const walk =
@@ -183,7 +182,6 @@ const levels = computed(() => (scene.value && snapshot.value ? scene.value.level
 const behaviours = computed(() => snapshot.value?.behaviours ?? []);
 watch([scene, beard], ([created, length]) => created?.setBeard(length));
 watch([scene, sceneWalk], ([created, walk]) => created?.setWalk(walk));
-watch([scene, campHabit], ([created, habit]) => created?.setCampHabit(habit));
 watch([scene, sceneWeather], ([created, weather]) => created?.setWeather(weather));
 if (devSaved) {
   watch(
@@ -194,7 +192,6 @@ if (devSaved) {
       beardDay: beardDayOverride.value,
       weather: handWeather.value,
       walkMode: devWalkMode.value,
-      campHabit: campHabit.value,
       dayLengthIndex: dayLengthIndex.value,
     }),
     (settings) => saveDevSettings(settings),
@@ -300,11 +297,9 @@ const cycleDayLength = (): void => {
       :weather="sceneWeather"
       :weather-from-api="handWeather === null"
       :walk-mode="devWalkMode"
-      :camp-habit="campHabit"
       :place-from-route="!handPlace"
       :route-place="routeLandscape ? { region: routeLandscape.region, km: routeLandscape.km } : null"
       @update:walk-mode="(mode) => (devWalkMode = mode)"
-      @update:camp-habit="(habit) => (campHabit = habit)"
       @update:weather="(next) => (handWeather = next)"
       @follow-api-weather="handWeather = null"
       @select-level="(level) => (placeByHand(), scene?.setLevel(level))"

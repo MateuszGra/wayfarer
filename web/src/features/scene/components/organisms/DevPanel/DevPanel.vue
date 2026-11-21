@@ -4,7 +4,7 @@ import { BaseButton, BaseCollapsible, BasePanel } from '@/design-system';
 import type { WeatherResponse } from '@shared/api/contracts';
 import { FULL_BEARD_DAYS } from '@shared/wanderer/beard';
 import type { Precipitation, Sky, Weather, Wind } from '@shared/weather/weather';
-import type { BehaviourGroup, BehaviourId, CampHabit, ElevationLevel, SceneBehaviour } from '@/scene-engine';
+import type { BehaviourGroup, BehaviourId, ElevationLevel, SceneBehaviour } from '@/scene-engine';
 import { useStoredFlag } from '@/shared/composables/useStoredFlag';
 import { t, tn, type TranslationKey } from '@/shared/i18n';
 
@@ -34,8 +34,6 @@ export interface Props {
   placeFromRoute?: boolean;
   /** The route region and kilometre where today's walk starts, when known. */
   routePlace?: { readonly region: string; readonly km: number } | null;
-  /** What he does by the fire: takes turns with the pipe and tea, or keeps to one. */
-  campHabit?: CampHabit;
   /** Which walk the scene shows: today's from the steps, a whole day on the road, or a day at camp. */
   walkMode?: DevWalkMode;
 }
@@ -46,7 +44,6 @@ const props = withDefaults(defineProps<Props>(), {
   apiWeather: null,
   walkMode: 'steps',
   placeFromRoute: true,
-  campHabit: 'both',
   routePlace: null,
 });
 const emit = defineEmits<{
@@ -64,7 +61,6 @@ const emit = defineEmits<{
   'follow-api-weather': [];
   'update:walkMode': [mode: DevWalkMode];
   'follow-route': [];
-  'update:campHabit': [habit: CampHabit];
 }>();
 
 const clock = computed(() => {
@@ -76,7 +72,7 @@ const biomeLabel = (id: string): string => t(`biome.${id}` as TranslationKey);
 const beardLabel = computed(() =>
   t(props.beardDay >= FULL_BEARD_DAYS ? 'dev.beardFull' : 'dev.beard', { days: tn('unit.days', props.beardDay) }),
 );
-const GROUPS: readonly BehaviourGroup[] = ['wanderer', 'cat', 'bird', 'world'];
+const GROUPS: readonly BehaviourGroup[] = ['wanderer', 'camp', 'cat', 'bird', 'world'];
 const behaviourGroups = computed(() =>
   GROUPS.map((group) => ({ group, items: props.behaviours.filter((b) => b.group === group) })).filter(
     (g) => g.items.length > 0,
@@ -89,7 +85,6 @@ const beardOpen = useStoredFlag('wayfarer.dev.beardOpen', true);
 const placeOpen = useStoredFlag('wayfarer.dev.placeOpen', true);
 const behavioursOpen = useStoredFlag('wayfarer.dev.behavioursOpen');
 const WALK_MODES: readonly DevWalkMode[] = ['steps', 'fullDay', 'camp'];
-const CAMP_HABITS: readonly CampHabit[] = ['both', 'pipe', 'tea'];
 const weatherOpen = useStoredFlag('wayfarer.dev.weatherOpen');
 const SKIES: readonly Sky[] = ['clear', 'partly', 'overcast', 'fog'];
 const FALLS: readonly Precipitation[] = ['none', 'drizzle', 'rain', 'heavyRain', 'snow', 'heavySnow'];
@@ -173,19 +168,6 @@ const sliderValue = (event: Event): number => Number((event.target as HTMLInputE
             @click="emit('update:walkMode', mode)"
           >
             {{ t(`dev.walk.${mode}`) }}
-          </BaseButton>
-        </div>
-        <div class="dev-panel__row" role="group" :aria-label="t('dev.campHabit')">
-          <span class="dev-panel__label">{{ t('dev.campHabit') }}</span>
-          <BaseButton
-            v-for="habit in CAMP_HABITS"
-            :key="habit"
-            size="sm"
-            :variant="campHabit === habit ? 'primary' : 'ghost'"
-            :data-testid="`dev-camp-${habit}`"
-            @click="emit('update:campHabit', habit)"
-          >
-            {{ t(`dev.campHabit.${habit}`) }}
           </BaseButton>
         </div>
       </BaseCollapsible>

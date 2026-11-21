@@ -6,6 +6,10 @@ import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js
 import { leadOf, pitchHour, seatOut, tentUp } from '../campSchedule';
 import { CAT_RIDE, CAT_WASH, catRideOverlaps, catWashSkipped } from '../catSchedule';
 import { catWear } from '../catWear';
+// Renamed: this file has its own `pipeAt`, the pipe's place in his hand for drawing the smoke.
+import { pipeAt as firesidePipe } from '../fireside';
+import { cloudBand, cloudGrey, landFog, rainLook } from '../weatherLook';
+import { GUST_SECONDS, gustAt, gustDebris } from '../windGusts';
 
 /** @type {import('./prototypeScene').startPrototypeScene} */
 export async function startPrototypeScene(host, options = {}) {
@@ -286,6 +290,9 @@ export async function startPrototypeScene(host, options = {}) {
   // The traveller is drawn in units of H/850, so the ground moves WALK_U_PER_S*850 units/s.
   // Stride and cycle length are matched to that speed so planted feet do not slide.
   const STRIDE = 15;
+  // In a gale he takes steps this much shorter, and quicker to match, so his pace and planted feet stay the same.
+  const GALE_STRIDE_CUT = 0.22;
+  const galeStride = (gale) => 1 - GALE_STRIDE_CUT * gale;
   const TENT_SCALE = 2.1;
   const CYCLE_S = (2 * STRIDE) / (0.6 * WALK_U_PER_S * 850);
 
@@ -299,7 +306,6 @@ export async function startPrototypeScene(host, options = {}) {
     // Today's walk: from `startHour` to `endHour`, after `leadHours` of getting up and packing. Null is a
     // day at camp (no steps yet, or a rest day). Without a walk given, the demo day of the prototype.
     walk: options.walk === undefined ? DEMO_WALK : options.walk,
-    campHabit: options.campHabit ?? 'both',
     weather: options.weather ?? CLEAR_WEATHER,
   };
 
@@ -397,9 +403,11 @@ export async function startPrototypeScene(host, options = {}) {
   const front = new Container();
   // Rain or snow falls in front of everything, and a lightning flash lights the whole picture.
   const precipG = new Graphics();
+  // Gusts blow across in front of the land and the wanderer, behind the falling rain.
+  const gustG = new Graphics();
   const flash = new Sprite(Texture.WHITE);
   flash.blendMode = 'add';
-  app.stage.addChild(skyGroup, landscape, veilC, actors, front, precipG, flash);
+  app.stage.addChild(skyGroup, landscape, veilC, actors, front, gustG, precipG, flash);
 
   const sky = new Sprite(skyTex); skyGroup.addChild(sky);
   // The sky above the stage on an upright phone: the zenith colour, continued upwards.
@@ -451,11 +459,12 @@ export async function startPrototypeScene(host, options = {}) {
   function buildClouds(def) {
     cloudsC.removeChildren().forEach(c => c.destroy({ children: true }));
     clouds = [];
+    const band = cloudBand(state.weather.sky);
     for (let i = 0; i < cloudCount(def); i++) {
       const r0 = hash(i, state.seed + 300), r1 = hash(i, state.seed + 301), r2 = hash(i, state.seed + 302);
       const c = new Container();
       const shade = new Graphics(), body = new Graphics(), hi = new Graphics();
-      const cw = (0.1 + r0 * 0.22) * S, ch = cw * (0.22 + r2 * 0.1);
+      const cw = (0.1 + r0 * 0.22) * S * band.size, ch = cw * (0.22 + r2 * 0.1);
       const n = 6 + Math.floor(r1 * 6);
       for (let b = 0; b < n; b++) {
         const f = (b + 0.5) / n;
@@ -468,7 +477,7 @@ export async function startPrototypeScene(host, options = {}) {
       body.roundRect(-cw / 2, -ch * 0.3, cw, ch * 0.3, ch * 0.15).fill(0xffffff);
       shade.roundRect(-cw / 2, -ch * 0.2, cw, ch * 0.3, ch * 0.15).fill(0xffffff);
       c.addChild(shade, body, hi);
-      c.y = (0.1 + r2 * 0.28) * H;
+      c.y = (band.top + r2 * band.spread) * H;
       cloudsC.addChild(c);
       clouds.push({ c, body, shade, hi, cw, base: r1, speed: 3 + r0 * 6 });
     }
@@ -1761,8 +1770,8 @@ export async function startPrototypeScene(host, options = {}) {
   // Foot roll: heel strike with the toe up, flat foot, then the heel lifts and the foot pushes off
   // from the toe. The swing lift uses sin² so the foot arrives with zero vertical speed (no stomp).
   const HEEL_LIFT = 4;
-  function footAt(q, amp) {
-    const st = STRIDE * amp;
+  function footAt(q, amp, strideK = 1) {
+    const st = STRIDE * amp * strideK;
     if (q < 0.6) {
       const k = smooth(0.4, 0.6, q), lift = HEEL_LIFT * k * amp;
       const strike = -0.3 * amp * (1 - smooth(0, 0.14, q));
@@ -1939,12 +1948,12 @@ export async function startPrototypeScene(host, options = {}) {
     g.clear();
     pipeAt = null;
     const amp = Math.sqrt(s);
-    const { pipe = false, grass = false, lookUp = 0, drink = 0, strap = 0, hat = 0, stretch = 0, packing = 0, kickBack = 0, kick = 0 } = act;
+    const { pipe = false, grass = false, lookUp = 0, drink = 0, strap = 0, hat = 0, stretch = 0, packing = 0, kickBack = 0, kick = 0, gale = 0 } = act;
     g.ellipse(2, 0, 15, 2.4).fill({ color: 0x000000, alpha: 0.22 });
     // Springy gait: the hip rises more than a heavy hiker's would.
     const hip = { x: 0, y: -HIP_H + 1.6 * amp * (0.5 + 0.5 * Math.cos(2 * p - 0.3)) - stretch * 1.5 };
     const qA = mod(p / (Math.PI * 2), 1), qB = mod(qA + 0.5, 1);
-    let fA = footAt(qA, amp), fB = footAt(qB, amp);
+    let fA = footAt(qA, amp, galeStride(gale)), fB = footAt(qB, amp, galeStride(gale));
     // Standing still the stride shrinks to nothing and both feet would land on one spot, reading as a
     // single leg; as he slows down they settle a hip's width apart instead.
     const stand = 1 - clamp(amp * 2.5);
@@ -1961,7 +1970,8 @@ export async function startPrototypeScene(host, options = {}) {
     }
     drawLeg(g, hip, fB, TC.pantsBack);
     // In a gust, or now and then to straighten it, the free hand goes up to the hat; otherwise it's in a pocket.
-    const hatK = Math.max(smooth(0.84, 0.96, wind), hat);
+    // In a gale it holds the hat all the time instead of going up and down with every gust.
+    const hatK = Math.max(smooth(0.84, 0.96, wind) * (1 - gale), hat, gale);
     const pocket = [-0.5 + Math.cos(p) * 1.5 * amp, -6];
     const swing = handFromAngles([3, -31], 0.05 - 0.38 * amp * Math.cos(p), 0.4);
     const tug = strap * (0.5 + 0.5 * Math.sin(t * 9)) * 1.5;
@@ -1977,11 +1987,12 @@ export async function startPrototypeScene(host, options = {}) {
     // Morning stretch: both arms up over the head.
     farHand = [lerp(farHand[0], -3, stretch), lerp(farHand[1], -64, stretch)];
     nearHand = [lerp(nearHand[0], 7, stretch), lerp(nearHand[1], -65, stretch)];
-    drawUpper(g, hip, 0.02 + 0.03 * amp - stretch * 0.06 + packing * 0.35, {
+    // In a gale he leans his body forward into the wind and keeps his head down.
+    drawUpper(g, hip, 0.02 + 0.03 * amp - stretch * 0.06 + packing * 0.35 + gale * 0.14, {
       farHand, farHidden: hatK < 0.3 && strap < 0.3 && stretch < 0.3 && packing < 0.3,
       nearHand, pack: true, packBob: Math.cos(2 * p - 0.8) * 0.8 * amp, nearLeg: fA, capeFront: (fA.x - 2) * 0.35, t, wind, sprig,
       flutter: wind * 2.2 + Math.sin(t * 4) * 0.8 + amp,
-      tilt: Math.sin(2 * p) * 0.035 - lookUp * 0.22 - drink * 0.3 - stretch * 0.32 + packing * 0.2 + kickBack * 0.04 - kick * 0.1,
+      tilt: Math.sin(2 * p) * 0.035 - lookUp * 0.22 - drink * 0.3 - stretch * 0.32 + packing * 0.2 + kickBack * 0.04 - kick * 0.1 + gale * 0.06,
       pipeInMouth: pipe && drink < 0.3, grassInMouth: grass && drink < 0.3, flask: drink,
     });
   }
@@ -2460,7 +2471,6 @@ export async function startPrototypeScene(host, options = {}) {
   // How much a sky hides the sun and greys the light, from 0 (clear) to about 1.
   const SKY_COVER = { clear: 0, partly: 0.18, overcast: 0.85, fog: 0.8 };
   const WIND_STRENGTH = { calm: 0.35, breeze: 1, strong: 2.2 };
-  const RAIN_DROPS = { drizzle: 70, rain: 170, heavyRain: 340 };
   const SNOW_FLAKES = { snow: 110, heavySnow: 260 };
   const grey = (c) => { const [r, g, b] = rgb(c); const l = r * 0.3 + g * 0.59 + b * 0.11; return hex([l, l, l]); };
   const cover = () => SKY_COVER[state.weather.sky] + (state.weather.storm ? 0.15 : 0) + (state.weather.precipitation !== 'none' ? 0.08 : 0);
@@ -2472,7 +2482,9 @@ export async function startPrototypeScene(host, options = {}) {
     return {
       ...P,
       top: toGrey(P.top, g * 0.75), hor: toGrey(P.hor, g * 0.6), haze: toGrey(P.haze, g * 0.6),
-      light: toGrey(P.light, g * 0.7), cloud: mix(toGrey(P.cloud, g * 0.6), 0x8a9098, g * 0.35),
+      // Rain grey is multiplied into the hour's own cloud colour, so a heavy sky darkens at night with it.
+      light: toGrey(P.light, g * 0.7),
+      cloud: mix(toGrey(P.cloud, g * 0.6), mul(grey(P.cloud), 0x9aa0a8), cloudGrey(state.weather)),
       bright: P.bright * (1 - 0.3 * g), stars: P.stars * (1 - g),
     };
   }
@@ -2482,7 +2494,8 @@ export async function startPrototypeScene(host, options = {}) {
     const kind = state.weather.precipitation;
     if (kind === 'none') return;
     const snow = kind === 'snow' || kind === 'heavySnow';
-    const count = snow ? SNOW_FLAKES[kind] : RAIN_DROPS[kind];
+    const rain = rainLook(kind);
+    const count = snow ? SNOW_FLAKES[kind] : rain.count;
     const light = mul(0xffffff, P.light, Math.max(P.bright, 0.5));
     const slant = (snow ? 0.15 : 0.12) * windK;
     for (let i = 0; i < count; i++) {
@@ -2493,8 +2506,102 @@ export async function startPrototypeScene(host, options = {}) {
       if (snow) {
         precipG.circle(x, y, (1 + hash(i, 903) * 1.6) * (H / 850)).fill({ color: light, alpha: 0.85 });
       } else {
-        const len = H * (kind === 'drizzle' ? 0.012 : 0.026);
-        precipG.moveTo(x, y).lineTo(x - len * slant, y - len).stroke({ width: Math.max(1, H / 900), color: light, alpha: kind === 'drizzle' ? 0.28 : 0.38 });
+        const len = H * rain.length;
+        precipG.moveTo(x, y).lineTo(x - len * slant, y - len);
+      }
+    }
+    // All raindrops share one stroke: hundreds of separate strokes a frame cost a phone too much in a downpour.
+    if (rain) precipG.stroke({ width: Math.max(1, H / 900) * rain.width, color: light, alpha: rain.alpha });
+  }
+  // A gust: what the wind lifts here (tumbling leaves, dust on the Meseta, sand by the Baltic, flakes in
+  // snow) blows low over the ground from beyond the left edge to beyond the right, each bit going once
+  // round a little loop on the way, as wind is drawn in a cartoon. For players who ask for less motion a
+  // gust is slower and its bits fly straight.
+  const GUST_LOOP_SHARE = 0.5;
+  const GUST_DEBRIS_COLORS = {
+    leaves: [0x8a6a3a, 0xa3803f, 0x6f6a38], dust: [0xcdb894, 0xb9a27c], sand: [0xd9c9a0, 0xc8b68a], snow: [0xf4f6fa],
+  };
+
+  // A bit's track runs straight, goes once round a loop and runs on straight. The loop is drawn by hand,
+  // not with compasses: a little wider or taller than round (`squash`), and its edge swells and narrows
+  // once on the way round (`wobble`).
+  function gustTrack(u, loop) {
+    const { at, r, drift, squash, wobble, phase } = loop;
+    const round = Math.PI * 2 * r;
+    if (u < at) return [u, 0];
+    if (u >= at + round) return [u - round + drift, 0];
+    const a = (u - at) / r;
+    // Zero where the loop meets the straight track at both ends, so the path never kinks there.
+    const swell = 1 + wobble * Math.sin(a / 2) * Math.sin(a / 2 + phase);
+    return [at + r * (1 + squash) * swell * Math.sin(a) + (drift * a) / (Math.PI * 2), -r * (1 - squash) * swell * (1 - Math.cos(a))];
+  }
+  // Where along its track a bit is at `p` (0 to 1 of the gust). `stages` are lengths of track with
+  // the time each unit of length takes; a stage marked `linger` is run with a pause in the middle: the
+  // bit eases off as it nears the top of the loop, hangs there for a moment at about two fifths of its
+  // speed, and picks up again, all without a jolt. Elsewhere it keeps an even pace.
+  const GUST_LINGER = 0.6;
+  // The share of a lingering stage covered once `x` of its time has passed; its speed dips to
+  // 1 - GUST_LINGER halfway.
+  const linger = (x) => x - (GUST_LINGER * Math.sin(Math.PI * 2 * x)) / (Math.PI * 2);
+  function gustPlace(p, start, stages) {
+    const total = stages.reduce((sum, [len, pace]) => sum + len * pace, 0);
+    let time = p * total, u = start;
+    for (const [len, pace, kind] of stages) {
+      // A bit without a loop has a loop stage of no length; skip it rather than divide 0 by 0.
+      if (len <= 0) continue;
+      if (time <= len * pace) return u + (kind === 'linger' ? len * linger(time / (len * pace)) : time / pace);
+      time -= len * pace; u += len;
+    }
+    return u;
+  }
+  function drawGusts(t, P, groundY) {
+    gustG.clear();
+    // GUST_SECONDS is the crossing of a 16:9 screen. The scene is scaled to the screen's height, so a
+    // narrower screen is crossed sooner and the bits keep the same speed through the scene: on an upright
+    // phone a gust would otherwise crawl. Not below 0.45 of it, so a loop still reads.
+    const across = clamp(W / H / (16 / 9), 0.45, 1);
+    const gust = gustAt(t, state.weather.wind, GUST_SECONDS * across * (calmMotion ? 1.8 : 1));
+    if (!gust) return;
+    const { progress: p, strength: k, seed } = gust;
+    const dim = Math.max(P.bright, 0.3);
+    const debris = gustDebris(state.biome, state.weather.precipitation);
+    const colors = GUST_DEBRIS_COLORS[debris];
+    const count = Math.round((debris === 'leaves' ? 12 : 20) * k);
+    // The loops drift on with the wind meanwhile, so a bit never stalls while it goes round.
+    const carry = W * 0.22;
+    for (let i = 0; i < count; i++) {
+      const r = (salt) => hash(i, seed * 17 + salt);
+      // About half the bits go round a loop; the rest fly flat. Reduced motion: none loop.
+      const loops = !calmMotion && r(11) < GUST_LOOP_SHARE;
+      const radius = loops ? Math.min(W, H) * (0.015 + r(7) * 0.02) : 0;
+      const round = Math.PI * 2 * radius;
+      const loop = {
+        at: W * (0.48 + (r(8) - 0.5) * 0.4) - carry * 0.4,
+        r: radius, drift: radius * 1.4, squash: (r(9) - 0.4) * 0.35, wobble: 0.1, phase: r(10) * 6.28,
+      };
+      // Starts beyond the left edge and ends beyond the right: nothing fades in or out on screen.
+      const start = -0.1 * W - r(1) * W * 0.3, end = 1.25 * W + round - loop.drift - carry;
+      const u = gustPlace(p, start, [
+        [Math.max(0, loop.at - start), 0.85],
+        [round, 2.6, 'linger'],
+        [Math.max(0, end - (loop.at + round)), 1],
+      ]);
+      const [tx, ty] = gustTrack(u, loop);
+      const x = tx + carry * p;
+      // Low over the ground wherever it is, rising and dipping with the land: most bits skim it, fewer fly a
+      // little higher. A loop lifts its bit above that.
+      const above = H * (0.008 + Math.pow(r(2), 1.6) * 0.11);
+      const y = groundY(x) - above + ty + Math.sin(t * 3 + i) * H * 0.006;
+      const spin = t * (4 + r(5) * 3) + r(6) * 6.28;
+      const color = mul(colors[i % colors.length], P.light, dim);
+      if (debris === 'leaves') {
+        // A leaf tumbles: a small flat rhombus turning as it flies.
+        const a = spin * 1.4, len = H * 0.006, wide = H * 0.0024;
+        const [ca, sa] = [Math.cos(a), Math.sin(a)];
+        gustG.poly([x + ca * len, y + sa * len, x - sa * wide, y + ca * wide, x - ca * len, y - sa * len, x + sa * wide, y - ca * wide])
+          .fill({ color, alpha: k * 0.9 });
+      } else {
+        gustG.circle(x, y, H * (debris === 'snow' ? 0.0024 : 0.0016)).fill({ color, alpha: k * (debris === 'snow' ? 0.85 : 0.5) });
       }
     }
   }
@@ -2540,6 +2647,8 @@ export async function startPrototypeScene(host, options = {}) {
   const CAT_FOLLOW_X = -56, CAT_CAMP_X = 102;
   // `noRideUntil`: after being sent down, the cat stays off the backpack for the rest of that ride.
   const cat = { x: null, phase: 0, pendingDown: false, downStart: -Infinity, noRideUntil: -Infinity };
+  // How far he has gone into his gale posture, 0 to 1; it eases in and out over about a second.
+  let galeK = 0;
   // What can be started at this moment, refreshed every frame and reported in the snapshot.
   const available = new Set();
   // Behaviours a developer can trigger from the dev panel. Each normally runs on its own loop of the
@@ -2548,6 +2657,7 @@ export async function startPrototypeScene(host, options = {}) {
     { id: 'pipe', group: 'wanderer' }, { id: 'grass', group: 'wanderer', biomes: ['meseta', 'forest', 'fields', 'lakes'] },
     { id: 'view', group: 'wanderer' }, { id: 'drink', group: 'wanderer' }, { id: 'strap', group: 'wanderer' },
     { id: 'hat', group: 'wanderer' }, { id: 'pebble', group: 'wanderer' },
+    { id: 'campPipe', group: 'camp' }, { id: 'campTea', group: 'camp' },
     { id: 'catRide', group: 'cat' }, { id: 'catDown', group: 'cat' }, { id: 'catWash', group: 'cat' },
     ...BIRD_IDS.map((id) => ({ id, group: 'bird' })), { id: 'shootingStar', group: 'world' },
     { id: 'ship', group: 'world' }, { id: 'fishingBoat', group: 'world' }, { id: 'angler', group: 'world' },
@@ -2562,6 +2672,8 @@ export async function startPrototypeScene(host, options = {}) {
     const x = forcedAge(id);
     return x === Infinity ? 0 : smooth(0, 0.5, x) * (1 - smooth(length - 0.5, length, x));
   };
+  // How long a pipe or a mug of tea started from the developer panel lasts by the fire, in seconds.
+  const CAMP_PIPE_S = 14, CAMP_TEA_S = 6;
   let hudTimer = 0, lastSkyHour = -1;
   let stretchStartT = null;
 
@@ -2607,7 +2719,8 @@ export async function startPrototypeScene(host, options = {}) {
     state.speed += ((walking ? 1 - viewPause : 0) - state.speed) * Math.min(1, dt * 2.2);
     if (!walking && state.speed < 0.003) state.speed = 0;
     state.offsetU += state.speed * dt * WALK_U_PER_S;
-    state.phase += Math.sqrt(state.speed) * dt * Math.PI * 2 / CYCLE_S;
+    galeK += ((state.weather.wind === 'strong' ? 1 : 0) - galeK) * Math.min(1, dt * 1.2);
+    state.phase += Math.sqrt(state.speed) * dt * Math.PI * 2 / (CYCLE_S * galeStride(galeK));
     const windK = WIND_STRENGTH[state.weather.wind];
     const wind = (0.6 + 0.4 * Math.sin(t * 0.13) * Math.sin(t * 0.31 + 1)) * windK;
 
@@ -2682,12 +2795,14 @@ export async function startPrototypeScene(host, options = {}) {
     const nightK = clamp((0.75 - P.bright) / 0.45);
     const dark = 1 - clamp(P.bright);
 
+    const cloudGreyK = cloudGrey(state.weather);
     for (const c of clouds) {
       const span = W + c.cw * 2;
       c.c.x = mod(c.base * span + t * c.speed * windK * (S / 900) - state.offsetU * S * 0.02, span) - c.cw * 0.5;
       c.body.tint = P.cloud;
       c.shade.tint = mix(P.cloud, shadowCol, 0.42);
-      c.hi.tint = mix(P.cloud, mul(0xffffff, P.light, 1.15), 0.5 * (1 - nightK * 0.7));
+      // Under a grey deck the sun lights no cloud tops.
+      c.hi.tint = mix(P.cloud, mul(0xffffff, P.light, 1.15), 0.5 * (1 - nightK * 0.7) * (1 - cloudGreyK * 0.85));
     }
     drawBirds(t, P, def.birdColor);
 
@@ -2695,7 +2810,10 @@ export async function startPrototypeScene(host, options = {}) {
     const mist = clamp(smooth(4.5, 6.2, h) * (1 - smooth(7.6, 10, h)) + (state.weather.sky === 'fog' ? 1 : 0));
     const fogMul = (0.3 + 0.9 * mist) * def.mist;
     const fogColor = mix(P.haze, 0xffffff, 0.12 + mist * 0.15);
-    const colorAt = (c, depth) => mix(mul(c, P.light, P.bright), P.haze, Math.pow(depth, 1.5) * 0.85 + 0.03);
+    // In fog, and less so in heavy rain, the land itself sinks into the haze, the far most but the near too.
+    const fogK = landFog(state.weather);
+    const colorAt = (c, depth) =>
+      mix(mul(c, P.light, P.bright), P.haze, Math.min(0.92, Math.pow(depth, 1.5) * 0.85 + 0.03 + fogK * 0.5 * (0.35 + 0.65 * depth)));
     for (const L of env.layers) {
       placeLayer(L);
       const col = colorAt(L.color, L.depth);
@@ -2766,7 +2884,7 @@ export async function startPrototypeScene(host, options = {}) {
       if (L.lhRed) { L.lhRed.tint = sideTint(colorAt(L.lighthouse.wall, L.depth), sk * 0.5); L.lhWhite.tint = sideTint(colorAt(0xf1ede4, L.depth), sk * 0.5); }
       if (L.rimG) { L.rimG.tint = P.light; L.rimG.alpha = lowness * lowness * 0.3 * sunVis; }
       if (L.rg) L.rg.tint = mul(col, 0xc2cad2);
-      if (L.fogS) { L.fogS.tint = fogColor; L.fogS.alpha = clamp(L.fog * fogMul * (0.25 + 0.75 * L.depth), 0, 0.75); }
+      if (L.fogS) { L.fogS.tint = fogColor; L.fogS.alpha = clamp(L.fog * fogMul * (0.25 + 0.75 * L.depth + 0.4 * fogK), 0, 0.75 + 0.15 * fogK); }
     }
     // On a portrait phone the screen is too narrow for corner framing; it would cover the camp.
     if (env.overlay) front.visible = W > H;
@@ -2778,7 +2896,7 @@ export async function startPrototypeScene(host, options = {}) {
         it.s.position.set(mod(it.base * span + t * it.speed * (H / 900), span) - w / 2, it.y * H);
         it.s.width = w; it.s.height = it.h * H;
         it.s.tint = fogColor;
-        it.s.alpha = clamp((0.06 + 0.55 * mist) * def.mist * it.a, 0, 0.7);
+        it.s.alpha = clamp((0.06 + 0.55 * mist + 0.25 * fogK) * def.mist * it.a, 0, 0.7 + 0.15 * fogK);
       }
     }
 
@@ -3001,21 +3119,29 @@ export async function startPrototypeScene(host, options = {}) {
     trav.alpha = 1 - sleep;
     let mugPos = null, puff = 0, exhaling = false;
     if (sitting) {
-      const sipK = smooth(0, 0.25, mod(t, 15) - 11) * (1 - smooth(0, 0.25, mod(t, 15) - 13.2));
+      // From the developer panel: a pipe now, for one session, or the mug now, with a sip straight away.
+      const pipeNow = forcedWindow('campPipe', CAMP_PIPE_S);
+      const teaNow = forcedWindow('campTea', CAMP_TEA_S);
+      const teaAge = forcedAge('campTea');
+      const sipNow = smooth(0.6, 0.85, teaAge) * (1 - smooth(2.8, 3.05, teaAge));
+      const sipK = Math.max(smooth(0, 0.25, mod(t, 15) - 11) * (1 - smooth(0, 0.25, mod(t, 15) - 13.2)), sipNow);
       const lookK = smooth(0.55, 0.8, noise1(t * 0.05, 77));
-      // By the fire he takes turns: his pipe for about half of a 30 s cycle, a mug of tea for the rest (or
-      // only one of them, when the developer panel asks). Every 6 s he draws on the pipe for about two
+      // By the fire he picks his pipe or a mug of tea at random for each stretch of time (see `firesidePipe`);
+      // the developer panel can start either at once. Every 6 s he draws on the pipe for about two
       // seconds, then lowers it and breathes the smoke out.
-      const pipeK = state.campHabit === 'pipe' ? 1 : state.campHabit === 'tea' ? 0
-        : smooth(3, 3.6, mod(t, 30)) * (1 - smooth(17, 17.6, mod(t, 30)));
+      const pipeK = lerp(firesidePipe(t), 1, pipeNow) * (1 - teaNow);
       const pc = mod(t, 6);
       puff = smooth(0, 0.6, pc) * (1 - smooth(2, 2.6, pc));
       exhaling = pipeK > 0.5 && pc > 2.4 && pc < 3.6;
       const hand = drawSitter(travG, t, pipeK, puff, sipK, lookK, wind, def.sprig);
       mugPos = pipeK < 0.5 ? hand : null;
+      if (sleep < 0.5) {
+        if (pipeNow === 0) available.add('campPipe');
+        if (teaNow === 0) available.add('campTea');
+      }
     } else {
       drawWalker(travG, state.phase, state.speed, t, wind, def.sprig, {
-        pipe: walkPipe, grass: grassStalk, lookUp: viewPause, drink, strap, hat: hatFix, stretch, packing, kickBack, kick,
+        pipe: walkPipe, grass: grassStalk, lookUp: viewPause, drink, strap, hat: hatFix, stretch, packing, kickBack, kick, gale: galeK,
       });
     }
 
@@ -3216,6 +3342,7 @@ export async function startPrototypeScene(host, options = {}) {
     // Hoarfrost is a cold blue-white that takes the light of the hour, never brighter than snow on the ridges.
     frostG.tint = mix(mul(0xeef4ff, P.light, Math.max(P.bright, 0.45) * 1.05), P.haze, 0.08);
     if (state.weather.frost) grassG.tint = mix(grassG.tint, 0x8a9a8c, 0.25);
+    drawGusts(t, P, groundY);
     drawPrecipitation(t, P, windK);
     const bolt = lightning(t);
     flash.visible = bolt > 0.01;
@@ -3246,7 +3373,6 @@ export async function startPrototypeScene(host, options = {}) {
     setBeard(length) { state.beard = clamp(length); },
     setDayLength(seconds) { state.dayLength = seconds; },
     setWalk(walk) { state.walk = walk; },
-    setCampHabit(habit) { state.campHabit = habit; },
     setWeather(weather) {
       const skyChanged = weather.sky !== state.weather.sky;
       state.weather = weather;

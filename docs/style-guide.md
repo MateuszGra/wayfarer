@@ -154,6 +154,7 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
   - Swing: the foot lifts with a sin² curve, so it lands softly with no stomping.
   - Body: the hip bobs about 1.6 units, slightly after foot contact. The lean is small (about 0.02–0.05 rad).
   - Arms: they swing opposite to the legs, and the far hand rests in a pocket. In a strong gust, the free hand holds the hat.
+  - In a gale he walks hunched against the weather: his body leans forward, his head is down, the free hand holds the hat the whole time rather than going up with each gust, and his steps are about a fifth shorter and quicker to match, so his pace stays the same and planted feet still never slide. He eases into this posture and out of it over about a second.
   - Backpack: it bounces slightly, a moment after the body.
   - Pauses: now and then (about every 80 seconds) he stops for a few seconds and raises his head to take in the view, then walks on.
   - Pipe on the road: some stretches he walks with the pipe in his teeth; a thin wisp rises from the bowl.
@@ -162,8 +163,8 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - **Morning:** at 06:36 he gets up and stretches once, for a few seconds, with both arms over his head and his head tipped back in a yawn. The stump is packed away with the tent. Until about 07:00 he packs up, bent forward with his hands busy low in front of him; then he stands ready and sets off at 07:12.
 - **Camp:**
   - He sits on a tall stump, knees up, with a soft breathing motion.
-  - For most of a 30-second cycle he smokes a pipe. Every 6 seconds he raises it to his mouth for about two seconds: the ember in the bowl glows, then he lowers the pipe and breathes out a little smoke. A thin wisp rises from the bowl the whole time.
-  - Otherwise he holds a steaming mug, sips now and then and sometimes looks up at the sky.
+  - For each 30-second stretch he picks at random between his pipe and a mug of tea, so the same can come twice or more in a row; when it changes he swaps over smoothly. With the pipe: every 6 seconds he raises it to his mouth for about two seconds: the ember in the bowl glows, then he lowers the pipe and breathes out a little smoke. A thin wisp rises from the bowl the whole time.
+  - With the tea he holds a steaming mug, sips now and then and sometimes looks up at the sky.
 - **Sleep:** late at night he fades into the tent and the tent glows from inside.
 
 ### Daily schedule
@@ -203,13 +204,16 @@ The dark cape is the mysterious silhouette. The light backpack and mat keep him 
 - Camp, sitting and sleeping each switch at a set hour, but the fade between them lasts about a second and a half of animation time, never game minutes, so at the real speed of the day nobody is left half transparent.
 
 - In frost (−1 °C and below) or whenever it snows it wears a rust knitted jumper over its whole body, with two cream stripes and a rolled collar. Only the legs, the tail and the head come out of it.
-- In a downpour, or in a thunderstorm's rain, it wears a yellow oilskin cape that hangs like a poncho to a straight hem, with a hood that has ears of its own (as big as the cat's) and a brim above the eyes, and little yellow wellingtons over the paws. Drizzle and ordinary rain don't bother it. In a freezing downpour the cape goes over the jumper.
+- In rain or a downpour it wears a yellow oilskin cape that hangs like a poncho to a straight hem, with a hood that has ears of its own (as big as the cat's) and a brim above the eyes, and little yellow wellingtons over the paws. Drizzle doesn't bother it, even in a storm. In freezing rain the cape goes over the jumper.
 
 ## 8b. Weather
 
 - The weather is layered, not drawn per case, and every biome gets the same layers: the **sky** (clear, partly cloudy, overcast, fog), what **falls** (none, drizzle, rain, downpour, snow, blizzard), a **storm**, the **wind** (calm, breeze, gale) and **frost**.
 - The weather changes the palette of the hour and never replaces it: a heavy sky greys and dims the light, hides the sun, moon and stars, and adds clouds. Day and night still follow the clock.
-- Wind speeds up the clouds and bends the grass, fire and smoke. Rain and snow fall in front of everything and slant with the wind.
+- Clouds follow the sky. Fair-weather cumulus floats high; an overcast sky is a deck of bigger, lower clouds; in fog the cloud comes down onto the hills. A heavy sky pulls the clouds towards rain grey, darker still in a storm, and the sun lights no cloud tops. The grey is multiplied into the hour's own cloud colour, so overcast clouds darken at night with the rest of the sky.
+- Fog weather sinks the land itself into the haze: the far layers most, but the near ones too, with thicker fog at the foot of each layer and denser mist bands. Heavy rain veils the distance more lightly, and rain a little.
+- Wind speeds up the clouds and bends the grass, fire and smoke. Rain and snow fall in front of everything and slant with the wind. Drizzle is a few short faint streaks; rain is dense; a downpour has twice as many streaks again, longer, bolder and thicker.
+- Gusts: in a gale one blows across every few seconds, in a breeze only now and then and faintly, in calm air never. It is drawn only by what the wind lifts there, never by lines of air: tumbling leaves, dust on the Meseta, sand by the Baltic, whirling flakes in snow. The bits fly low over the ground at different heights, most skimming it and fewer a little higher, rising and dipping with the land, the whole way from beyond the left edge to beyond the right (never fading in or out on screen). About half of them go once round a little loop near the middle of the screen, as wind is drawn in a cartoon; the rest fly flat. A loop is drawn by hand rather than with compasses: a little wide or tall, its edge swelling once. On the loop a bit slows, hangs a moment near its top and picks up again, without a jolt, while the loop drifts on with the wind. Bits keep the same speed through the scene on any screen, so on a narrow upright phone a gust crosses sooner than on a wide one. With reduced motion a gust crosses more slowly and its bits fly straight.
 - Frost sits on the tips of the grass blades and as a thin white crust along the ground; nearby meadows go a little grey and no flowers bloom.
 - Lightning is a short double flash over the whole picture, and is left out with reduced motion.
 
